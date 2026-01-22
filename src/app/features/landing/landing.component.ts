@@ -42,9 +42,9 @@ import { RouterModule } from '@angular/router';
                class="bg-blue-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-colors">
               Comenzar Prueba Gratis
             </a>
-            <button class="border border-gray-300 text-gray-700 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-50 transition-colors">
-              Ver Demo
-            </button>
+            <a routerLink="/auth/pricing" class="border border-gray-300 text-gray-700 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-50 transition-colors cursor-pointer">
+              Ver Planes
+            </a>
           </div>
         </div>
       </section>
@@ -137,4 +137,4 @@ import { RouterModule } from '@angular/router';
     </div>
   `
 })
-export class LandingComponent {}
+export class LandingComponent { }
