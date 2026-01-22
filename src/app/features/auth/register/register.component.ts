@@ -1,7 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { SupabaseService } from '../../../core/services/supabase.service';
 
 @Component({
@@ -132,7 +132,8 @@ export class RegisterComponent {
   constructor(
     private fb: FormBuilder,
     private supabaseService: SupabaseService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute
   ) {
     this.registerForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
@@ -144,7 +145,7 @@ export class RegisterComponent {
   passwordMatchValidator(form: FormGroup) {
     const password = form.get('password');
     const confirmPassword = form.get('confirmPassword');
-    
+
     if (password && confirmPassword && password.value !== confirmPassword.value) {
       return { passwordMismatch: true };
     }
@@ -164,8 +165,14 @@ export class RegisterComponent {
         if (error) {
           this.errorMessage.set(error.message);
         } else if (data.user) {
-          // Redirigir a selección de plan
-          this.router.navigate(['/auth/pricing']);
+
+          // Verificar si hay un plan seleccionado
+          const params = this.route.snapshot.queryParams;
+          if (params['plan']) {
+            this.router.navigate(['/auth/checkout'], { queryParams: params });
+          } else {
+            this.router.navigate(['/dashboard']);
+          }
         }
       } catch (error: any) {
         this.errorMessage.set('Error inesperado. Inténtalo de nuevo.');

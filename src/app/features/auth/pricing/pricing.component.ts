@@ -1,6 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { SupabaseService } from '../../../core/services/supabase.service';
 
 interface PricingPlan {
   id: 'freelance' | 'academia' | 'enterprise';
@@ -158,7 +159,10 @@ export class PricingComponent {
     }
   ];
 
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private supabaseService: SupabaseService
+  ) { }
 
   async selectPlan(plan: PricingPlan) {
     this.loading.set(true);
@@ -167,9 +171,19 @@ export class PricingComponent {
     // Simular procesamiento
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // Redirigir a checkout con el plan seleccionado
-    this.router.navigate(['/auth/checkout'], { 
-      queryParams: { plan: plan.id, price: plan.price } 
-    });
+    // Verificar si el usuario está autenticado
+    const user = await this.supabaseService.getCurrentUser();
+
+    if (user) {
+      // Si está autenticado, ir directo a checkout
+      this.router.navigate(['/auth/checkout'], {
+        queryParams: { plan: plan.id, price: plan.price }
+      });
+    } else {
+      // Si no está autenticado, ir a registro primero
+      this.router.navigate(['/auth/register'], {
+        queryParams: { plan: plan.id, price: plan.price }
+      });
+    }
   }
 }
