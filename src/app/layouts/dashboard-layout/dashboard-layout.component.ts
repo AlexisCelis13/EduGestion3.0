@@ -99,7 +99,7 @@ interface MenuItem {
                 @if (showProfileMenu()) {
                   <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
                     <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Mi Perfil</a>
-                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Configuración</a>
+                    <a routerLink="/dashboard/settings" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Configuración</a>
                     <div class="border-t border-gray-100"></div>
                     <button
                       (click)="logout()"
@@ -165,12 +165,12 @@ export class DashboardLayoutComponent {
     const user = await this.supabaseService.getCurrentUser();
     if (user) {
       this.userEmail.set(user.email || '');
-      
+
       const profile = await this.supabaseService.getProfile(user.id);
       if (profile) {
         const fullName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
         this.userName.set(fullName || user.email || 'Usuario');
-        
+
         // Generate initials
         const initials = fullName
           ? fullName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
