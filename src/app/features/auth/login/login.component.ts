@@ -82,6 +82,12 @@ import { SupabaseService } from '../../../core/services/supabase.service';
               </button>
             </div>
           </form>
+
+          <div class="mt-4 text-center">
+            <a routerLink="/auth/forgot-password" class="text-sm font-medium text-blue-600 hover:text-blue-500">
+              ¿Olvidaste tu contraseña?
+            </a>
+          </div>
         </div>
       </div>
     </div>

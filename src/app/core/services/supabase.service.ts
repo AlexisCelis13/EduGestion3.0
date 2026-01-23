@@ -51,7 +51,27 @@ export class SupabaseService {
   }
 
   // Auth Methods
+  async emailExists(email: string): Promise<boolean> {
+    const { data, error } = await this.supabase
+      .from('profiles')
+      .select('id')
+      .eq('email', email)
+      .maybeSingle();
+
+    // Si encontramos un registro, el email ya existe
+    return data !== null;
+  }
+
   async signUp(email: string, password: string) {
+    // Verificar si el email ya está registrado
+    const exists = await this.emailExists(email);
+    if (exists) {
+      return {
+        data: { user: null, session: null },
+        error: { message: 'Este correo electrónico ya está registrado', status: 400 } as any
+      };
+    }
+
     const { data, error } = await this.supabase.auth.signUp({
       email,
       password
@@ -70,6 +90,21 @@ export class SupabaseService {
   async signOut() {
     const { error } = await this.supabase.auth.signOut();
     return { error };
+  }
+
+  // Password Recovery Methods
+  async resetPasswordForEmail(email: string) {
+    const { data, error } = await this.supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/reset-password`
+    });
+    return { data, error };
+  }
+
+  async updatePassword(newPassword: string) {
+    const { data, error } = await this.supabase.auth.updateUser({
+      password: newPassword
+    });
+    return { data, error };
   }
 
   async getCurrentUser() {
