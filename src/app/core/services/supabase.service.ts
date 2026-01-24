@@ -261,4 +261,261 @@ export class SupabaseService {
 
     return { data, error };
   }
+
+  // ============================================
+  // SCHEDULE MANAGEMENT METHODS
+  // ============================================
+
+  // Availability Settings
+  async getAvailabilitySettings(userId: string) {
+    const { data, error } = await this.supabase
+      .from('availability_settings')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error fetching availability settings:', error);
+      return null;
+    }
+    return data;
+  }
+
+  async upsertAvailabilitySettings(settings: any) {
+    const { data, error } = await this.supabase
+      .from('availability_settings')
+      .upsert(settings, { onConflict: 'user_id' })
+      .select()
+      .single();
+
+    return { data, error };
+  }
+
+  // Weekly Schedule
+  async getWeeklySchedule(userId: string) {
+    const { data, error } = await this.supabase
+      .from('weekly_schedule')
+      .select('*')
+      .eq('user_id', userId)
+      .order('day_of_week', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching weekly schedule:', error);
+      return null;
+    }
+    return data;
+  }
+
+  async upsertWeeklySchedule(schedule: any) {
+    // Delete existing entry for this day and insert new one
+    await this.supabase
+      .from('weekly_schedule')
+      .delete()
+      .eq('user_id', schedule.user_id)
+      .eq('day_of_week', schedule.day_of_week);
+
+    const { data, error } = await this.supabase
+      .from('weekly_schedule')
+      .insert(schedule)
+      .select()
+      .single();
+
+    return { data, error };
+  }
+
+  // Date Overrides
+  async getDateOverrides(userId: string) {
+    const { data, error } = await this.supabase
+      .from('date_overrides')
+      .select('*')
+      .eq('user_id', userId)
+      .order('date', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching date overrides:', error);
+      return null;
+    }
+    return data;
+  }
+
+  async upsertDateOverride(override: any) {
+    // If it has an ID, update it; otherwise insert
+    if (override.id) {
+      const { data, error } = await this.supabase
+        .from('date_overrides')
+        .update(override)
+        .eq('id', override.id)
+        .select()
+        .single();
+      return { data, error };
+    }
+
+    const { data, error } = await this.supabase
+      .from('date_overrides')
+      .insert(override)
+      .select()
+      .single();
+
+    return { data, error };
+  }
+
+  async deleteDateOverride(overrideId: string) {
+    const { error } = await this.supabase
+      .from('date_overrides')
+      .delete()
+      .eq('id', overrideId);
+
+    return { error };
+  }
+
+  // Save multiple time blocks at once (clears existing and inserts new)
+  async saveTimeBlocks(userId: string, timeBlocks: any[]) {
+    // First, delete all existing time blocks for this user (those with start_time)
+    await this.supabase
+      .from('date_overrides')
+      .delete()
+      .eq('user_id', userId)
+      .not('start_time', 'is', null);
+
+    // If no new blocks to save, we're done
+    if (timeBlocks.length === 0) {
+      return { data: [], error: null };
+    }
+
+    // Insert all new time blocks
+    const { data, error } = await this.supabase
+      .from('date_overrides')
+      .insert(timeBlocks)
+      .select();
+
+    return { data, error };
+  }
+
+  // Appointments
+  async getAppointments(userId: string) {
+    const { data, error } = await this.supabase
+      .from('appointments')
+      .select('*')
+      .eq('user_id', userId)
+      .order('date', { ascending: true })
+      .order('start_time', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching appointments:', error);
+      return null;
+    }
+    return data;
+  }
+
+  async getAppointmentsByDate(userId: string, date: string) {
+    const { data, error } = await this.supabase
+      .from('appointments')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('date', date)
+      .neq('status', 'cancelled')
+      .order('start_time', { ascending: true });
+
+    return { data, error };
+  }
+
+  async createAppointment(appointment: any) {
+    const { data, error } = await this.supabase
+      .from('appointments')
+      .insert(appointment)
+      .select()
+      .single();
+
+    return { data, error };
+  }
+
+  async updateAppointmentStatus(appointmentId: string, status: string) {
+    const { data, error } = await this.supabase
+      .from('appointments')
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq('id', appointmentId)
+      .select()
+      .single();
+
+    return { data, error };
+  }
+
+  // Get available slots for a specific date (for booking)
+  async getAvailableSlotsForDate(tutorId: string, date: string) {
+    // Get tutor's availability settings
+    const settings = await this.getAvailabilitySettings(tutorId);
+    if (!settings) return [];
+
+    // Check if date has an override (blocked)
+    const { data: overrides } = await this.supabase
+      .from('date_overrides')
+      .select('*')
+      .eq('user_id', tutorId)
+      .eq('date', date)
+      .maybeSingle();
+
+    if (overrides && !overrides.is_available) {
+      return []; // Date is blocked
+    }
+
+    // Get day of week and weekly schedule
+    const dayOfWeek = new Date(date).getDay();
+    const { data: weeklySlot } = await this.supabase
+      .from('weekly_schedule')
+      .select('*')
+      .eq('user_id', tutorId)
+      .eq('day_of_week', dayOfWeek)
+      .eq('is_available', true)
+      .maybeSingle();
+
+    if (!weeklySlot) return []; // Day not available
+
+    // Get existing appointments for this date
+    const { data: appointments } = await this.getAppointmentsByDate(tutorId, date);
+    const bookedSlots = appointments || [];
+
+    // Generate available slots
+    const slots: { startTime: string; endTime: string }[] = [];
+    const slotDuration = settings.min_session_duration;
+
+    let currentTime = this.timeToMinutes(weeklySlot.start_time);
+    const endTime = this.timeToMinutes(weeklySlot.end_time);
+
+    while (currentTime + slotDuration <= endTime) {
+      const slotStart = this.minutesToTime(currentTime);
+      const slotEnd = this.minutesToTime(currentTime + slotDuration);
+
+      // Check if slot overlaps with any booked appointment
+      const isBooked = bookedSlots.some(apt =>
+        this.timesOverlap(slotStart, slotEnd, apt.start_time, apt.end_time)
+      );
+
+      if (!isBooked) {
+        slots.push({ startTime: slotStart, endTime: slotEnd });
+      }
+
+      currentTime += slotDuration;
+    }
+
+    return slots;
+  }
+
+  private timeToMinutes(time: string): number {
+    const [hours, minutes] = time.split(':').map(Number);
+    return hours * 60 + minutes;
+  }
+
+  private minutesToTime(minutes: number): string {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+  }
+
+  private timesOverlap(start1: string, end1: string, start2: string, end2: string): boolean {
+    const s1 = this.timeToMinutes(start1);
+    const e1 = this.timeToMinutes(end1);
+    const s2 = this.timeToMinutes(start2);
+    const e2 = this.timeToMinutes(end2);
+    return s1 < e2 && e1 > s2;
+  }
 }

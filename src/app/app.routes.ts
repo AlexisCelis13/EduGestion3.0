@@ -66,6 +66,14 @@ export const routes: Routes = [
         loadComponent: () => import('./features/services/services-list/services-list.component').then(m => m.ServicesListComponent)
       },
       {
+        path: 'schedule',
+        loadComponent: () => import('./features/schedule/schedule-settings/schedule-settings.component').then(m => m.ScheduleSettingsComponent)
+      },
+      {
+        path: 'schedule/calendar',
+        loadComponent: () => import('./features/schedule/schedule-calendar/schedule-calendar.component').then(m => m.ScheduleCalendarComponent)
+      },
+      {
         path: 'settings',
         loadComponent: () => import('./features/settings/settings.component').then(m => m.SettingsComponent)
       }
