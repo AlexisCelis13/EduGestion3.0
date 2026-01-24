@@ -9,57 +9,55 @@ import { SupabaseService } from '../../../core/services/supabase.service';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterModule],
   template: `
-    <div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div class="min-h-screen bg-gradient-to-br from-surface-50 via-primary-50/30 to-surface-100 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div class="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          Inicia sesión en EduGestión
+        <h1 class="text-2xl font-semibold text-surface-700 text-center mb-2">EduGestión</h1>
+        <h2 class="text-center text-title text-surface-700">
+          Iniciar Sesión
         </h2>
-        <p class="mt-2 text-center text-sm text-gray-600">
+        <p class="mt-3 text-center text-surface-400">
           ¿No tienes cuenta?
-          <a routerLink="/auth/register" class="font-medium text-blue-600 hover:text-blue-500">
+          <a routerLink="/auth/register" class="font-medium text-primary-600 hover:text-primary-500 ml-1">
             Regístrate gratis aquí
           </a>
         </p>
       </div>
 
       <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+        <div class="glass-card p-8 sm:p-10">
           <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="space-y-6">
             <div>
-              <label for="email" class="block text-sm font-medium text-gray-700">
+              <label for="email" class="block text-sm font-medium text-surface-700 mb-2">
                 Email
               </label>
-              <div class="mt-1">
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  formControlName="email"
-                  required
-                  class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="tu@email.com"
-                />
-              </div>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                formControlName="email"
+                required
+                class="input-premium"
+                placeholder="tu@email.com"
+              />
             </div>
 
             <div>
-              <label for="password" class="block text-sm font-medium text-gray-700">
+              <label for="password" class="block text-sm font-medium text-surface-700 mb-2">
                 Contraseña
               </label>
-              <div class="mt-1">
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  formControlName="password"
-                  required
-                  class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                />
-              </div>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                formControlName="password"
+                required
+                class="input-premium"
+                placeholder="••••••••"
+              />
             </div>
 
             @if (errorMessage()) {
-              <div class="bg-red-50 border border-red-200 rounded-md p-4">
+              <div class="bg-red-50 border border-red-100 rounded-xl p-4">
                 <p class="text-sm text-red-600">{{ errorMessage() }}</p>
               </div>
             }
@@ -68,7 +66,7 @@ import { SupabaseService } from '../../../core/services/supabase.service';
               <button
                 type="submit"
                 [disabled]="loginForm.invalid || loading()"
-                class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="btn-premium w-full flex justify-center items-center disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
                 @if (loading()) {
                   <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -83,8 +81,8 @@ import { SupabaseService } from '../../../core/services/supabase.service';
             </div>
           </form>
 
-          <div class="mt-4 text-center">
-            <a routerLink="/auth/forgot-password" class="text-sm font-medium text-blue-600 hover:text-blue-500">
+          <div class="mt-6 text-center">
+            <a routerLink="/auth/forgot-password" class="text-sm font-medium text-primary-600 hover:text-primary-500">
               ¿Olvidaste tu contraseña?
             </a>
           </div>

@@ -55,7 +55,7 @@ export class SupabaseService {
     const { data, error } = await this.supabase
       .from('profiles')
       .select('id')
-      .eq('email', email)
+      .eq('email', email.toLowerCase().trim())
       .maybeSingle();
 
     // Si encontramos un registro, el email ya existe
@@ -63,21 +63,47 @@ export class SupabaseService {
   }
 
   async signUp(email: string, password: string) {
-    // Verificar si el email ya está registrado
-    const exists = await this.emailExists(email);
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Primero verificar si el email ya está registrado en profiles
+    const exists = await this.emailExists(normalizedEmail);
     if (exists) {
       return {
         data: { user: null, session: null },
-        error: { message: 'Este correo electrónico ya está registrado', status: 400 } as any
+        error: { message: 'Este correo electrónico ya está registrado. Por favor inicia sesión.', status: 400 } as any
       };
     }
 
+    // Intentar crear el usuario
     const { data, error } = await this.supabase.auth.signUp({
-      email,
+      email: normalizedEmail,
       password
     });
+
+    // Si hay un error explícito, retornarlo
+    if (error) {
+      // Traducir mensaje de error común
+      if (error.message.includes('User already registered')) {
+        return {
+          data: { user: null, session: null },
+          error: { message: 'Este correo electrónico ya está registrado. Por favor inicia sesión.', status: 400 } as any
+        };
+      }
+      return { data, error };
+    }
+
+    // Supabase a veces devuelve un usuario "falso" para emails existentes (por seguridad)
+    // Verificar si el usuario tiene identities vacías - esto indica email ya registrado
+    if (data.user && data.user.identities && data.user.identities.length === 0) {
+      return {
+        data: { user: null, session: null },
+        error: { message: 'Este correo electrónico ya está registrado. Por favor inicia sesión.', status: 400 } as any
+      };
+    }
+
     return { data, error };
   }
+
 
   async signIn(email: string, password: string) {
     const { data, error } = await this.supabase.auth.signInWithPassword({

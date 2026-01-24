@@ -5,65 +5,66 @@ import { RouterModule } from '@angular/router';
 import { SupabaseService } from '../../../core/services/supabase.service';
 
 @Component({
-    selector: 'app-forgot-password',
-    standalone: true,
-    imports: [CommonModule, ReactiveFormsModule, RouterModule],
-    template: `
-    <div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+  selector: 'app-forgot-password',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  template: `
+    <div class="min-h-screen bg-gradient-to-br from-surface-50 via-primary-50/30 to-surface-100 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div class="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+        <h1 class="text-2xl font-semibold text-surface-700 text-center mb-2">EduGestión</h1>
+        <h2 class="text-center text-title text-surface-700">
           Recuperar Contraseña
         </h2>
-        <p class="mt-2 text-center text-sm text-gray-600">
+        <p class="mt-3 text-center text-surface-400">
           Te enviaremos un enlace para restablecer tu contraseña
         </p>
       </div>
 
       <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+        <div class="glass-card p-8 sm:p-10">
           @if (emailSent()) {
-            <div class="bg-green-50 border border-green-200 rounded-md p-4">
-              <div class="flex">
-                <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-                <div class="ml-3">
-                  <h3 class="text-sm font-medium text-green-800">¡Correo enviado!</h3>
-                  <p class="mt-2 text-sm text-green-700">
+            <div class="bg-accent-green/10 border border-accent-green/20 rounded-2xl p-5">
+              <div class="flex items-start gap-4">
+                <div class="w-10 h-10 rounded-full bg-accent-green/20 flex items-center justify-center shrink-0">
+                  <svg class="h-5 w-5 text-accent-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="text-base font-semibold text-surface-700">¡Correo enviado!</h3>
+                  <p class="mt-1 text-sm text-surface-500">
                     Revisa tu bandeja de entrada y sigue las instrucciones para restablecer tu contraseña.
                   </p>
                 </div>
               </div>
             </div>
             <div class="mt-6">
-              <a routerLink="/auth/login" class="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+              <a routerLink="/auth/login" class="btn-secondary w-full flex justify-center">
                 Volver al inicio de sesión
               </a>
             </div>
           } @else {
             <form [formGroup]="forgotForm" (ngSubmit)="onSubmit()" class="space-y-6">
               <div>
-                <label for="email" class="block text-sm font-medium text-gray-700">
+                <label for="email" class="block text-sm font-medium text-surface-700 mb-2">
                   Email
                 </label>
-                <div class="mt-1">
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    formControlName="email"
-                    required
-                    class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    placeholder="tu@email.com"
-                  />
-                </div>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  formControlName="email"
+                  required
+                  class="input-premium"
+                  placeholder="tu@email.com"
+                />
                 @if (forgotForm.get('email')?.invalid && forgotForm.get('email')?.touched) {
-                  <p class="mt-1 text-sm text-red-600">Ingresa un email válido</p>
+                  <p class="mt-2 text-sm text-red-500">Ingresa un email válido</p>
                 }
               </div>
 
               @if (errorMessage()) {
-                <div class="bg-red-50 border border-red-200 rounded-md p-4">
+                <div class="bg-red-50 border border-red-100 rounded-xl p-4">
                   <p class="text-sm text-red-600">{{ errorMessage() }}</p>
                 </div>
               }
@@ -72,7 +73,7 @@ import { SupabaseService } from '../../../core/services/supabase.service';
                 <button
                   type="submit"
                   [disabled]="forgotForm.invalid || loading()"
-                  class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  class="btn-premium w-full flex justify-center items-center disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 >
                   @if (loading()) {
                     <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -87,7 +88,7 @@ import { SupabaseService } from '../../../core/services/supabase.service';
               </div>
 
               <div class="text-center">
-                <a routerLink="/auth/login" class="text-sm font-medium text-blue-600 hover:text-blue-500">
+                <a routerLink="/auth/login" class="text-sm font-medium text-primary-600 hover:text-primary-500">
                   Volver al inicio de sesión
                 </a>
               </div>
@@ -99,40 +100,40 @@ import { SupabaseService } from '../../../core/services/supabase.service';
   `
 })
 export class ForgotPasswordComponent {
-    forgotForm: FormGroup;
-    loading = signal(false);
-    errorMessage = signal('');
-    emailSent = signal(false);
+  forgotForm: FormGroup;
+  loading = signal(false);
+  errorMessage = signal('');
+  emailSent = signal(false);
 
-    constructor(
-        private fb: FormBuilder,
-        private supabaseService: SupabaseService
-    ) {
-        this.forgotForm = this.fb.group({
-            email: ['', [Validators.required, Validators.email]]
-        });
-    }
+  constructor(
+    private fb: FormBuilder,
+    private supabaseService: SupabaseService
+  ) {
+    this.forgotForm = this.fb.group({
+      email: ['', [Validators.required, Validators.email]]
+    });
+  }
 
-    async onSubmit() {
-        if (this.forgotForm.valid) {
-            this.loading.set(true);
-            this.errorMessage.set('');
+  async onSubmit() {
+    if (this.forgotForm.valid) {
+      this.loading.set(true);
+      this.errorMessage.set('');
 
-            const { email } = this.forgotForm.value;
+      const { email } = this.forgotForm.value;
 
-            try {
-                const { error } = await this.supabaseService.resetPasswordForEmail(email);
+      try {
+        const { error } = await this.supabaseService.resetPasswordForEmail(email);
 
-                if (error) {
-                    this.errorMessage.set(error.message);
-                } else {
-                    this.emailSent.set(true);
-                }
-            } catch (error: any) {
-                this.errorMessage.set('Error inesperado. Inténtalo de nuevo.');
-            } finally {
-                this.loading.set(false);
-            }
+        if (error) {
+          this.errorMessage.set(error.message);
+        } else {
+          this.emailSent.set(true);
         }
+      } catch (error: any) {
+        this.errorMessage.set('Error inesperado. Inténtalo de nuevo.');
+      } finally {
+        this.loading.set(false);
+      }
     }
+  }
 }

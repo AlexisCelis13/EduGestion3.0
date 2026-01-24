@@ -17,19 +17,21 @@ interface PricingPlan {
   standalone: true,
   imports: [CommonModule, RouterModule],
   template: `
-    <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <!-- Header -->
-      <header class="bg-white shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div class="flex justify-between items-center py-6">
+    <div class="min-h-screen bg-surface-50">
+      <!-- Header with glassmorphism -->
+      <header class="fixed top-0 left-0 right-0 z-50 glass border-b border-white/20">
+        <div class="max-w-6xl mx-auto px-6 lg:px-8">
+          <div class="flex justify-between items-center h-16">
             <div class="flex items-center">
-              <h1 class="text-2xl font-bold text-gray-900">EduGestión</h1>
+              <h1 class="text-xl font-semibold text-surface-700 tracking-tight">EduGestión</h1>
             </div>
-            <div class="flex items-center space-x-4">
-              <a routerLink="/auth/login" class="text-gray-600 hover:text-gray-900">Iniciar Sesión</a>
-              <a routerLink="/auth/register" 
-                 class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                Comenzar Prueba Gratis
+            <div class="flex items-center gap-4">
+              <a routerLink="/auth/login" 
+                 class="text-surface-700 hover:text-primary-600 font-medium text-sm">
+                Iniciar Sesión
+              </a>
+              <a routerLink="/auth/register" class="btn-premium text-sm !py-2.5 !px-5">
+                Comenzar Gratis
               </a>
             </div>
           </div>
@@ -37,22 +39,21 @@ interface PricingPlan {
       </header>
 
       <!-- Hero Section -->
-      <section class="py-20">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 class="text-5xl font-bold text-gray-900 mb-6">
-            Gestiona tu Academia de Forma
-            <span class="text-blue-600">Inteligente</span>
+      <section class="pt-32 pb-24 lg:pt-40 lg:pb-32">
+        <div class="max-w-6xl mx-auto px-6 lg:px-8 text-center">
+          <h1 class="text-hero text-surface-700 mb-6 animate-fade-in-up">
+            Gestiona tu Academia
+            <span class="text-gradient block">de Forma Inteligente</span>
           </h1>
-          <p class="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+          <p class="text-subtitle text-surface-400 mb-10 max-w-2xl mx-auto animate-fade-in-up delay-100">
             La plataforma todo-en-uno para academias y tutores independientes. 
             Gestiona alumnos, programa clases, recibe pagos y crea tu landing page profesional.
           </p>
-          <div class="flex justify-center space-x-4">
-            <a routerLink="/auth/register" 
-               class="bg-blue-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-colors">
+          <div class="flex flex-col sm:flex-row justify-center gap-4 animate-fade-in-up delay-200">
+            <a routerLink="/auth/register" class="btn-premium text-lg !py-4 !px-8">
               Comenzar Prueba Gratis
             </a>
-            <button (click)="scrollToPlans()" class="border border-gray-300 text-gray-700 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-50 transition-colors cursor-pointer">
+            <button (click)="scrollToPlans()" class="btn-secondary text-lg !py-4 !px-8">
               Ver Planes
             </button>
           </div>
@@ -60,62 +61,60 @@ interface PricingPlan {
       </section>
 
       <!-- Pricing Section -->
-      <section id="pricing-section" class="py-20 bg-gray-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section id="pricing-section" class="py-24 lg:py-32">
+        <div class="max-w-6xl mx-auto px-6 lg:px-8">
           <!-- Header -->
-          <div class="text-center">
-            <h2 class="text-3xl font-extrabold text-gray-900 sm:text-4xl">
+          <div class="text-center mb-16">
+            <h2 class="text-title text-surface-700 mb-4">
               Elige el plan perfecto para ti
             </h2>
-            <p class="mt-4 text-lg text-gray-600">
+            <p class="text-subtitle text-surface-400">
               Comienza con 14 días gratis. Cancela cuando quieras.
             </p>
           </div>
 
           <!-- Pricing Cards -->
-          <div class="mt-12 space-y-4 sm:mt-16 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-6 lg:max-w-4xl lg:mx-auto xl:max-w-none xl:mx-0">
+          <div class="grid lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
             @for (plan of plans; track plan.id) {
-              <div class="border border-gray-200 rounded-lg shadow-sm divide-y divide-gray-200 bg-white"
+              <div class="card-premium p-8 hover-lift"
+                   [class.card-featured]="plan.popular"
                    [class.ring-2]="plan.popular"
-                   [class.ring-blue-500]="plan.popular">
-                <div class="p-6">
-                  @if (plan.popular) {
-                    <div class="flex justify-center">
-                      <span class="inline-flex px-4 py-1 rounded-full text-sm font-semibold tracking-wide uppercase bg-blue-100 text-blue-600">
-                        Más Popular
-                      </span>
-                    </div>
-                  }
-                  <h3 class="text-lg leading-6 font-medium text-gray-900 text-center mt-2">
-                    {{ plan.name }}
-                  </h3>
-                  <p class="mt-4 text-sm text-gray-500 text-center">
-                    {{ plan.description }}
-                  </p>
-                  <p class="mt-8 text-center">
-                    <span class="text-4xl font-extrabold text-gray-900">\${{ plan.price }}</span>
-                    <span class="text-base font-medium text-gray-500">/{{ plan.period }}</span>
-                  </p>
-                  <button
-                    (click)="selectPlan(plan)"
-                    [class]="plan.popular 
-                      ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                      : 'bg-white text-blue-600 border border-blue-600 hover:bg-blue-50'"
-                    class="mt-8 block w-full py-3 px-6 border border-transparent rounded-md text-center font-medium transition-colors">
-                    Seleccionar Plan
-                  </button>
-                </div>
-                <div class="pt-6 pb-8 px-6">
-                  <h4 class="text-sm font-medium text-gray-900 tracking-wide uppercase">
+                   [class.ring-primary-500]="plan.popular">
+                @if (plan.popular) {
+                  <div class="flex justify-center -mt-4 mb-4">
+                    <span class="badge-premium">
+                      Más Popular
+                    </span>
+                  </div>
+                }
+                <h3 class="text-xl font-semibold text-surface-700 text-center">
+                  {{ plan.name }}
+                </h3>
+                <p class="mt-3 text-sm text-surface-400 text-center min-h-[40px]">
+                  {{ plan.description }}
+                </p>
+                <p class="mt-6 text-center">
+                  <span class="text-5xl font-semibold text-surface-700 tracking-tight">\${{ plan.price }}</span>
+                  <span class="text-surface-400 ml-1">/{{ plan.period }}</span>
+                </p>
+                <button
+                  (click)="selectPlan(plan)"
+                  [class]="plan.popular 
+                    ? 'btn-premium w-full mt-8' 
+                    : 'btn-secondary w-full mt-8 border border-surface-200'">
+                  Seleccionar Plan
+                </button>
+                <div class="mt-8 pt-8 border-t border-surface-100">
+                  <h4 class="text-xs font-semibold text-surface-400 uppercase tracking-wider mb-4">
                     Incluye:
                   </h4>
-                  <ul class="mt-6 space-y-4">
+                  <ul class="space-y-3">
                     @for (feature of plan.features; track feature) {
-                      <li class="flex space-x-3">
-                        <svg class="flex-shrink-0 h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                      <li class="flex items-start gap-3">
+                        <svg class="flex-shrink-0 w-5 h-5 text-accent-green mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="20 6 9 17 4 12"></polyline>
                         </svg>
-                        <span class="text-sm text-gray-500">{{ feature }}</span>
+                        <span class="text-sm text-surface-500">{{ feature }}</span>
                       </li>
                     }
                   </ul>
@@ -125,65 +124,86 @@ interface PricingPlan {
           </div>
 
           <!-- Trust Indicators -->
-          <div class="mt-12 text-center">
-            <p class="text-sm text-gray-500">
-              🔒 Pago seguro con Stripe • 📞 Soporte 24/7 • 💰 Garantía de 30 días
-            </p>
+          <div class="mt-16 flex flex-wrap justify-center gap-8 text-sm text-surface-400">
+            <div class="flex items-center gap-2">
+              <svg class="w-5 h-5 text-surface-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+              <span>Pago seguro con Stripe</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <svg class="w-5 h-5 text-surface-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+              </svg>
+              <span>Soporte 24/7</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <svg class="w-5 h-5 text-surface-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                <path d="m9 12 2 2 4-4"></path>
+              </svg>
+              <span>Garantía de 30 días</span>
+            </div>
           </div>
         </div>
       </section>
 
       <!-- Features Section -->
-      <section class="py-20 bg-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section class="py-24 lg:py-32 bg-white">
+        <div class="max-w-6xl mx-auto px-6 lg:px-8">
           <div class="text-center mb-16">
-            <h2 class="text-3xl font-bold text-gray-900 mb-4">
+            <h2 class="text-title text-surface-700 mb-4">
               Todo lo que necesitas para hacer crecer tu academia
             </h2>
-            <p class="text-lg text-gray-600">
+            <p class="text-subtitle text-surface-400 max-w-2xl mx-auto">
               Herramientas profesionales diseñadas específicamente para educadores
             </p>
           </div>
 
-          <div class="grid md:grid-cols-3 gap-8">
+          <div class="grid md:grid-cols-3 gap-8 lg:gap-12">
             <!-- Feature 1 -->
-            <div class="text-center p-6">
-              <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+            <div class="card-premium p-8 text-center hover-lift">
+              <div class="w-16 h-16 bg-primary-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <svg class="w-8 h-8 text-primary-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                 </svg>
               </div>
-              <h3 class="text-xl font-semibold text-gray-900 mb-2">Gestión de Alumnos</h3>
-              <p class="text-gray-600">
+              <h3 class="text-xl font-semibold text-surface-700 mb-3">Gestión de Alumnos</h3>
+              <p class="text-surface-400 leading-relaxed">
                 Organiza toda la información de tus estudiantes, historial académico y comunicación con padres.
               </p>
             </div>
 
             <!-- Feature 2 -->
-            <div class="text-center p-6">
-              <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+            <div class="card-premium p-8 text-center hover-lift">
+              <div class="w-16 h-16 bg-accent-green/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <svg class="w-8 h-8 text-accent-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path>
+                  <path d="M12 18V6"></path>
                 </svg>
               </div>
-              <h3 class="text-xl font-semibold text-gray-900 mb-2">Cobros Automáticos</h3>
-              <p class="text-gray-600">
+              <h3 class="text-xl font-semibold text-surface-700 mb-3">Cobros Automáticos</h3>
+              <p class="text-surface-400 leading-relaxed">
                 Recibe pagos de forma segura con Stripe. Facturas automáticas y recordatorios de pago.
               </p>
             </div>
 
             <!-- Feature 3 -->
-            <div class="text-center p-6">
-              <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                        d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9"></path>
+            <div class="card-premium p-8 text-center hover-lift">
+              <div class="w-16 h-16 bg-accent-indigo/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <svg class="w-8 h-8 text-accent-indigo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="2" y1="12" x2="22" y2="12"></line>
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
                 </svg>
               </div>
-              <h3 class="text-xl font-semibold text-gray-900 mb-2">Landing Page Propia</h3>
-              <p class="text-gray-600">
+              <h3 class="text-xl font-semibold text-surface-700 mb-3">Landing Page Propia</h3>
+              <p class="text-surface-400 leading-relaxed">
                 Crea tu página web profesional donde los alumnos pueden conocerte y agendar citas.
               </p>
             </div>
@@ -192,27 +212,27 @@ interface PricingPlan {
       </section>
 
       <!-- CTA Section -->
-      <section class="py-20 bg-blue-600">
-        <div class="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-          <h2 class="text-3xl font-bold text-white mb-4">
+      <section class="py-24 lg:py-32 bg-gradient-to-br from-primary-600 to-primary-700">
+        <div class="max-w-4xl mx-auto text-center px-6 lg:px-8">
+          <h2 class="text-display text-white mb-6">
             ¿Listo para transformar tu academia?
           </h2>
-          <p class="text-xl text-blue-100 mb-8">
+          <p class="text-xl text-white/80 mb-10 max-w-2xl mx-auto">
             Únete a cientos de educadores que ya confían en EduGestión
           </p>
           <a routerLink="/auth/register" 
-             class="bg-white text-blue-600 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-100 transition-colors">
-            Comenzar Prueba Gratis - 14 días
+             class="inline-block bg-white text-primary-600 px-10 py-4 rounded-full text-lg font-semibold hover:bg-surface-100 hover:scale-105 transition-all shadow-lg">
+            Comenzar Prueba Gratis — 14 días
           </a>
         </div>
       </section>
 
       <!-- Footer -->
-      <footer class="bg-gray-900 text-white py-12">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <footer class="bg-surface-700 text-white py-16">
+        <div class="max-w-6xl mx-auto px-6 lg:px-8">
           <div class="text-center">
-            <h3 class="text-2xl font-bold mb-4">EduGestión</h3>
-            <p class="text-gray-400">
+            <h3 class="text-2xl font-semibold mb-4">EduGestión</h3>
+            <p class="text-surface-300 text-sm">
               © 2024 EduGestión. Todos los derechos reservados.
             </p>
           </div>

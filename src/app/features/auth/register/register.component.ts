@@ -9,83 +9,79 @@ import { SupabaseService } from '../../../core/services/supabase.service';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterModule],
   template: `
-    <div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div class="min-h-screen bg-gradient-to-br from-surface-50 via-primary-50/30 to-surface-100 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div class="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          Crea tu cuenta en EduGestión
+        <h1 class="text-2xl font-semibold text-surface-700 text-center mb-2">EduGestión</h1>
+        <h2 class="text-center text-title text-surface-700">
+          Crear Cuenta
         </h2>
-        <p class="mt-2 text-center text-sm text-gray-600">
+        <p class="mt-3 text-center text-surface-400">
           ¿Ya tienes cuenta?
-          <a routerLink="/auth/login" class="font-medium text-blue-600 hover:text-blue-500">
+          <a routerLink="/auth/login" class="font-medium text-primary-600 hover:text-primary-500 ml-1">
             Inicia sesión aquí
           </a>
         </p>
       </div>
 
       <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="space-y-6">
+        <div class="glass-card p-8 sm:p-10">
+          <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="space-y-5">
             <div>
-              <label for="email" class="block text-sm font-medium text-gray-700">
+              <label for="email" class="block text-sm font-medium text-surface-700 mb-2">
                 Email
               </label>
-              <div class="mt-1">
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  formControlName="email"
-                  required
-                  class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="tu@email.com"
-                />
-              </div>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                formControlName="email"
+                required
+                class="input-premium"
+                placeholder="tu@email.com"
+              />
               @if (registerForm.get('email')?.invalid && registerForm.get('email')?.touched) {
-                <p class="mt-1 text-sm text-red-600">Email es requerido y debe ser válido</p>
+                <p class="mt-2 text-sm text-red-500">Email es requerido y debe ser válido</p>
               }
             </div>
 
             <div>
-              <label for="password" class="block text-sm font-medium text-gray-700">
+              <label for="password" class="block text-sm font-medium text-surface-700 mb-2">
                 Contraseña
               </label>
-              <div class="mt-1">
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  formControlName="password"
-                  required
-                  class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="Mínimo 6 caracteres"
-                />
-              </div>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                formControlName="password"
+                required
+                class="input-premium"
+                placeholder="Mínimo 6 caracteres"
+              />
               @if (registerForm.get('password')?.invalid && registerForm.get('password')?.touched) {
-                <p class="mt-1 text-sm text-red-600">La contraseña debe tener al menos 6 caracteres</p>
+                <p class="mt-2 text-sm text-red-500">La contraseña debe tener al menos 6 caracteres</p>
               }
             </div>
 
             <div>
-              <label for="confirmPassword" class="block text-sm font-medium text-gray-700">
+              <label for="confirmPassword" class="block text-sm font-medium text-surface-700 mb-2">
                 Confirmar Contraseña
               </label>
-              <div class="mt-1">
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  formControlName="confirmPassword"
-                  required
-                  class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                />
-              </div>
+              <input
+                id="confirmPassword"
+                name="confirmPassword"
+                type="password"
+                formControlName="confirmPassword"
+                required
+                class="input-premium"
+                placeholder="Repite la contraseña"
+              />
               @if (registerForm.hasError('passwordMismatch') && registerForm.get('confirmPassword')?.touched) {
-                <p class="mt-1 text-sm text-red-600">Las contraseñas no coinciden</p>
+                <p class="mt-2 text-sm text-red-500">Las contraseñas no coinciden</p>
               }
             </div>
 
             @if (errorMessage()) {
-              <div class="bg-red-50 border border-red-200 rounded-md p-4">
+              <div class="bg-red-50 border border-red-100 rounded-xl p-4">
                 <p class="text-sm text-red-600">{{ errorMessage() }}</p>
               </div>
             }
@@ -94,7 +90,7 @@ import { SupabaseService } from '../../../core/services/supabase.service';
               <button
                 type="submit"
                 [disabled]="registerForm.invalid || loading()"
-                class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="btn-premium w-full flex justify-center items-center disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
                 @if (loading()) {
                   <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -109,15 +105,10 @@ import { SupabaseService } from '../../../core/services/supabase.service';
             </div>
           </form>
 
-          <div class="mt-6">
-            <div class="relative">
-              <div class="absolute inset-0 flex items-center">
-                <div class="w-full border-t border-gray-300"></div>
-              </div>
-              <div class="relative flex justify-center text-sm">
-                <span class="px-2 bg-white text-gray-500">Prueba gratis por 14 días</span>
-              </div>
-            </div>
+          <div class="mt-6 pt-6 border-t border-surface-100">
+            <p class="text-center text-sm text-surface-400">
+              Prueba gratis por 14 días
+            </p>
           </div>
         </div>
       </div>
