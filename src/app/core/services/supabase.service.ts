@@ -370,12 +370,15 @@ export class SupabaseService {
 
   // Save multiple time blocks at once (clears existing and inserts new)
   async saveTimeBlocks(userId: string, timeBlocks: any[]) {
-    // First, delete all existing time blocks for this user (those with start_time)
-    await this.supabase
+    // First, delete ALL existing time blocks/overrides for this user
+    const deleteResult = await this.supabase
       .from('date_overrides')
       .delete()
-      .eq('user_id', userId)
-      .not('start_time', 'is', null);
+      .eq('user_id', userId);
+
+    if (deleteResult.error) {
+      console.error('Error deleting time blocks:', deleteResult.error);
+    }
 
     // If no new blocks to save, we're done
     if (timeBlocks.length === 0) {
@@ -387,6 +390,10 @@ export class SupabaseService {
       .from('date_overrides')
       .insert(timeBlocks)
       .select();
+
+    if (error) {
+      console.error('Error inserting time blocks:', error);
+    }
 
     return { data, error };
   }

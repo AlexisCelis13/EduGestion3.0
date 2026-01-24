@@ -17,8 +17,11 @@ interface TimeBlock {
   endTime: string;
   reason: string;
   isRecurring: boolean;
-  dayOfWeek?: number;
+  daysOfWeek: number[];
   specificDate?: string;
+  endType: 'never' | 'weeks' | 'date';
+  endWeeks?: number;
+  endDate?: string;
 }
 
 @Component({
@@ -46,21 +49,13 @@ interface TimeBlock {
                 <label class="block text-sm font-medium text-surface-700 mb-2">
                   Inicio del día laboral
                 </label>
-                <input
-                  type="time"
-                  formControlName="dayStartTime"
-                  class="input-premium"
-                />
+                <input type="time" formControlName="dayStartTime" class="input-premium" />
               </div>
               <div>
                 <label class="block text-sm font-medium text-surface-700 mb-2">
                   Fin del día laboral
                 </label>
-                <input
-                  type="time"
-                  formControlName="dayEndTime"
-                  class="input-premium"
-                />
+                <input type="time" formControlName="dayEndTime" class="input-premium" />
               </div>
             </div>
 
@@ -132,9 +127,7 @@ interface TimeBlock {
                     />
                   </div>
                 } @else {
-                  <div class="flex-1 text-sm text-surface-400">
-                    No disponible
-                  </div>
+                  <div class="flex-1 text-sm text-surface-400">No disponible</div>
                 }
               </div>
             }
@@ -147,7 +140,7 @@ interface TimeBlock {
             (click)="showAdvancedOptions = !showAdvancedOptions"
             class="flex items-center justify-between w-full text-left">
             <div>
-              <h2 class="text-lg font-semibold text-surface-700">Opciones Avanzadas</h2>
+              <h2 class="text-lg font-semibold text-surface-700">Bloqueos de Tiempo</h2>
               <p class="text-sm text-surface-400 mt-1">
                 Bloquea intervalos específicos dentro de tu horario laboral
               </p>
@@ -155,7 +148,7 @@ interface TimeBlock {
             <svg 
               class="w-5 h-5 text-surface-400 transition-transform duration-200"
               [class.rotate-180]="showAdvancedOptions"
-              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="6 9 12 15 18 9"></polyline>
             </svg>
           </button>
@@ -163,11 +156,11 @@ interface TimeBlock {
           @if (showAdvancedOptions) {
             <div class="mt-6 pt-6 border-t border-surface-100 animate-fade-in">
               <div class="flex items-center justify-between mb-4">
-                <h3 class="text-sm font-medium text-surface-700">Bloqueos de Tiempo</h3>
+                <span class="text-sm text-surface-500">{{ timeBlocks.length }} bloqueo(s) configurado(s)</span>
                 <button 
                   (click)="addTimeBlock()"
                   class="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">
-                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="12" y1="5" x2="12" y2="19"></line>
                     <line x1="5" y1="12" x2="19" y2="12"></line>
                   </svg>
@@ -177,7 +170,7 @@ interface TimeBlock {
 
               @if (timeBlocks.length === 0) {
                 <div class="text-center py-8 text-surface-400 bg-surface-50 rounded-xl">
-                  <svg class="w-12 h-12 mx-auto mb-3 text-surface-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <svg class="w-12 h-12 mx-auto mb-3 text-surface-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                     <circle cx="12" cy="12" r="10"></circle>
                     <polyline points="12 6 12 12 16 14"></polyline>
                   </svg>
@@ -185,32 +178,37 @@ interface TimeBlock {
                   <p class="text-xs mt-1">Agrega intervalos donde no puedas atender citas</p>
                 </div>
               } @else {
-                <div class="space-y-3">
-                  @for (block of timeBlocks; track $index) {
-                    <div class="p-4 rounded-xl border border-surface-100 hover:border-surface-200 transition-colors">
+                <div class="space-y-4">
+                  @for (block of timeBlocks; track block; let i = $index) {
+                    <div class="p-5 rounded-xl border border-surface-100 hover:border-surface-200 transition-colors bg-white">
                       <div class="flex items-start justify-between gap-4">
-                        <div class="flex-1 space-y-3">
+                        <div class="flex-1 space-y-4">
                           <!-- Time Range -->
-                          <div class="flex items-center gap-2">
-                            <input
-                              type="time"
-                              [(ngModel)]="block.startTime"
-                              class="input-premium !py-2 !text-sm w-32"
-                            />
-                            <span class="text-surface-400">a</span>
-                            <input
-                              type="time"
-                              [(ngModel)]="block.endTime"
-                              class="input-premium !py-2 !text-sm w-32"
-                            />
+                          <div class="flex flex-wrap items-center gap-3">
+                            <div class="flex items-center gap-2">
+                              <span class="text-sm text-surface-500">De</span>
+                              <input
+                                type="time"
+                                [(ngModel)]="block.startTime"
+                                class="input-premium !py-2 !text-sm"
+                              />
+                            </div>
+                            <div class="flex items-center gap-2">
+                              <span class="text-sm text-surface-500">a</span>
+                              <input
+                                type="time"
+                                [(ngModel)]="block.endTime"
+                                class="input-premium !py-2 !text-sm"
+                              />
+                            </div>
                           </div>
                           
                           <!-- Reason -->
                           <input
                             type="text"
                             [(ngModel)]="block.reason"
-                            placeholder="Razón (ej: Cita médica, almuerzo...)"
-                            class="input-premium !py-2 !text-sm"
+                            placeholder="Razón (ej: Reunión, almuerzo, cita médica...)"
+                            class="input-premium !py-2 !text-sm w-full"
                           />
 
                           <!-- Type Selection -->
@@ -218,17 +216,17 @@ interface TimeBlock {
                             <label class="flex items-center gap-2 cursor-pointer">
                               <input 
                                 type="radio" 
-                                [name]="'blockType' + $index"
+                                [name]="'blockType' + i"
                                 [checked]="block.isRecurring"
                                 (change)="block.isRecurring = true"
                                 class="w-4 h-4 text-primary-600"
                               />
-                              <span class="text-sm text-surface-600">Recurrente (cada semana)</span>
+                              <span class="text-sm text-surface-600">Se repite cada semana</span>
                             </label>
                             <label class="flex items-center gap-2 cursor-pointer">
                               <input 
                                 type="radio" 
-                                [name]="'blockType' + $index"
+                                [name]="'blockType' + i"
                                 [checked]="!block.isRecurring"
                                 (change)="block.isRecurring = false"
                                 class="w-4 h-4 text-primary-600"
@@ -237,31 +235,157 @@ interface TimeBlock {
                             </label>
                           </div>
 
-                          <!-- Day or Date Selection -->
+                          <!-- Day Selection or Date Picker -->
                           @if (block.isRecurring) {
-                            <select [(ngModel)]="block.dayOfWeek" class="input-premium !py-2 !text-sm">
-                              <option [value]="1">Lunes</option>
-                              <option [value]="2">Martes</option>
-                              <option [value]="3">Miércoles</option>
-                              <option [value]="4">Jueves</option>
-                              <option [value]="5">Viernes</option>
-                              <option [value]="6">Sábado</option>
-                              <option [value]="0">Domingo</option>
-                            </select>
+                            <div class="space-y-3">
+                              <!-- Multi-day Selection -->
+                              <div>
+                                <label class="block text-sm font-medium text-surface-600 mb-2">Repetir cada semana en:</label>
+                                <div class="flex gap-1.5">
+                                  <button
+                                    type="button"
+                                    (click)="toggleDayInBlock(i, 0)"
+                                    class="w-10 h-10 rounded-lg text-sm font-medium transition-all duration-150"
+                                    [class.bg-primary-600]="isDaySelected(block, 0)"
+                                    [class.text-white]="isDaySelected(block, 0)"
+                                    [class.bg-surface-100]="!isDaySelected(block, 0)"
+                                    [class.text-surface-600]="!isDaySelected(block, 0)">
+                                    D
+                                  </button>
+                                  <button
+                                    type="button"
+                                    (click)="toggleDayInBlock(i, 1)"
+                                    class="w-10 h-10 rounded-lg text-sm font-medium transition-all duration-150"
+                                    [class.bg-primary-600]="isDaySelected(block, 1)"
+                                    [class.text-white]="isDaySelected(block, 1)"
+                                    [class.bg-surface-100]="!isDaySelected(block, 1)"
+                                    [class.text-surface-600]="!isDaySelected(block, 1)">
+                                    L
+                                  </button>
+                                  <button
+                                    type="button"
+                                    (click)="toggleDayInBlock(i, 2)"
+                                    class="w-10 h-10 rounded-lg text-sm font-medium transition-all duration-150"
+                                    [class.bg-primary-600]="isDaySelected(block, 2)"
+                                    [class.text-white]="isDaySelected(block, 2)"
+                                    [class.bg-surface-100]="!isDaySelected(block, 2)"
+                                    [class.text-surface-600]="!isDaySelected(block, 2)">
+                                    M
+                                  </button>
+                                  <button
+                                    type="button"
+                                    (click)="toggleDayInBlock(i, 3)"
+                                    class="w-10 h-10 rounded-lg text-sm font-medium transition-all duration-150"
+                                    [class.bg-primary-600]="isDaySelected(block, 3)"
+                                    [class.text-white]="isDaySelected(block, 3)"
+                                    [class.bg-surface-100]="!isDaySelected(block, 3)"
+                                    [class.text-surface-600]="!isDaySelected(block, 3)">
+                                    X
+                                  </button>
+                                  <button
+                                    type="button"
+                                    (click)="toggleDayInBlock(i, 4)"
+                                    class="w-10 h-10 rounded-lg text-sm font-medium transition-all duration-150"
+                                    [class.bg-primary-600]="isDaySelected(block, 4)"
+                                    [class.text-white]="isDaySelected(block, 4)"
+                                    [class.bg-surface-100]="!isDaySelected(block, 4)"
+                                    [class.text-surface-600]="!isDaySelected(block, 4)">
+                                    J
+                                  </button>
+                                  <button
+                                    type="button"
+                                    (click)="toggleDayInBlock(i, 5)"
+                                    class="w-10 h-10 rounded-lg text-sm font-medium transition-all duration-150"
+                                    [class.bg-primary-600]="isDaySelected(block, 5)"
+                                    [class.text-white]="isDaySelected(block, 5)"
+                                    [class.bg-surface-100]="!isDaySelected(block, 5)"
+                                    [class.text-surface-600]="!isDaySelected(block, 5)">
+                                    V
+                                  </button>
+                                  <button
+                                    type="button"
+                                    (click)="toggleDayInBlock(i, 6)"
+                                    class="w-10 h-10 rounded-lg text-sm font-medium transition-all duration-150"
+                                    [class.bg-primary-600]="isDaySelected(block, 6)"
+                                    [class.text-white]="isDaySelected(block, 6)"
+                                    [class.bg-surface-100]="!isDaySelected(block, 6)"
+                                    [class.text-surface-600]="!isDaySelected(block, 6)">
+                                    S
+                                  </button>
+                                </div>
+                              </div>
+
+                              <!-- End Options -->
+                              <div class="space-y-2">
+                                <label class="block text-sm font-medium text-surface-600">Termina en:</label>
+                                <div class="flex flex-wrap items-center gap-3">
+                                  <label class="flex items-center gap-2 cursor-pointer">
+                                    <input 
+                                      type="radio" 
+                                      [name]="'endType' + i"
+                                      [checked]="block.endType === 'never'"
+                                      (change)="setEndType(i, 'never')"
+                                      class="w-4 h-4 text-primary-600"
+                                    />
+                                    <span class="text-sm text-surface-600">Nunca</span>
+                                  </label>
+                                  <label class="flex items-center gap-2 cursor-pointer">
+                                    <input 
+                                      type="radio" 
+                                      [name]="'endType' + i"
+                                      [checked]="block.endType === 'weeks'"
+                                      (change)="setEndType(i, 'weeks')"
+                                      class="w-4 h-4 text-primary-600"
+                                    />
+                                    <span class="text-sm text-surface-600">Después de</span>
+                                  </label>
+                                  @if (block.endType === 'weeks') {
+                                    <select 
+                                      [(ngModel)]="block.endWeeks"
+                                      class="input-premium !py-1.5 !text-sm !w-20">
+                                      @for (w of weekOptions; track w) {
+                                        <option [value]="w">{{ w }}</option>
+                                      }
+                                    </select>
+                                    <span class="text-sm text-surface-600">semanas</span>
+                                  }
+                                  <label class="flex items-center gap-2 cursor-pointer">
+                                    <input 
+                                      type="radio" 
+                                      [name]="'endType' + i"
+                                      [checked]="block.endType === 'date'"
+                                      (change)="setEndType(i, 'date')"
+                                      class="w-4 h-4 text-primary-600"
+                                    />
+                                    <span class="text-sm text-surface-600">Fecha</span>
+                                  </label>
+                                  @if (block.endType === 'date') {
+                                    <input
+                                      type="date"
+                                      [(ngModel)]="block.endDate"
+                                      class="input-premium !py-1.5 !text-sm !w-40"
+                                    />
+                                  }
+                                </div>
+                              </div>
+                            </div>
                           } @else {
-                            <input
-                              type="date"
-                              [(ngModel)]="block.specificDate"
-                              class="input-premium !py-2 !text-sm"
-                            />
+                            <div>
+                              <label class="block text-sm font-medium text-surface-600 mb-2">Fecha:</label>
+                              <input
+                                type="date"
+                                [(ngModel)]="block.specificDate"
+                                class="input-premium !py-2 !text-sm !w-44"
+                              />
+                            </div>
                           }
                         </div>
 
                         <!-- Delete Button -->
                         <button 
-                          (click)="removeTimeBlock($index)"
+                          (click)="removeTimeBlock(i)"
                           class="p-2 text-surface-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="3 6 5 6 21 6"></polyline>
                             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                           </svg>
@@ -315,6 +439,10 @@ export class ScheduleSettingsComponent implements OnInit {
   errorMessage = signal('');
   showAdvancedOptions = false;
 
+  hours12 = ['12', '01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11'];
+  minutes = ['00', '15', '30', '45'];
+  weekOptions = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12];
+
   weeklySlots: WeeklySlot[] = [
     { dayOfWeek: 1, dayName: 'Lunes', isEnabled: true, startTime: '09:00', endTime: '18:00' },
     { dayOfWeek: 2, dayName: 'Martes', isEnabled: true, startTime: '09:00', endTime: '18:00' },
@@ -343,11 +471,68 @@ export class ScheduleSettingsComponent implements OnInit {
     await this.loadSettings();
   }
 
+  // Time conversion helpers
+  getHour12(time24: string): string {
+    const [h] = time24.split(':');
+    let hour = parseInt(h, 10);
+    if (hour === 0) hour = 12;
+    else if (hour > 12) hour -= 12;
+    return hour.toString().padStart(2, '0');
+  }
+
+  getMinute(time24: string): string {
+    const [, m] = time24.split(':');
+    return m || '00';
+  }
+
+  getAmPm(time24: string): string {
+    const [h] = time24.split(':');
+    return parseInt(h, 10) >= 12 ? 'PM' : 'AM';
+  }
+
+  setTime(blockIndex: number, field: 'start' | 'end', part: 'hour' | 'minute' | 'ampm', value: string) {
+    const block = this.timeBlocks[blockIndex];
+    const currentTime = field === 'start' ? block.startTime : block.endTime;
+    const [currentH, currentM] = currentTime.split(':');
+
+    let hour = parseInt(currentH, 10);
+    let minute = currentM || '00';
+    let isPm = hour >= 12;
+
+    if (part === 'hour') {
+      const newHour = parseInt(value, 10);
+      if (isPm) {
+        hour = newHour === 12 ? 12 : newHour + 12;
+      } else {
+        hour = newHour === 12 ? 0 : newHour;
+      }
+    } else if (part === 'minute') {
+      minute = value;
+    } else if (part === 'ampm') {
+      const hour12 = hour % 12 || 12;
+      if (value === 'PM') {
+        hour = hour12 === 12 ? 12 : hour12 + 12;
+      } else {
+        hour = hour12 === 12 ? 0 : hour12;
+      }
+    }
+
+    const newTime = `${hour.toString().padStart(2, '0')}:${minute}`;
+    if (field === 'start') {
+      block.startTime = newTime;
+    } else {
+      block.endTime = newTime;
+    }
+  }
+
+  isDaySelected(block: TimeBlock, day: number): boolean {
+    return block.daysOfWeek.includes(day);
+  }
+
   async loadSettings() {
     const user = await this.supabaseService.getCurrentUser();
     if (!user) return;
 
-    // Load availability settings
     const settings = await this.supabaseService.getAvailabilitySettings(user.id);
     if (settings) {
       this.settingsForm.patchValue({
@@ -358,7 +543,6 @@ export class ScheduleSettingsComponent implements OnInit {
       });
     }
 
-    // Load weekly schedule
     const weeklySchedule = await this.supabaseService.getWeeklySchedule(user.id);
     if (weeklySchedule && weeklySchedule.length > 0) {
       this.weeklySlots = this.weeklySlots.map(slot => {
@@ -375,7 +559,6 @@ export class ScheduleSettingsComponent implements OnInit {
       });
     }
 
-    // Load time blocks (date overrides with specific times)
     const dateOverrides = await this.supabaseService.getDateOverrides(user.id);
     if (dateOverrides && dateOverrides.length > 0) {
       this.timeBlocks = dateOverrides
@@ -385,9 +568,12 @@ export class ScheduleSettingsComponent implements OnInit {
           startTime: o.start_time,
           endTime: o.end_time,
           reason: o.reason || '',
-          isRecurring: !o.date || o.date === null,
-          dayOfWeek: o.day_of_week,
-          specificDate: o.date
+          isRecurring: !o.date,
+          daysOfWeek: o.days_of_week || (o.day_of_week !== null ? [o.day_of_week] : []),
+          specificDate: o.date,
+          endType: o.end_date ? 'date' : 'never' as 'never' | 'weeks' | 'date',
+          endWeeks: 4,
+          endDate: o.end_date
         }));
     }
   }
@@ -416,14 +602,47 @@ export class ScheduleSettingsComponent implements OnInit {
       startTime: '12:00',
       endTime: '13:00',
       reason: '',
-      isRecurring: false,
-      dayOfWeek: 1,
-      specificDate: new Date().toISOString().split('T')[0]
+      isRecurring: true,
+      daysOfWeek: [],
+      specificDate: new Date().toISOString().split('T')[0],
+      endType: 'never',
+      endWeeks: 4,
+      endDate: undefined
     });
+    this.showAdvancedOptions = true;
   }
 
   removeTimeBlock(index: number) {
     this.timeBlocks.splice(index, 1);
+  }
+
+  toggleDayInBlock(blockIndex: number, dayValue: number) {
+    const block = this.timeBlocks[blockIndex];
+    const idx = block.daysOfWeek.indexOf(dayValue);
+    if (idx === -1) {
+      block.daysOfWeek = [...block.daysOfWeek, dayValue].sort((a, b) => a - b);
+    } else {
+      block.daysOfWeek = block.daysOfWeek.filter(d => d !== dayValue);
+    }
+  }
+
+  setEndType(blockIndex: number, type: 'never' | 'weeks' | 'date') {
+    const block = this.timeBlocks[blockIndex];
+    block.endType = type;
+    if (type === 'weeks' && !block.endWeeks) {
+      block.endWeeks = 4;
+    }
+    if (type === 'date' && !block.endDate) {
+      const date = new Date();
+      date.setMonth(date.getMonth() + 1);
+      block.endDate = date.toISOString().split('T')[0];
+    }
+  }
+
+  calculateEndDate(weeks: number): string {
+    const date = new Date();
+    date.setDate(date.getDate() + (weeks * 7));
+    return date.toISOString().split('T')[0];
   }
 
   async saveSettings() {
@@ -438,7 +657,6 @@ export class ScheduleSettingsComponent implements OnInit {
         return;
       }
 
-      // Save general settings
       const settingsData = {
         user_id: user.id,
         day_start_time: this.settingsForm.value.dayStartTime,
@@ -449,7 +667,6 @@ export class ScheduleSettingsComponent implements OnInit {
 
       await this.supabaseService.upsertAvailabilitySettings(settingsData);
 
-      // Save weekly schedule
       for (const slot of this.weeklySlots) {
         await this.supabaseService.upsertWeeklySchedule({
           user_id: user.id,
@@ -460,16 +677,27 @@ export class ScheduleSettingsComponent implements OnInit {
         });
       }
 
-      // Save time blocks using batch method
-      const timeBlocksToSave = this.timeBlocks.map(block => ({
-        user_id: user.id,
-        date: block.isRecurring ? null : block.specificDate,
-        day_of_week: block.isRecurring ? block.dayOfWeek : null,
-        start_time: block.startTime,
-        end_time: block.endTime,
-        reason: block.reason || null,
-        is_available: false
-      }));
+      const timeBlocksToSave = this.timeBlocks.map(block => {
+        let endDate: string | null = null;
+        if (block.isRecurring) {
+          if (block.endType === 'weeks' && block.endWeeks) {
+            endDate = this.calculateEndDate(block.endWeeks);
+          } else if (block.endType === 'date' && block.endDate) {
+            endDate = block.endDate;
+          }
+        }
+
+        return {
+          user_id: user.id,
+          date: block.isRecurring ? null : block.specificDate,
+          days_of_week: block.isRecurring ? block.daysOfWeek : null,
+          start_time: block.startTime,
+          end_time: block.endTime,
+          reason: block.reason || null,
+          is_available: false,
+          end_date: endDate
+        };
+      });
 
       await this.supabaseService.saveTimeBlocks(user.id, timeBlocksToSave);
 
