@@ -1169,7 +1169,347 @@ export class SupabaseService {
     }
     return data;
   }
+
+  // =============================================
+  // CONSULTATION REQUESTS (Asesoría Personalizada)
+  // =============================================
+
+  async createConsultationRequest(data: {
+    tutor_id: string;
+    booking_for: 'me' | 'other';
+    student_first_name: string;
+    student_last_name: string;
+    student_email?: string;
+    student_phone?: string;
+    student_dob?: string;
+    parent_name?: string;
+    parent_email?: string;
+    parent_phone?: string;
+    academic_level?: string;
+    subjects?: string[];
+    specific_topics?: string;
+    current_struggles?: string;
+    learning_goals?: string;
+    chat_history?: any[];
+  }) {
+    const { data: result, error } = await this.supabase
+      .from('consultation_requests')
+      .insert(data)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating consultation request:', error);
+      return { data: null, error };
+    }
+    return { data: result, error: null };
+  }
+
+  async getConsultationRequests(tutorId: string) {
+    const { data, error } = await this.supabase
+      .from('consultation_requests')
+      .select(`
+        *,
+        study_plans (*)
+      `)
+      .eq('tutor_id', tutorId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching consultation requests:', error);
+      return [];
+    }
+    return data;
+  }
+
+  async getConsultationById(consultationId: string) {
+    const { data, error } = await this.supabase
+      .from('consultation_requests')
+      .select(`
+        *,
+        study_plans (*)
+      `)
+      .eq('id', consultationId)
+      .single();
+
+    if (error) {
+      console.error('Error fetching consultation:', error);
+      return null;
+    }
+    return data;
+  }
+
+  async updateConsultationStatus(consultationId: string, status: string) {
+    const { error } = await this.supabase
+      .from('consultation_requests')
+      .update({ status })
+      .eq('id', consultationId);
+
+    if (error) {
+      console.error('Error updating consultation status:', error);
+      return { error };
+    }
+    return { error: null };
+  }
+
+  // =============================================
+  // STUDY PLANS (Planes de Estudio)
+  // =============================================
+
+  async createStudyPlan(data: {
+    consultation_id: string;
+    plan_title: string;
+    plan_description: string;
+    recommended_sessions: number;
+    session_duration_minutes: number;
+    total_hours: number;
+    estimated_price: number;
+    plan_content: any[];
+    version?: number;
+  }) {
+    const { data: result, error } = await this.supabase
+      .from('study_plans')
+      .insert(data)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating study plan:', error);
+      return { data: null, error };
+    }
+    return { data: result, error: null };
+  }
+
+  async getStudyPlansByTutor(tutorId: string) {
+    const { data, error } = await this.supabase
+      .from('study_plans')
+      .select(`
+        *,
+        consultation_requests!inner (
+          *
+        )
+      `)
+      .eq('consultation_requests.tutor_id', tutorId)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching study plans:', error);
+      return [];
+    }
+    return data;
+  }
+
+  async getStudyPlanById(planId: string) {
+    const { data, error } = await this.supabase
+      .from('study_plans')
+      .select(`
+        *,
+        consultation_requests (*)
+      `)
+      .eq('id', planId)
+      .single();
+
+    if (error) {
+      console.error('Error fetching study plan:', error);
+      return null;
+    }
+    return data;
+  }
+
+  async approveStudyPlanAsClient(planId: string) {
+    const { error } = await this.supabase
+      .from('study_plans')
+      .update({ client_approved_at: new Date().toISOString() })
+      .eq('id', planId);
+
+    if (error) {
+      console.error('Error approving plan as client:', error);
+      return { error };
+    }
+
+    // Update consultation status
+    const plan = await this.getStudyPlanById(planId);
+    if (plan) {
+      await this.updateConsultationStatus(plan.consultation_id, 'client_approved');
+    }
+
+    return { error: null };
+  }
+
+  async approveStudyPlanAsTutor(planId: string, notes?: string) {
+    const updateData: any = { tutor_approved_at: new Date().toISOString() };
+    if (notes) updateData.tutor_notes = notes;
+
+    const { error } = await this.supabase
+      .from('study_plans')
+      .update(updateData)
+      .eq('id', planId);
+
+    if (error) {
+      console.error('Error approving plan as tutor:', error);
+      return { error };
+    }
+
+    // Update consultation status
+    const plan = await this.getStudyPlanById(planId);
+    if (plan) {
+      await this.updateConsultationStatus(plan.consultation_id, 'tutor_approved');
+    }
+
+    return { error: null };
+  }
+
+  async rejectStudyPlan(planId: string, reason: string) {
+    const { error } = await this.supabase
+      .from('study_plans')
+      .update({
+        is_active: false,
+        tutor_notes: reason
+      })
+      .eq('id', planId);
+
+    if (error) {
+      console.error('Error rejecting study plan:', error);
+      return { error };
+    }
+
+    return { error: null };
+  }
+
+  // =============================================
+  // DASHBOARD NOTIFICATIONS
+  // =============================================
+
+  async createNotification(data: {
+    user_id: string;
+    type: 'new_consultation' | 'plan_approved_client' | 'plan_approved_tutor' | 'payment_received' | 'appointment_booked';
+    title: string;
+    message: string;
+    reference_type?: string;
+    reference_id?: string;
+  }) {
+    const { data: result, error } = await this.supabase
+      .from('dashboard_notifications')
+      .insert(data)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating notification:', error);
+      return { data: null, error };
+    }
+    return { data: result, error: null };
+  }
+
+  async getNotifications(userId: string, unreadOnly: boolean = false) {
+    let query = this.supabase
+      .from('dashboard_notifications')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (unreadOnly) {
+      query = query.eq('is_read', false);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Error fetching notifications:', error);
+      return [];
+    }
+    return data;
+  }
+
+  async getUnreadNotificationCount(userId: string): Promise<number> {
+    const { count, error } = await this.supabase
+      .from('dashboard_notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('is_read', false);
+
+    if (error) {
+      console.error('Error fetching notification count:', error);
+      return 0;
+    }
+    return count || 0;
+  }
+
+  async markNotificationAsRead(notificationId: string) {
+    const { error } = await this.supabase
+      .from('dashboard_notifications')
+      .update({ is_read: true })
+      .eq('id', notificationId);
+
+    if (error) {
+      console.error('Error marking notification as read:', error);
+      return { error };
+    }
+    return { error: null };
+  }
+
+  async markAllNotificationsAsRead(userId: string) {
+    const { error } = await this.supabase
+      .from('dashboard_notifications')
+      .update({ is_read: true })
+      .eq('user_id', userId)
+      .eq('is_read', false);
+
+    if (error) {
+      console.error('Error marking all notifications as read:', error);
+      return { error };
+    }
+    return { error: null };
+  }
+
+  // =============================================
+  // PERSONALIZED SERVICES (Servicios creados desde planes)
+  // =============================================
+
+  async createPersonalizedService(tutorId: string, planData: {
+    planTitle: string;
+    planDescription: string;
+    recommendedSessions: number;
+    sessionDurationMinutes: number;
+    estimatedPrice: number;
+    studentName: string;
+  }) {
+    const service = {
+      user_id: tutorId,
+      name: `Plan Personalizado: ${planData.studentName}`,
+      description: planData.planDescription,
+      price: planData.estimatedPrice,
+      duration_minutes: planData.sessionDurationMinutes * planData.recommendedSessions,
+      category: 'Asesoría Personalizada',
+      is_active: true,
+      is_personalized: true
+    };
+
+    const { data, error } = await this.supabase
+      .from('services')
+      .insert(service)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating personalized service:', error);
+      return { data: null, error };
+    }
+    return { data, error };
+  }
+
+  async deleteConsultationRequest(id: string) {
+    const { error } = await this.supabase
+      .from('consultation_requests')
+      .delete()
+      .eq('id', id);
+
+    return { error };
+  }
 }
+
 
 export interface TutorProfile {
   id: string;
@@ -1182,4 +1522,56 @@ export interface TutorProfile {
   teaching_methodology?: string;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface ConsultationRequest {
+  id: string;
+  tutor_id: string;
+  booking_for: 'me' | 'other';
+  student_first_name: string;
+  student_last_name: string;
+  student_email?: string;
+  student_phone?: string;
+  student_dob?: string;
+  parent_name?: string;
+  parent_email?: string;
+  parent_phone?: string;
+  academic_level?: string;
+  subjects?: string[];
+  specific_topics?: string;
+  current_struggles?: string;
+  learning_goals?: string;
+  chat_history?: any[];
+  status: 'pending_plan' | 'plan_generated' | 'client_approved' | 'tutor_approved' | 'paid' | 'cancelled';
+  created_at: string;
+  updated_at: string;
+  study_plans?: StudyPlan[];
+}
+
+export interface StudyPlan {
+  id: string;
+  consultation_id: string;
+  plan_title: string;
+  plan_description: string;
+  recommended_sessions: number;
+  session_duration_minutes: number;
+  total_hours: number;
+  estimated_price: number;
+  plan_content: any[];
+  version: number;
+  is_active: boolean;
+  client_approved_at?: string;
+  tutor_approved_at?: string;
+  tutor_notes?: string;
+  created_at: string;
+}
+
+export interface DashboardNotification {
+  id: string;
+  user_id: string;
+  type: 'new_consultation' | 'plan_approved_client' | 'plan_approved_tutor' | 'payment_received' | 'appointment_booked';
+  title: string;
+  message: string;
+  reference_type?: string;
+  reference_id?: string;
 }

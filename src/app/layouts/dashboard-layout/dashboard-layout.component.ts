@@ -145,6 +145,7 @@ export class DashboardLayoutComponent {
     { name: 'Clases', route: '/dashboard/schedule/calendar' },
     { name: 'Horarios', route: '/dashboard/schedule' },
     { name: 'Servicios', route: '/dashboard/services' },
+    { name: 'Planes de Estudio', route: '/dashboard/study-plans' },
     { name: 'Pagos', route: '/dashboard/payments' },
     { name: 'Mi Landing Page', route: '/dashboard/landing-editor' },
     { name: 'Reportes', route: '/dashboard/reports' },

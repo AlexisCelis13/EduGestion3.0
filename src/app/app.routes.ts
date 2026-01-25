@@ -88,6 +88,10 @@ export const routes: Routes = [
       {
         path: 'settings',
         loadComponent: () => import('./features/settings/settings.component').then(m => m.SettingsComponent)
+      },
+      {
+        path: 'study-plans',
+        loadComponent: () => import('./features/study-plans/study-plans.component').then(m => m.StudyPlansComponent)
       }
     ]
   },

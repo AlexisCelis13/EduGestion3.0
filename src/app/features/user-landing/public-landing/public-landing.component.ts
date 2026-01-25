@@ -3,13 +3,13 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { SupabaseService, TenantSettings, Service } from '../../../core/services/supabase.service';
 import { BookingWidgetComponent } from '../../booking/booking-widget/booking-widget.component';
-import { LucideAngularModule, GraduationCap, Globe, BookOpen, CheckCircle, Info } from 'lucide-angular';
+import { ConsultationChatbotComponent } from '../../booking/consultation-chatbot/consultation-chatbot.component';
+import { GeneratedStudyPlan, ChatMessage } from '../../../core/services/gemini.service';
 
 @Component({
   selector: 'app-public-landing',
   standalone: true,
-  imports: [CommonModule, BookingWidgetComponent, LucideAngularModule],
-  providers: [{ provide: 'LUCIDE_ICONS', useValue: { GraduationCap, Globe, BookOpen, CheckCircle, Info } }],
+  imports: [CommonModule, BookingWidgetComponent, ConsultationChatbotComponent],
   templateUrl: './public-landing.component.html'
 })
 export class PublicLandingComponent implements OnInit {
@@ -21,6 +21,9 @@ export class PublicLandingComponent implements OnInit {
 
   // Para pre-seleccionar servicio al agendar
   selectedServiceId = signal<string | undefined>(undefined);
+
+  // Chatbot
+  showChatbot = signal(false);
 
   // Helper para formatear precios en pesos mexicanos
   formatPrice(price: number): string {
@@ -91,5 +94,95 @@ export class PublicLandingComponent implements OnInit {
     }
 
     return 'Mi Academia';
+  }
+
+  // ==============================
+  // Chatbot Methods
+  // ==============================
+
+  openChatbot() {
+    this.showChatbot.set(true);
+  }
+
+  closeChatbot() {
+    this.showChatbot.set(false);
+  }
+
+  async onPlanAccepted(event: {
+    plan: GeneratedStudyPlan;
+    chatHistory: ChatMessage[];
+    extractedData: any;
+  }) {
+    const tutorId = this.settings()?.user_id;
+    if (!tutorId) return;
+
+    try {
+      // 1. Crear la solicitud de consulta en la base de datos
+      const { data: consultation, error: consultationError } = await this.supabaseService.createConsultationRequest({
+        tutor_id: tutorId,
+        booking_for: event.extractedData.bookingFor || 'me',
+        student_first_name: event.extractedData.studentFirstName || 'Cliente',
+        student_last_name: event.extractedData.studentLastName || '',
+        student_email: event.extractedData.studentEmail,
+        student_phone: event.extractedData.studentPhone,
+        parent_name: event.extractedData.parentName,
+        parent_email: event.extractedData.parentEmail,
+        parent_phone: event.extractedData.parentPhone,
+        academic_level: event.extractedData.academicLevel,
+        subjects: event.extractedData.subjects,
+        specific_topics: event.extractedData.specificTopics,
+        current_struggles: event.extractedData.currentStruggles,
+        learning_goals: event.extractedData.learningGoals,
+        chat_history: event.chatHistory
+      });
+
+      if (consultationError || !consultation) {
+        console.error('Error creating consultation:', consultationError);
+        alert('Hubo un error al guardar tu solicitud. Por favor intenta de nuevo.');
+        return;
+      }
+
+      // 2. Crear el plan de estudios asociado
+      const { data: studyPlan, error: planError } = await this.supabaseService.createStudyPlan({
+        consultation_id: consultation.id,
+        plan_title: event.plan.planTitle,
+        plan_description: event.plan.planDescription,
+        recommended_sessions: event.plan.recommendedSessions,
+        session_duration_minutes: event.plan.sessionDurationMinutes,
+        total_hours: event.plan.totalHours,
+        estimated_price: event.plan.estimatedPrice,
+        plan_content: event.plan.planContent
+      });
+
+      if (planError) {
+        console.error('Error creating study plan:', planError);
+      }
+
+      // 3. Actualizar estado de la consulta
+      await this.supabaseService.updateConsultationStatus(consultation.id, 'plan_generated');
+
+      // 4. Aprobar automáticamente como cliente (ya aceptó en el chatbot)
+      if (studyPlan) {
+        await this.supabaseService.approveStudyPlanAsClient(studyPlan.id);
+      }
+
+      // 5. Crear notificación para el tutor
+      await this.supabaseService.createNotification({
+        user_id: tutorId,
+        type: 'new_consultation',
+        title: '¡Nueva Asesoría Personalizada!',
+        message: `${event.extractedData.studentFirstName || 'Un cliente'} ha solicitado un plan de estudios personalizado y lo ha aceptado. Revisa y aprueba el plan.`,
+        reference_type: 'consultation',
+        reference_id: consultation.id
+      });
+
+      // 6. Mostrar mensaje de éxito
+      this.closeChatbot();
+      alert('¡Solicitud enviada! Tu plan ha sido enviado al asesor para su validación. Te contactaremos pronto con la aprobación final.');
+
+    } catch (error) {
+      console.error('Error processing plan acceptance:', error);
+      alert('Hubo un error. Por favor intenta de nuevo.');
+    }
   }
 }
