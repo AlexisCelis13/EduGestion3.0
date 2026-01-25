@@ -65,6 +65,23 @@ export interface StudentMaterial {
   created_at: string;
 }
 
+export interface Service {
+  id: string;
+  user_id: string;
+  name: string;
+  description: string;
+  price: number;
+  duration_minutes: number;
+  category: string;
+  is_active: boolean;
+  target_level?: string;
+  topics?: string[];
+  methodology?: string;
+  language?: string;
+  prerequisites?: string;
+  created_at?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -558,17 +575,71 @@ export class SupabaseService {
   // Create appointment for guest/public (No auth required)
   async createPublicAppointment(appointment: {
     tutor_id: string;
-    student_name: string;
+    student_name: string; // This will now be First Name
+    student_last_name?: string; // New
     student_email: string;
+    student_phone?: string;
+    student_dob?: string; // New
     date: string;
     start_time: string;
     end_time: string;
     service_id?: string;
     notes?: string;
+    parent_name?: string;
+    parent_email?: string;
+    parent_phone?: string;
   }) {
     // Basic validation
     if (!appointment.tutor_id || !appointment.date || !appointment.start_time || !appointment.end_time || !appointment.student_email || !appointment.student_name) {
       return { data: null, error: { message: 'Faltan campos obligatorios' } };
+    }
+
+    // 1. Upsert Student (Create or Update) to ensure they appear in Dashboard
+    // We match by email and tutor_id to avoid duplicates for this tutor
+    const studentData = {
+      user_id: appointment.tutor_id,
+      first_name: appointment.student_name,
+      last_name: appointment.student_last_name || '',
+      email: appointment.student_email,
+      phone: appointment.student_phone || null,
+      date_of_birth: appointment.student_dob || null, // Map DOB
+      parent_name: appointment.parent_name || null,
+      parent_email: appointment.parent_email || null,
+      parent_phone: appointment.parent_phone || null,
+      is_active: true,
+      notes: appointment.notes || null // Save notes to student profile
+    };
+
+    // Try to find existing student first to get ID
+    let studentId = null;
+
+    // Check if student exists
+    const { data: existingStudent } = await this.supabase
+      .from('students')
+      .select('id')
+      .eq('user_id', appointment.tutor_id)
+      .eq('email', appointment.student_email)
+      .maybeSingle();
+
+    if (existingStudent) {
+      studentId = existingStudent.id;
+      // Optional: Update details if provided? 
+      // For now, let's update contact info
+      await this.supabase
+        .from('students')
+        .update(studentData)
+        .eq('id', studentId);
+    } else {
+      // Create new
+      const { data: newStudent, error: createError } = await this.supabase
+        .from('students')
+        .insert(studentData)
+        .select()
+        .single();
+
+      if (!createError && newStudent) {
+        studentId = newStudent.id;
+      }
     }
 
     // Generate appointment_date (Timestamp with Time Zone)
@@ -585,6 +656,7 @@ export class SupabaseService {
       .from('appointments')
       .insert({
         user_id: appointment.tutor_id,
+        student_id: studentId, // Link to student record
         student_name: appointment.student_name,
         student_email: appointment.student_email,
         appointment_date: appointmentDate, // Required by DB
@@ -603,7 +675,8 @@ export class SupabaseService {
   }
 
   // Updated to work for both Auth and Public users
-  async getAvailableSlotsForDate(tutorId: string, date: string) {
+  // Updated to work for both Auth and Public users
+  async getAvailableSlotsForDate(tutorId: string, date: string, durationMinutes?: number) {
     // Get tutor's availability settings
     // Since settings are public read, this works for everyone
     const settings = await this.getAvailabilitySettings(tutorId);
@@ -655,7 +728,12 @@ export class SupabaseService {
 
     // Generate available slots
     const slots: { startTime: string; endTime: string }[] = [];
-    const slotDuration = settings.min_session_duration;
+
+    // Duration rules:
+    // - Slot length = requested duration OR min_session_duration
+    // - Step increment = min_session_duration (allows flexible start times)
+    const slotDuration = durationMinutes || settings.min_session_duration;
+    const stepIncrement = settings.min_session_duration; // Move by 30 mins (or whatever is set)
 
     let currentTime = this.timeToMinutes(weeklySlot.start_time);
     const endTime = this.timeToMinutes(weeklySlot.end_time);
@@ -668,6 +746,7 @@ export class SupabaseService {
       const slotEnd = this.minutesToTime(currentTime + slotDuration);
 
       // Check if slot overlaps with any booked appointment
+      // Important: Check the full duration of the proposed slot against existing bookings
       const isBooked = bookedSlots.some(apt =>
         this.timesOverlap(slotStart, slotEnd, apt.start_time, apt.end_time)
       );
@@ -676,8 +755,9 @@ export class SupabaseService {
         slots.push({ startTime: slotStart, endTime: slotEnd });
       }
 
-      // Increment by duration + buffer
-      currentTime += slotDuration + buffer;
+      // Increment by step (not duration) to allow overlapping start options
+      // e.g., if duration is 60m and step is 30m, show 9:00-10:00, 9:30-10:30
+      currentTime += stepIncrement;
     }
 
     return slots;
@@ -836,10 +916,10 @@ export class SupabaseService {
   }
 
   async deleteStudent(studentId: string) {
-    // Soft delete by setting is_active to false
+    // Hard delete to trigger DB cascade and remove appointments
     const { error } = await this.supabase
       .from('students')
-      .update({ is_active: false })
+      .delete()
       .eq('id', studentId);
 
     return { error };

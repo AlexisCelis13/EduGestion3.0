@@ -1,22 +1,15 @@
 import { Component, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
-import { SupabaseService, TenantSettings } from '../../../core/services/supabase.service';
+import { SupabaseService, TenantSettings, Service } from '../../../core/services/supabase.service';
 import { BookingWidgetComponent } from '../../booking/booking-widget/booking-widget.component';
-
-interface Service {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  duration_minutes: number;
-  category: string;
-}
+import { LucideAngularModule, GraduationCap, Globe, BookOpen, CheckCircle, Info } from 'lucide-angular';
 
 @Component({
   selector: 'app-public-landing',
   standalone: true,
-  imports: [CommonModule, BookingWidgetComponent],
+  imports: [CommonModule, BookingWidgetComponent, LucideAngularModule],
+  providers: [{ provide: 'LUCIDE_ICONS', useValue: { GraduationCap, Globe, BookOpen, CheckCircle, Info } }],
   templateUrl: './public-landing.component.html'
 })
 export class PublicLandingComponent implements OnInit {

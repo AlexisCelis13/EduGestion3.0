@@ -24,31 +24,178 @@ import { LucideAngularModule, Calendar, Clock, Loader2 } from 'lucide-angular';
 
       <form [formGroup]="bookingForm" (ngSubmit)="onSubmit()" class="space-y-4">
         
-        <!-- Nombre -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Tu Nombre Completo *</label>
-          <input 
-            type="text" 
-            formControlName="studentName"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-            placeholder="Ej. Juan Pérez">
-          <div *ngIf="bookingForm.get('studentName')?.touched && bookingForm.get('studentName')?.invalid" class="text-red-500 text-xs mt-1">
-            El nombre es obligatorio.
+        <!-- Para quién es la cita -->
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">¿Para quién es la clase?</label>
+          <div class="flex gap-4">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" formControlName="bookingFor" value="me" class="text-blue-600 focus:ring-blue-500">
+              <span class="text-gray-700">Para mí</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" formControlName="bookingFor" value="other" class="text-blue-600 focus:ring-blue-500">
+              <span class="text-gray-700">Para alguien más (Hijo/a)</span>
+            </label>
           </div>
         </div>
 
-        <!-- Email -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico *</label>
-          <input 
-            type="email" 
-            formControlName="studentEmail"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-            placeholder="Ej. juan@email.com">
-          <div *ngIf="bookingForm.get('studentEmail')?.touched && bookingForm.get('studentEmail')?.invalid" class="text-red-500 text-xs mt-1">
-            Ingresa un correo válido.
+        @if (showParentFields()) {
+          <!-- SECCIÓN: DATOS DEL ALUMNO (Cuando es 'other') -->
+          <div class="bg-gray-50 p-4 rounded-lg border border-gray-100 mb-4 animate-fade-in">
+             <h4 class="text-sm font-semibold text-gray-800 mb-3 border-b border-gray-200 pb-2">Datos del Alumno</h4>
+             
+             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+               <!-- Nombre del Alumno -->
+               <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
+                <input 
+                  type="text" 
+                  formControlName="studentName"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  placeholder="Ej. Juan">
+                <div *ngIf="bookingForm.get('studentName')?.touched && bookingForm.get('studentName')?.invalid" class="text-red-500 text-xs mt-1">
+                  Requerido.
+                </div>
+              </div>
+
+               <!-- Apellido del Alumno -->
+               <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Apellido *</label>
+                <input 
+                  type="text" 
+                  formControlName="studentLastName"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  placeholder="Ej. Pérez">
+                <div *ngIf="bookingForm.get('studentLastName')?.touched && bookingForm.get('studentLastName')?.invalid" class="text-red-500 text-xs mt-1">
+                  Requerido.
+                </div>
+              </div>
+             </div>
+
+             <!-- Fecha de Nacimiento -->
+             <div class="mt-4">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de Nacimiento</label>
+              <input 
+                type="date" 
+                formControlName="studentDob"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+             </div>
           </div>
-        </div>
+
+          <!-- SECCIÓN: DATOS DEL RESPONSABLE (PADRE/TUTOR) -->
+          <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4 animate-fade-in">
+            <h4 class="text-sm font-semibold text-blue-900 mb-3 border-b border-blue-200 pb-2">Datos del Padre/Tutor (Contacto)</h4>
+            
+            <div class="grid grid-cols-1 gap-3">
+              <!-- Nombre Padre -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nombre Completo *</label>
+                <input 
+                  type="text" 
+                  formControlName="parentName"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  placeholder="Nombre del responsable">
+                 <div *ngIf="bookingForm.get('parentName')?.touched && bookingForm.get('parentName')?.invalid" class="text-red-500 text-xs mt-1">
+                  Tu nombre es obligatorio.
+                </div>
+              </div>
+
+              <!-- Email Padre -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico *</label>
+                <input 
+                  type="email" 
+                  formControlName="parentEmail"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  placeholder="Para enviarte la confirmación">
+                <div *ngIf="bookingForm.get('parentEmail')?.touched && bookingForm.get('parentEmail')?.invalid" class="text-red-500 text-xs mt-1">
+                  Correo obligatorio.
+                </div>
+              </div>
+
+               <!-- Teléfono Padre -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono / WhatsApp *</label>
+                <input 
+                  type="tel" 
+                  formControlName="parentPhone"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  placeholder="+52 999 999 9999">
+                <div *ngIf="bookingForm.get('parentPhone')?.touched && bookingForm.get('parentPhone')?.invalid" class="text-red-500 text-xs mt-1">
+                  Teléfono obligatorio (mínimo 10 dígitos).
+                </div>
+              </div>
+            </div>
+          </div>
+
+        } @else {
+          <!-- SECCIÓN: DATOS DE USUARIO NORMAL ('me') -->
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Nombre -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
+              <input 
+                type="text" 
+                formControlName="studentName"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                placeholder="Ej. Juan">
+              <div *ngIf="bookingForm.get('studentName')?.touched && bookingForm.get('studentName')?.invalid" class="text-red-500 text-xs mt-1">
+                Requerido.
+              </div>
+            </div>
+
+            <!-- Apellido -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Apellido *</label>
+              <input 
+                type="text" 
+                formControlName="studentLastName"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                placeholder="Ej. Pérez">
+              <div *ngIf="bookingForm.get('studentLastName')?.touched && bookingForm.get('studentLastName')?.invalid" class="text-red-500 text-xs mt-1">
+                Requerido.
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Email -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico *</label>
+              <input 
+                type="email" 
+                formControlName="studentEmail"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                placeholder="Ej. juan@email.com">
+              <div *ngIf="bookingForm.get('studentEmail')?.touched && bookingForm.get('studentEmail')?.invalid" class="text-red-500 text-xs mt-1">
+                Ingresa un correo válido.
+              </div>
+            </div>
+
+             <!-- Teléfono -->
+             <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono / WhatsApp *</label>
+              <input 
+                type="tel" 
+                formControlName="studentPhone"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                placeholder="+52 ...">
+              <div *ngIf="bookingForm.get('studentPhone')?.touched && bookingForm.get('studentPhone')?.invalid" class="text-red-500 text-xs mt-1">
+                Teléfono obligatorio.
+              </div>
+            </div>
+          </div>
+
+          <!-- Fecha de Nacimiento -->
+           <div class="mb-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de Nacimiento</label>
+            <input 
+              type="date" 
+              formControlName="studentDob"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+           </div>
+        }
 
         <!-- Servicio (Opcional) -->
         <div *ngIf="services.length > 0">
@@ -105,13 +252,31 @@ export class BookingFormComponent implements OnInit {
   @Output() cancel = new EventEmitter<void>();
 
   bookingForm: FormGroup;
+  showParentFields = signal(false);
 
   constructor(private fb: FormBuilder) {
     this.bookingForm = this.fb.group({
-      studentName: ['', [Validators.required, Validators.minLength(3)]],
+      bookingFor: ['me'], // 'me' or 'other'
+
+      // Datos del Estudiante
+      studentName: ['', [Validators.required, Validators.minLength(2)]],
+      studentLastName: ['', [Validators.required, Validators.minLength(2)]], // Nuevo campo
       studentEmail: ['', [Validators.required, Validators.email]],
+      studentPhone: ['', [Validators.required, Validators.minLength(10)]],
+      studentDob: [''], // Nuevo campo (Fecha de nacimiento)
+
+      // Campos para Padre/Tutor (si bookingFor === 'other')
+      parentName: [''],
+      parentEmail: [''],
+      parentPhone: [''],
+
       serviceId: [null],
       notes: ['']
+    });
+
+    // Escuchar cambios en el selector de para quién es la cita
+    this.bookingForm.get('bookingFor')?.valueChanges.subscribe(value => {
+      this.updateValidators(value);
     });
   }
 
@@ -119,11 +284,88 @@ export class BookingFormComponent implements OnInit {
     if (this.preSelectedServiceId) {
       this.bookingForm.patchValue({ serviceId: this.preSelectedServiceId });
     }
+    this.updateValidators('me');
+  }
+
+  updateValidators(bookingFor: string) {
+    const isOther = bookingFor === 'other';
+    this.showParentFields.set(isOther);
+
+    const parentNameControl = this.bookingForm.get('parentName');
+    const parentEmailControl = this.bookingForm.get('parentEmail');
+    const parentPhoneControl = this.bookingForm.get('parentPhone');
+
+    // Controles del estudiante
+    const studentPhoneControl = this.bookingForm.get('studentPhone');
+    const studentEmailControl = this.bookingForm.get('studentEmail');
+    // studentName y studentLastName siempre son requeridos (para el alumno o para el usuario)
+
+    if (isOther) {
+      // Validaciones para Padre/Tutor
+      parentNameControl?.setValidators([Validators.required, Validators.minLength(3)]);
+      parentEmailControl?.setValidators([Validators.required, Validators.email]);
+      parentPhoneControl?.setValidators([Validators.required, Validators.minLength(10)]);
+
+      // Si es para otro (hijo):
+      // - El teléfono del alumno NO es obligatorio (usamos el del padre)
+      studentPhoneControl?.clearValidators();
+      // - El email del alumno NO es obligatorio (usamos el del padre)
+      studentEmailControl?.clearValidators();
+      // Importante: asegurarnos de que el email del alumno no bloquee si está vacío
+      studentEmailControl?.updateValueAndValidity();
+    } else {
+      // Limpiar validaciones de Padre
+      parentNameControl?.clearValidators();
+      parentEmailControl?.clearValidators();
+      parentPhoneControl?.clearValidators();
+
+      // Si es para mí:
+      // - Mis datos de contacto son obligatorios
+      studentPhoneControl?.setValidators([Validators.required, Validators.minLength(10)]);
+      studentEmailControl?.setValidators([Validators.required, Validators.email]);
+    }
+
+    parentNameControl?.updateValueAndValidity();
+    parentEmailControl?.updateValueAndValidity();
+    parentPhoneControl?.updateValueAndValidity();
+    studentPhoneControl?.updateValueAndValidity();
+
+    // Asegurar que studentEmail se actualice
+    studentEmailControl?.updateValueAndValidity();
   }
 
   onSubmit() {
     if (this.bookingForm.valid) {
-      this.submitForm.emit(this.bookingForm.value);
+      // Preparar objeto para emitir
+      const formValue = this.bookingForm.value;
+      const submissionData: any = {
+        studentName: formValue.studentName,
+        studentLastName: formValue.studentLastName,
+        studentDob: formValue.studentDob,
+        serviceId: formValue.serviceId,
+        notes: formValue.notes,
+        bookingFor: formValue.bookingFor
+      };
+
+      if (formValue.bookingFor === 'other') {
+        // Si es para otro, el contacto principal es el Padre
+        submissionData.studentEmail = formValue.parentEmail;
+        submissionData.studentPhone = formValue.parentPhone;
+
+        submissionData.parentName = formValue.parentName;
+        submissionData.parentEmail = formValue.parentEmail;
+        submissionData.parentPhone = formValue.parentPhone;
+      } else {
+        // Si es para mí
+        submissionData.studentEmail = formValue.studentEmail;
+        submissionData.studentPhone = formValue.studentPhone;
+
+        submissionData.parentName = null;
+        submissionData.parentEmail = null;
+        submissionData.parentPhone = null;
+      }
+
+      this.submitForm.emit(submissionData);
     } else {
       this.bookingForm.markAllAsTouched();
     }

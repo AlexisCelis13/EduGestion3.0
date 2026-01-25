@@ -131,7 +131,20 @@ export class BookingWidgetComponent implements OnInit {
 
     // Cargar slots disponibles
     try {
-      this.availableSlots = await this.supabaseService.getAvailableSlotsForDate(this.tutorId, date);
+      // Verify if there is a pre-selected service and get its duration
+      let duration: number | undefined;
+      if (this.preSelectedServiceId) {
+        const service = this.services.find(s => s.id === this.preSelectedServiceId);
+        if (service && service.duration_minutes) {
+          duration = service.duration_minutes;
+        }
+      }
+
+      this.availableSlots = await this.supabaseService.getAvailableSlotsForDate(
+        this.tutorId,
+        date,
+        duration
+      );
     } catch (error) {
       console.error('Error loading slots:', error);
       this.availableSlots = [];
@@ -154,12 +167,19 @@ export class BookingWidgetComponent implements OnInit {
       const appointment = {
         tutor_id: this.tutorId,
         student_name: formData.studentName,
+        student_last_name: formData.studentLastName, // New
         student_email: formData.studentEmail,
+        student_phone: formData.studentPhone,
+        student_dob: formData.studentDob, // New
         date: this.selectedDate,
         start_time: this.selectedSlot.startTime,
         end_time: this.selectedSlot.endTime,
         service_id: formData.serviceId,
-        notes: formData.notes
+        notes: formData.notes,
+        // Optional Parent Fields
+        parent_name: formData.parentName,
+        parent_email: formData.parentEmail,
+        parent_phone: formData.parentPhone
       };
 
       const result = await this.supabaseService.createPublicAppointment(appointment);

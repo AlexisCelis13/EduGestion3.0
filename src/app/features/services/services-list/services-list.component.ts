@@ -1,17 +1,7 @@
 import { Component, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { SupabaseService } from '../../../core/services/supabase.service';
-
-interface Service {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  duration_minutes: number;
-  category: string;
-  is_active: boolean;
-}
+import { SupabaseService, Service } from '../../../core/services/supabase.service';
 
 @Component({
   selector: 'app-services-list',
@@ -31,6 +21,10 @@ export class ServicesListComponent implements OnInit {
   editingService = signal<Service | null>(null);
   showDeleteConfirm = signal<string | null>(null);
 
+  // Opciones para selects
+  targetLevels = ['Primaria', 'Secundaria', 'Preparatoria', 'Universidad', 'Adultos', 'Todos'];
+  languages = ['Español', 'Inglés', 'Francés', 'Alemán', 'Otro'];
+
   // Helper para formatear precios en pesos mexicanos
   formatPrice(price: number): string {
     return price.toLocaleString('es-MX');
@@ -45,7 +39,12 @@ export class ServicesListComponent implements OnInit {
       description: [''],
       price: ['', [Validators.required, Validators.min(0)]],
       duration_minutes: [60, Validators.required],
-      category: ['']
+      category: [''],
+      target_level: [''],
+      topics: [''], // Manejado como string separado por comas en el UI
+      methodology: [''],
+      language: ['Español'],
+      prerequisites: ['']
     });
   }
 
@@ -76,6 +75,12 @@ export class ServicesListComponent implements OnInit {
         }
 
         const formData = this.serviceForm.value;
+
+        // Convertir topics de string a array
+        const topicsArray = formData.topics
+          ? formData.topics.split(',').map((t: string) => t.trim()).filter((t: string) => t.length > 0)
+          : [];
+
         const serviceData = {
           user_id: user.id,
           name: formData.name,
@@ -83,6 +88,11 @@ export class ServicesListComponent implements OnInit {
           price: parseFloat(formData.price),
           duration_minutes: parseInt(formData.duration_minutes),
           category: formData.category,
+          target_level: formData.target_level,
+          topics: topicsArray,
+          methodology: formData.methodology,
+          language: formData.language,
+          prerequisites: formData.prerequisites,
           is_active: true
         };
 
@@ -113,7 +123,8 @@ export class ServicesListComponent implements OnInit {
     this.showCreateForm.set(false);
     this.editingService.set(null);
     this.serviceForm.reset({
-      duration_minutes: 60
+      duration_minutes: 60,
+      language: 'Español'
     });
     this.errorMessage.set('');
   }
@@ -122,12 +133,21 @@ export class ServicesListComponent implements OnInit {
   startEdit(service: Service) {
     this.editingService.set(service);
     this.showCreateForm.set(true);
+
+    // Convertir topics array a string para el input
+    const topicsStr = service.topics ? service.topics.join(', ') : '';
+
     this.serviceForm.patchValue({
       name: service.name,
       description: service.description || '',
       price: service.price,
       duration_minutes: service.duration_minutes,
-      category: service.category || ''
+      category: service.category || '',
+      target_level: service.target_level || '',
+      topics: topicsStr,
+      methodology: service.methodology || '',
+      language: service.language || 'Español',
+      prerequisites: service.prerequisites || ''
     });
   }
 
@@ -138,12 +158,23 @@ export class ServicesListComponent implements OnInit {
 
       try {
         const formData = this.serviceForm.value;
+
+        // Convertir topics de string a array
+        const topicsArray = formData.topics
+          ? formData.topics.split(',').map((t: string) => t.trim()).filter((t: string) => t.length > 0)
+          : [];
+
         const updates = {
           name: formData.name,
           description: formData.description,
           price: parseFloat(formData.price),
           duration_minutes: parseInt(formData.duration_minutes),
-          category: formData.category
+          category: formData.category,
+          target_level: formData.target_level,
+          topics: topicsArray,
+          methodology: formData.methodology,
+          language: formData.language,
+          prerequisites: formData.prerequisites
         };
 
         const { error } = await this.supabaseService.updateService(
