@@ -102,7 +102,7 @@ interface MenuItem {
 
                 @if (showProfileMenu()) {
                   <div class="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-premium-lg py-2 z-50 border border-surface-100">
-                    <a href="#" class="block px-4 py-2.5 text-sm text-surface-700 hover:bg-surface-50 transition-colors">Mi Perfil</a>
+                    <a routerLink="/dashboard/profile" class="block px-4 py-2.5 text-sm text-surface-700 hover:bg-surface-50 transition-colors">Mi Perfil</a>
                     <a routerLink="/dashboard/settings" class="block px-4 py-2.5 text-sm text-surface-700 hover:bg-surface-50 transition-colors">Configuración</a>
                     <div class="border-t border-surface-100 my-1"></div>
                     <button

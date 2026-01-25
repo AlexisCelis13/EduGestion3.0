@@ -70,6 +70,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/students/students-list/students-list.component').then(m => m.StudentsListComponent)
       },
       {
+        path: 'profile',
+        loadComponent: () => import('./features/profile/profile.component').then(m => m.ProfileComponent)
+      },
+      {
         path: 'schedule',
         loadComponent: () => import('./features/schedule/schedule-settings/schedule-settings.component').then(m => m.ScheduleSettingsComponent)
       },

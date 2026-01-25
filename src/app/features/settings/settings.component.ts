@@ -135,28 +135,82 @@ import { SubscriptionService, Plan, SubscriptionWithPlan, SubscriptionHistory } 
 
         <!-- Profile Section -->
         <div class="card-premium mb-8">
-          <div class="p-6 border-b border-surface-100">
+          <div class="p-6 border-b border-surface-100 flex items-center justify-between">
             <h2 class="text-lg font-semibold text-surface-700">Información del Perfil</h2>
+            @if (!editingProfile()) {
+              <button (click)="startEditProfile()" class="btn-secondary text-sm">
+                Editar
+              </button>
+            }
           </div>
           <div class="p-6">
-            <div class="grid md:grid-cols-2 gap-6">
-              <div>
-                <label class="block text-sm font-medium text-surface-400 mb-1">Nombre</label>
-                <p class="text-surface-700 text-lg">{{ profile()?.first_name || '-' }} {{ profile()?.last_name || '' }}</p>
+            @if (editingProfile()) {
+              <!-- Edit Mode -->
+              <div class="grid md:grid-cols-2 gap-6">
+                <div>
+                  <label class="block text-sm font-medium text-surface-700 mb-2">Nombre</label>
+                  <input type="text" [(ngModel)]="profileForm.first_name" class="input-premium" placeholder="Tu nombre" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-surface-700 mb-2">Apellido</label>
+                  <input type="text" [(ngModel)]="profileForm.last_name" class="input-premium" placeholder="Tu apellido" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-surface-400 mb-2">Email</label>
+                  <p class="text-surface-500 text-lg">{{ profile()?.email || '-' }}</p>
+                  <p class="text-xs text-surface-400 mt-1">El email no se puede cambiar</p>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-surface-700 mb-2">Nombre de Empresa/Academia</label>
+                  <input type="text" [(ngModel)]="profileForm.company_name" class="input-premium" placeholder="Nombre de tu empresa" />
+                </div>
+                <div class="md:col-span-2">
+                  <label class="block text-sm font-medium text-surface-700 mb-2">Rol</label>
+                  <select [(ngModel)]="profileForm.role" class="input-premium">
+                    <option value="tutor_independiente">Tutor Independiente</option>
+                    <option value="director">Director de Academia</option>
+                  </select>
+                </div>
               </div>
-              <div>
-                <label class="block text-sm font-medium text-surface-400 mb-1">Email</label>
-                <p class="text-surface-700 text-lg">{{ profile()?.email || '-' }}</p>
+              
+              @if (profileError()) {
+                <div class="bg-red-50 border border-red-100 rounded-xl p-3 mt-4">
+                  <p class="text-sm text-red-600">{{ profileError() }}</p>
+                </div>
+              }
+              @if (profileSuccess()) {
+                <div class="bg-accent-green/10 border border-accent-green/20 rounded-xl p-3 mt-4">
+                  <p class="text-sm text-accent-green">{{ profileSuccess() }}</p>
+                </div>
+              }
+              
+              <div class="flex gap-3 mt-6">
+                <button (click)="cancelEditProfile()" class="btn-secondary">Cancelar</button>
+                <button (click)="saveProfile()" [disabled]="savingProfile()" class="btn-premium disabled:opacity-50">
+                  @if (savingProfile()) { Guardando... } @else { Guardar Cambios }
+                </button>
               </div>
-              <div>
-                <label class="block text-sm font-medium text-surface-400 mb-1">Nombre de Empresa/Academia</label>
-                <p class="text-surface-700 text-lg">{{ profile()?.company_name || '-' }}</p>
+            } @else {
+              <!-- View Mode -->
+              <div class="grid md:grid-cols-2 gap-6">
+                <div>
+                  <label class="block text-sm font-medium text-surface-400 mb-1">Nombre</label>
+                  <p class="text-surface-700 text-lg">{{ profile()?.first_name || '-' }} {{ profile()?.last_name || '' }}</p>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-surface-400 mb-1">Email</label>
+                  <p class="text-surface-700 text-lg">{{ profile()?.email || '-' }}</p>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-surface-400 mb-1">Nombre de Empresa/Academia</label>
+                  <p class="text-surface-700 text-lg">{{ profile()?.company_name || '-' }}</p>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-surface-400 mb-1">Rol</label>
+                  <p class="text-surface-700 text-lg">{{ getRoleLabel() }}</p>
+                </div>
               </div>
-              <div>
-                <label class="block text-sm font-medium text-surface-400 mb-1">Rol</label>
-                <p class="text-surface-700 text-lg">{{ getRoleLabel() }}</p>
-              </div>
-            </div>
+            }
           </div>
         </div>
 
@@ -340,6 +394,18 @@ export class SettingsComponent implements OnInit {
   selectedNewPlan = signal<string | null>(null);
   cancelReason = '';
 
+  // Profile edit states
+  editingProfile = signal(false);
+  savingProfile = signal(false);
+  profileError = signal('');
+  profileSuccess = signal('');
+  profileForm = {
+    first_name: '',
+    last_name: '',
+    company_name: '',
+    role: 'tutor_independiente' as 'director' | 'tutor_independiente'
+  };
+
   constructor(
     private supabaseService: SupabaseService,
     private subscriptionService: SubscriptionService,
@@ -414,6 +480,66 @@ export class SettingsComponent implements OnInit {
       'tutor_independiente': 'Tutor Independiente'
     };
     return labels[role || ''] || '-';
+  }
+
+  // Profile edit methods
+  startEditProfile() {
+    const p = this.profile();
+    this.profileForm = {
+      first_name: p?.first_name || '',
+      last_name: p?.last_name || '',
+      company_name: p?.company_name || '',
+      role: p?.role || 'tutor_independiente'
+    };
+    this.profileError.set('');
+    this.profileSuccess.set('');
+    this.editingProfile.set(true);
+  }
+
+  cancelEditProfile() {
+    this.editingProfile.set(false);
+    this.profileError.set('');
+    this.profileSuccess.set('');
+  }
+
+  async saveProfile() {
+    const user = await this.supabaseService.getCurrentUser();
+    if (!user) {
+      this.profileError.set('Error de autenticación');
+      return;
+    }
+
+    this.savingProfile.set(true);
+    this.profileError.set('');
+
+    try {
+      const { error } = await this.supabaseService.updateProfile(user.id, {
+        first_name: this.profileForm.first_name,
+        last_name: this.profileForm.last_name,
+        company_name: this.profileForm.company_name,
+        role: this.profileForm.role
+      });
+
+      if (error) {
+        this.profileError.set('Error al guardar los cambios');
+        return;
+      }
+
+      // Reload profile
+      const profile = await this.supabaseService.getProfile(user.id);
+      this.profile.set(profile);
+
+      this.profileSuccess.set('Perfil actualizado correctamente');
+      setTimeout(() => {
+        this.editingProfile.set(false);
+        this.profileSuccess.set('');
+      }, 1500);
+
+    } catch (error: any) {
+      this.profileError.set('Error inesperado. Inténtalo de nuevo.');
+    } finally {
+      this.savingProfile.set(false);
+    }
   }
 
   formatPrice(price: number): string {

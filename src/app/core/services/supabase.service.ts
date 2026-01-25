@@ -914,4 +914,45 @@ export class SupabaseService {
       return false;
     }
   }
+
+  // ============================================
+  // TUTOR PROFILE METHODS
+  // ============================================
+
+  async getTutorProfile(userId: string) {
+    const { data, error } = await this.supabase
+      .from('tutor_profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    return { data: data as TutorProfile | null, error };
+  }
+
+  async upsertTutorProfile(userId: string, profileData: Partial<TutorProfile>) {
+    const { data, error } = await this.supabase
+      .from('tutor_profiles')
+      .upsert({
+        user_id: userId,
+        ...profileData,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'user_id' })
+      .select()
+      .single();
+
+    return { data, error };
+  }
+}
+
+export interface TutorProfile {
+  id: string;
+  user_id: string;
+  bio?: string;
+  years_experience?: number;
+  certifications?: string;
+  work_experience?: string;
+  subjects?: string;
+  teaching_methodology?: string;
+  created_at?: string;
+  updated_at?: string;
 }
