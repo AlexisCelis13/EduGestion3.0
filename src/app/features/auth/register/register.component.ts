@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { SupabaseService } from '../../../core/services/supabase.service';
+import { SubscriptionService } from '../../../core/services/subscription.service';
 
 @Component({
   selector: 'app-register',
@@ -123,6 +124,7 @@ export class RegisterComponent {
   constructor(
     private fb: FormBuilder,
     private supabaseService: SupabaseService,
+    private subscriptionService: SubscriptionService,
     private router: Router,
     private route: ActivatedRoute
   ) {
@@ -156,12 +158,24 @@ export class RegisterComponent {
         if (error) {
           this.errorMessage.set(error.message);
         } else if (data.user) {
-
           // Verificar si hay un plan seleccionado
           const params = this.route.snapshot.queryParams;
+
           if (params['plan']) {
+            // Si viene con plan seleccionado, ir a checkout
             this.router.navigate(['/auth/checkout'], { queryParams: params });
           } else {
+            // Si no hay plan, crear suscripción freelance con trial automáticamente
+            try {
+              await this.subscriptionService.createSubscription(data.user.id, 'freelance', true);
+              // Actualizar profile para compatibilidad
+              await this.supabaseService.updateProfile(data.user.id, {
+                subscription_plan: 'freelance',
+                subscription_status: 'trial'
+              });
+            } catch (subError) {
+              console.error('Error creating default subscription:', subError);
+            }
             this.router.navigate(['/dashboard']);
           }
         }

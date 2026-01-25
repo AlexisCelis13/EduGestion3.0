@@ -1,4 +1,4 @@
-import { Component, signal, OnInit } from '@angular/core';
+import { Component, signal, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { SupabaseService, TenantSettings } from '../../../core/services/supabase.service';
@@ -52,8 +52,20 @@ import { SupabaseService, TenantSettings } from '../../../core/services/supabase
                     Logo (Opcional)
                   </label>
                   <div class="flex items-center gap-4">
-                    @if (currentSettings()?.logo_url) {
-                      <img [src]="currentSettings()?.logo_url" alt="Logo" class="w-16 h-16 object-cover rounded-xl">
+                    @if (logoPreview() || currentSettings()?.logo_url) {
+                      <div class="relative">
+                        <img [src]="logoPreview() || currentSettings()?.logo_url" alt="Logo" class="w-16 h-16 object-cover rounded-xl">
+                        <button
+                          type="button"
+                          (click)="removeLogo()"
+                          class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                          title="Eliminar logo">
+                          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                          </svg>
+                        </button>
+                      </div>
                     } @else {
                       <div class="w-16 h-16 bg-surface-100 rounded-xl flex items-center justify-center">
                         <svg class="w-8 h-8 text-surface-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -63,11 +75,31 @@ import { SupabaseService, TenantSettings } from '../../../core/services/supabase
                         </svg>
                       </div>
                     }
-                    <button
-                      type="button"
-                      class="btn-secondary">
-                      Subir Logo
-                    </button>
+                    <div class="flex flex-col gap-2">
+                      <input
+                        type="file"
+                        #fileInput
+                        accept="image/*"
+                        class="hidden"
+                        (change)="onFileSelected($event)"
+                      />
+                      <button
+                        type="button"
+                        (click)="fileInput.click()"
+                        [disabled]="uploadingLogo()"
+                        class="btn-secondary">
+                        @if (uploadingLogo()) {
+                          <svg class="animate-spin -ml-1 mr-2 h-4 w-4 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Subiendo...
+                        } @else {
+                          Subir Logo
+                        }
+                      </button>
+                      <p class="text-xs text-surface-400">PNG, JPG o WebP. Máx 7MB</p>
+                    </div>
                   </div>
                 </div>
 
@@ -199,8 +231,8 @@ import { SupabaseService, TenantSettings } from '../../../core/services/supabase
               <div class="border border-surface-100 rounded-2xl overflow-hidden">
                 <div class="text-white p-8 text-center"
                      [style.background]="'linear-gradient(135deg, ' + editorForm.get('primaryColor')?.value + ', ' + editorForm.get('secondaryColor')?.value + ')'">
-                  @if (currentSettings()?.logo_url) {
-                    <img [src]="currentSettings()?.logo_url" alt="Logo" class="w-16 h-16 mx-auto mb-4 rounded-xl">
+                  @if (logoPreview() || currentSettings()?.logo_url) {
+                    <img [src]="logoPreview() || currentSettings()?.logo_url" alt="Logo" class="w-16 h-16 mx-auto mb-4 rounded-xl object-cover">
                   }
                   <h1 class="text-2xl font-semibold mb-2">
                     {{ editorForm.get('slug')?.value || 'tu-nombre' }}
@@ -240,11 +272,17 @@ import { SupabaseService, TenantSettings } from '../../../core/services/supabase
   `
 })
 export class UserLandingEditorComponent implements OnInit {
+  @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
+
   editorForm: FormGroup;
   loading = signal(false);
+  uploadingLogo = signal(false);
   errorMessage = signal('');
   successMessage = signal('');
   currentSettings = signal<TenantSettings | null>(null);
+  logoPreview = signal<string | null>(null);
+
+  private pendingLogoFile: File | null = null;
 
   constructor(
     private fb: FormBuilder,
@@ -279,6 +317,121 @@ export class UserLandingEditorComponent implements OnInit {
           contactPhone: settings.contact_phone || ''
         });
       }
+    }
+  }
+
+  onFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+
+    const file = input.files[0];
+
+    // Validate file size (max 7MB)
+    if (file.size > 7 * 1024 * 1024) {
+      this.errorMessage.set('El archivo es demasiado grande. Máximo 7MB.');
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      this.errorMessage.set('Por favor selecciona un archivo de imagen válido.');
+      return;
+    }
+
+    this.errorMessage.set('');
+    this.pendingLogoFile = file;
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      this.logoPreview.set(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    // Upload immediately
+    this.uploadLogo();
+  }
+
+  async uploadLogo() {
+    if (!this.pendingLogoFile) return;
+
+    this.uploadingLogo.set(true);
+    this.errorMessage.set('');
+
+    try {
+      const user = await this.supabaseService.getCurrentUser();
+      if (!user) {
+        this.errorMessage.set('Error de autenticación');
+        return;
+      }
+
+      // Upload to Supabase Storage
+      const logoUrl = await this.supabaseService.uploadLogo(user.id, this.pendingLogoFile);
+
+      if (!logoUrl) {
+        this.errorMessage.set('Error al subir el logo. Intenta de nuevo.');
+        this.logoPreview.set(null);
+        return;
+      }
+
+      // Update tenant settings with new logo URL
+      await this.supabaseService.updateLogoUrl(user.id, logoUrl);
+
+      // Reload settings to get updated logo_url
+      await this.loadCurrentSettings();
+
+      this.logoPreview.set(null); // Clear preview, use real URL now
+      this.pendingLogoFile = null;
+      this.successMessage.set('Logo subido correctamente');
+
+      // Clear success message after 3 seconds
+      setTimeout(() => this.successMessage.set(''), 3000);
+
+    } catch (error) {
+      console.error('Error uploading logo:', error);
+      this.errorMessage.set('Error al subir el logo. Intenta de nuevo.');
+      this.logoPreview.set(null);
+    } finally {
+      this.uploadingLogo.set(false);
+      // Reset file input
+      if (this.fileInput) {
+        this.fileInput.nativeElement.value = '';
+      }
+    }
+  }
+
+  async removeLogo() {
+    this.uploadingLogo.set(true);
+    this.errorMessage.set('');
+
+    try {
+      const user = await this.supabaseService.getCurrentUser();
+      if (!user) {
+        this.errorMessage.set('Error de autenticación');
+        return;
+      }
+
+      // Delete from storage
+      await this.supabaseService.deleteLogo(user.id);
+
+      // Update tenant settings to remove logo URL
+      await this.supabaseService.updateLogoUrl(user.id, null);
+
+      // Clear local state
+      this.logoPreview.set(null);
+      this.pendingLogoFile = null;
+
+      // Reload settings
+      await this.loadCurrentSettings();
+
+      this.successMessage.set('Logo eliminado correctamente');
+      setTimeout(() => this.successMessage.set(''), 3000);
+
+    } catch (error) {
+      console.error('Error removing logo:', error);
+      this.errorMessage.set('Error al eliminar el logo. Intenta de nuevo.');
+    } finally {
+      this.uploadingLogo.set(false);
     }
   }
 

@@ -205,14 +205,50 @@ export class SupabaseService {
   }
 
   async updateTenantSettings(userId: string, updates: Partial<TenantSettings>) {
-    const { data, error } = await this.supabase
+    // First check if a record exists
+    const { data: existing } = await this.supabase
       .from('tenant_settings')
-      .update(updates)
+      .select('id')
       .eq('user_id', userId)
-      .select()
-      .single();
+      .limit(1)
+      .maybeSingle();
 
-    return { data, error };
+    if (existing) {
+      // Update existing record(s) - don't use .single() as there may be duplicates
+      const { error } = await this.supabase
+        .from('tenant_settings')
+        .update(updates)
+        .eq('user_id', userId);
+
+      if (error) {
+        return { data: null, error };
+      }
+
+      // Fetch the updated record
+      const { data, error: fetchError } = await this.supabase
+        .from('tenant_settings')
+        .select()
+        .eq('user_id', userId)
+        .limit(1)
+        .maybeSingle();
+
+      return { data, error: fetchError };
+    } else {
+      // Insert new record
+      const { data, error } = await this.supabase
+        .from('tenant_settings')
+        .insert({
+          ...updates,
+          user_id: userId,
+          slug: updates.slug || userId.substring(0, 8),
+          primary_color: updates.primary_color || '#3B82F6',
+          secondary_color: updates.secondary_color || '#1E40AF',
+          is_active: true
+        })
+        .select()
+        .single();
+      return { data, error };
+    }
   }
 
   // Onboarding Progress Methods
@@ -524,5 +560,102 @@ export class SupabaseService {
     const s2 = this.timeToMinutes(start2);
     const e2 = this.timeToMinutes(end2);
     return s1 < e2 && e1 > s2;
+  }
+
+  // ============================================
+  // STORAGE METHODS (Logos)
+  // ============================================
+
+  /**
+   * Upload a logo file to Supabase Storage
+   * @param userId - The user ID (used as folder name)
+   * @param file - The file to upload
+   * @returns The public URL of the uploaded file or null on error
+   */
+  async uploadLogo(userId: string, file: File): Promise<string | null> {
+    try {
+      // Create a unique filename with timestamp
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${userId}/logo_${Date.now()}.${fileExt}`;
+
+      // First, delete any existing logos for this user
+      await this.deleteLogo(userId);
+
+      // Upload the new file
+      const { data, error } = await this.supabase.storage
+        .from('logos')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (error) {
+        console.error('Error uploading logo:', error);
+        return null;
+      }
+
+      // Get the public URL
+      const { data: urlData } = this.supabase.storage
+        .from('logos')
+        .getPublicUrl(fileName);
+
+      return urlData.publicUrl;
+    } catch (error) {
+      console.error('Error in uploadLogo:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Delete all logos for a user
+   * @param userId - The user ID
+   */
+  async deleteLogo(userId: string): Promise<boolean> {
+    try {
+      // List all files in the user's folder
+      const { data: files, error: listError } = await this.supabase.storage
+        .from('logos')
+        .list(userId);
+
+      if (listError || !files || files.length === 0) {
+        return true; // No files to delete
+      }
+
+      // Delete all files
+      const filesToDelete = files.map(file => `${userId}/${file.name}`);
+      const { error: deleteError } = await this.supabase.storage
+        .from('logos')
+        .remove(filesToDelete);
+
+      if (deleteError) {
+        console.error('Error deleting logos:', deleteError);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error in deleteLogo:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Update tenant settings with new logo URL
+   * @param userId - The user ID
+   * @param logoUrl - The new logo URL (or null to remove)
+   */
+  async updateLogoUrl(userId: string, logoUrl: string | null): Promise<boolean> {
+    // Use direct update instead of updateTenantSettings
+    // because we need to pass null explicitly to clear the field
+    const { error } = await this.supabase
+      .from('tenant_settings')
+      .update({ logo_url: logoUrl })
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('Error updating logo URL:', error);
+      return false;
+    }
+    return true;
   }
 }
