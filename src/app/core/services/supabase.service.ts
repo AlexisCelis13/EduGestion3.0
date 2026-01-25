@@ -588,6 +588,8 @@ export class SupabaseService {
     parent_name?: string;
     parent_email?: string;
     parent_phone?: string;
+    payment_status?: 'pending' | 'free' | 'paid'; // New
+    amount_paid?: number; // New
   }) {
     // Basic validation
     if (!appointment.tutor_id || !appointment.date || !appointment.start_time || !appointment.end_time || !appointment.student_email || !appointment.student_name) {
@@ -623,7 +625,7 @@ export class SupabaseService {
 
     if (existingStudent) {
       studentId = existingStudent.id;
-      // Optional: Update details if provided? 
+      // Optional: Update details if provided?
       // For now, let's update contact info
       await this.supabase
         .from('students')
@@ -666,7 +668,9 @@ export class SupabaseService {
         end_time: appointment.end_time,
         service_id: appointment.service_id || null,
         notes: appointment.notes || '',
-        status: 'scheduled'
+        status: 'scheduled',
+        payment_status: appointment.payment_status || 'pending', // Pending by default
+        amount_paid: appointment.amount_paid || 0
       })
       .select()
       .single();
