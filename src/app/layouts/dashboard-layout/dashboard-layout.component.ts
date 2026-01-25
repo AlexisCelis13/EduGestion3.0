@@ -28,7 +28,7 @@ interface MenuItem {
             <a
               [routerLink]="item.route"
               routerLinkActive="bg-primary-600 text-white"
-              [routerLinkActiveOptions]="{exact: item.route === '/dashboard'}"
+              [routerLinkActiveOptions]="{exact: item.route === '/dashboard' || item.route === '/dashboard/schedule'}"
               class="block px-4 py-3 text-sm font-medium rounded-xl hover:bg-surface-600 transition-all"
               [class.bg-primary-600]="item.active">
               {{ item.name }}
@@ -142,7 +142,7 @@ export class DashboardLayoutComponent {
   menuItems: MenuItem[] = [
     { name: 'Dashboard', route: '/dashboard' },
     { name: 'Alumnos', route: '/dashboard/students' },
-    { name: 'Clases', route: '/dashboard/appointments' },
+    { name: 'Clases', route: '/dashboard/schedule/calendar' },
     { name: 'Horarios', route: '/dashboard/schedule' },
     { name: 'Servicios', route: '/dashboard/services' },
     { name: 'Pagos', route: '/dashboard/payments' },

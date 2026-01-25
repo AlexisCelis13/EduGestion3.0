@@ -2,6 +2,7 @@ import { Component, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { SupabaseService, TenantSettings } from '../../../core/services/supabase.service';
+import { BookingWidgetComponent } from '../../booking/booking-widget/booking-widget.component';
 
 interface Service {
   id: string;
@@ -15,7 +16,7 @@ interface Service {
 @Component({
   selector: 'app-public-landing',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, BookingWidgetComponent],
   templateUrl: './public-landing.component.html'
 })
 export class PublicLandingComponent implements OnInit {
@@ -25,15 +26,28 @@ export class PublicLandingComponent implements OnInit {
   notFound = signal(false);
   slug = signal('');
 
+  // Para pre-seleccionar servicio al agendar
+  selectedServiceId = signal<string | undefined>(undefined);
+
   // Helper para formatear precios en pesos mexicanos
   formatPrice(price: number): string {
     return price.toLocaleString('es-MX');
   }
 
+  scrollToBooking(serviceId?: string) {
+    if (serviceId) {
+      this.selectedServiceId.set(serviceId);
+    }
+    const element = document.getElementById('reservar');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
+
   constructor(
     private route: ActivatedRoute,
     private supabaseService: SupabaseService
-  ) {}
+  ) { }
 
   async ngOnInit() {
     this.route.params.subscribe(async params => {
@@ -45,10 +59,10 @@ export class PublicLandingComponent implements OnInit {
   private async loadLandingData() {
     try {
       const slug = this.slug();
-      
+
       // Cargar configuración del tenant
       const tenantSettings = await this.supabaseService.getTenantSettingsBySlug(slug);
-      
+
       if (!tenantSettings) {
         this.notFound.set(true);
         this.loading.set(false);
@@ -74,7 +88,7 @@ export class PublicLandingComponent implements OnInit {
   getDisplayName(): string {
     const settings = this.settings();
     if (!settings) return '';
-    
+
     // Usar el nombre de la empresa si existe, sino usar el slug formateado
     if (settings.slug) {
       return settings.slug
@@ -82,7 +96,7 @@ export class PublicLandingComponent implements OnInit {
         .map(word => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
     }
-    
+
     return 'Mi Academia';
   }
 }

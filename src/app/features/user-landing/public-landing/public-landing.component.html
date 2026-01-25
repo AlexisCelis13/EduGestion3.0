@@ -1,124 +1,143 @@
 @if (loading()) {
-  <div class="min-h-screen bg-gray-50 flex items-center justify-center">
-    <div class="text-center">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-      <p class="text-gray-600 mt-2">Cargando...</p>
-    </div>
+<div class="min-h-screen bg-gray-50 flex items-center justify-center">
+  <div class="text-center">
+    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+    <p class="text-gray-600 mt-2">Cargando...</p>
   </div>
+</div>
 } @else if (notFound()) {
-  <div class="min-h-screen bg-gray-50 flex items-center justify-center">
-    <div class="text-center">
-      <h1 class="text-4xl font-bold text-gray-900 mb-4">404</h1>
-      <p class="text-gray-600">Esta página no existe o no está disponible.</p>
-    </div>
+<div class="min-h-screen bg-gray-50 flex items-center justify-center">
+  <div class="text-center">
+    <h1 class="text-4xl font-bold text-gray-900 mb-4">404</h1>
+    <p class="text-gray-600">Esta página no existe o no está disponible.</p>
   </div>
+</div>
 } @else {
-  <div class="min-h-screen bg-gray-50">
-    <!-- Hero Section -->
-    <div class="bg-gradient-to-r text-white py-16"
-         [style.background]="'linear-gradient(to right, ' + settings()?.primary_color + ', ' + settings()?.secondary_color + ')'">
-      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        @if (settings()?.logo_url) {
-          <img [src]="settings()?.logo_url" alt="Logo" class="w-20 h-20 mx-auto mb-6 rounded-lg">
-        }
-        <h1 class="text-4xl font-bold mb-4">
-          {{ getDisplayName() }}
-        </h1>
-        @if (settings()?.company_description) {
-          <p class="text-xl opacity-90 max-w-2xl mx-auto">
-            {{ settings()?.company_description }}
-          </p>
-        }
-      </div>
+<div class="min-h-screen bg-gray-50">
+  <!-- Hero Section -->
+  <div class="bg-gradient-to-r text-white py-16"
+    [style.background]="'linear-gradient(to right, ' + settings()?.primary_color + ', ' + settings()?.secondary_color + ')'">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      @if (settings()?.logo_url) {
+      <img [src]="settings()?.logo_url" alt="Logo" class="w-20 h-20 mx-auto mb-6 rounded-lg">
+      }
+      <h1 class="text-4xl font-bold mb-4">
+        {{ getDisplayName() }}
+      </h1>
+      @if (settings()?.company_description) {
+      <p class="text-xl opacity-90 max-w-2xl mx-auto">
+        {{ settings()?.company_description }}
+      </p>
+      }
     </div>
-
-    <!-- Services Section -->
-    <div class="py-16">
-      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-12">
-          <h2 class="text-3xl font-bold text-gray-900 mb-4">Mis Servicios</h2>
-          <p class="text-lg text-gray-600">Elige el servicio que mejor se adapte a tus necesidades</p>
-        </div>
-
-        @if (services().length === 0) {
-          <div class="text-center py-12">
-            <div class="w-16 h-16 bg-gray-200 rounded-full mx-auto mb-4 flex items-center justify-center">
-              <span class="text-gray-400 text-2xl">📚</span>
-            </div>
-            <h3 class="text-lg font-medium text-gray-900 mb-2">Próximamente</h3>
-            <p class="text-gray-600">Los servicios estarán disponibles muy pronto</p>
-          </div>
-        } @else {
-          <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            @for (service of services(); track service.id) {
-              <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-                <div class="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-2">{{ service.name }}</h3>
-                    @if (service.category) {
-                      <span class="inline-block text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800">
-                        {{ service.category }}
-                      </span>
-                    }
-                  </div>
-                  <div class="text-right">
-                    <p class="text-3xl font-bold text-blue-600">
-                      ${{ formatPrice(service.price) }}
-                    </p>
-                    <p class="text-sm text-gray-500">{{ service.duration_minutes }} min</p>
-                  </div>
-                </div>
-                
-                @if (service.description) {
-                  <p class="text-gray-600 mb-6">{{ service.description }}</p>
-                }
-                
-                <button class="w-full py-3 px-4 rounded-lg font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors">
-                  Agendar Cita
-                </button>
-              </div>
-            }
-          </div>
-        }
-      </div>
-    </div>
-
-    <!-- Contact Section -->
-    @if (settings()?.contact_email || settings()?.contact_phone) {
-      <div class="bg-white py-16">
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 class="text-3xl font-bold text-gray-900 mb-8">Contacto</h2>
-          <div class="grid md:grid-cols-2 gap-8">
-            @if (settings()?.contact_email) {
-              <div class="flex items-center justify-center space-x-3">
-                <span class="text-2xl">📧</span>
-                <a [href]="'mailto:' + settings()?.contact_email" 
-                   class="text-lg hover:underline text-blue-600">
-                  {{ settings()?.contact_email }}
-                </a>
-              </div>
-            }
-            @if (settings()?.contact_phone) {
-              <div class="flex items-center justify-center space-x-3">
-                <span class="text-2xl">📞</span>
-                <a [href]="'tel:' + settings()?.contact_phone" 
-                   class="text-lg hover:underline text-blue-600">
-                  {{ settings()?.contact_phone }}
-                </a>
-              </div>
-            }
-          </div>
-        </div>
-      </div>
-    }
-
-    <!-- Footer -->
-    <footer class="bg-gray-900 text-white py-8">
-      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <p class="text-gray-400">
-          Powered by <span class="text-white font-semibold">EduGestion</span>
-        </p>
-      </div>
-    </footer>
   </div>
+
+  <!-- Services Section -->
+  <div class="py-16">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl font-bold text-gray-900 mb-4">Mis Servicios</h2>
+        <p class="text-lg text-gray-600 mb-8">Elige el servicio que mejor se adapte a tus necesidades</p>
+
+        <!-- Botón Asesoría General -->
+        <button (click)="scrollToBooking()"
+          class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 transition-colors">
+          ¿Buscas un plan personalizado? Agenda una Asesoría General
+        </button>
+      </div>
+
+      @if (services().length === 0) {
+      <div class="text-center py-12">
+        <div class="w-16 h-16 bg-gray-200 rounded-full mx-auto mb-4 flex items-center justify-center">
+          <span class="text-gray-400 text-2xl">📚</span>
+        </div>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">Próximamente</h3>
+        <p class="text-gray-600">Los servicios estarán disponibles muy pronto</p>
+      </div>
+      } @else {
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        @for (service of services(); track service.id) {
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+          <div class="flex justify-between items-start mb-4">
+            <div>
+              <h3 class="text-xl font-semibold text-gray-900 mb-2">{{ service.name }}</h3>
+              @if (service.category) {
+              <span class="inline-block text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800">
+                {{ service.category }}
+              </span>
+              }
+            </div>
+            <div class="text-right">
+              <p class="text-3xl font-bold text-blue-600">
+                ${{ formatPrice(service.price) }}
+              </p>
+              <p class="text-sm text-gray-500">{{ service.duration_minutes }} min</p>
+            </div>
+          </div>
+
+          @if (service.description) {
+          <p class="text-gray-600 mb-6">{{ service.description }}</p>
+          }
+
+          <button (click)="scrollToBooking(service.id)"
+            class="w-full py-3 px-4 rounded-lg font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors">
+            Agendar Cita
+          </button>
+        </div>
+        }
+      </div>
+      }
+    </div>
+  </div>
+
+  <!-- Booking Section -->
+  <div id="reservar" class="bg-gray-50 py-16 border-t border-gray-200">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-10">
+        <h2 class="text-3xl font-bold text-gray-900 mb-4">Agenda tu Asesoría</h2>
+        <p class="text-lg text-gray-600">Selecciona una fecha y hora disponible para tu sesión</p>
+      </div>
+
+      <app-booking-widget [tutorId]="settings()?.user_id || ''" [services]="services()"
+        [preSelectedServiceId]="selectedServiceId()">
+      </app-booking-widget>
+    </div>
+  </div>
+
+  <!-- Contact Section -->
+  @if (settings()?.contact_email || settings()?.contact_phone) {
+  <div class="bg-white py-16">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <h2 class="text-3xl font-bold text-gray-900 mb-8">Contacto</h2>
+      <div class="grid md:grid-cols-2 gap-8">
+        @if (settings()?.contact_email) {
+        <div class="flex items-center justify-center space-x-3">
+          <span class="text-2xl">📧</span>
+          <a [href]="'mailto:' + settings()?.contact_email" class="text-lg hover:underline text-blue-600">
+            {{ settings()?.contact_email }}
+          </a>
+        </div>
+        }
+        @if (settings()?.contact_phone) {
+        <div class="flex items-center justify-center space-x-3">
+          <span class="text-2xl">📞</span>
+          <a [href]="'tel:' + settings()?.contact_phone" class="text-lg hover:underline text-blue-600">
+            {{ settings()?.contact_phone }}
+          </a>
+        </div>
+        }
+      </div>
+    </div>
+  </div>
+  }
+
+  <!-- Footer -->
+  <footer class="bg-gray-900 text-white py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <p class="text-gray-400">
+        Powered by <span class="text-white font-semibold">EduGestion</span>
+      </p>
+    </div>
+  </footer>
+</div>
 }

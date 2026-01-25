@@ -12,10 +12,13 @@ interface OnboardingTask {
   route: string;
 }
 
+import { LucideAngularModule, Calendar, Clock, User, ChevronRight } from 'lucide-angular';
+
 @Component({
   selector: 'app-dashboard-home',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, LucideAngularModule],
+  providers: [{ provide: 'LUCIDE_ICONS', useValue: { Calendar, Clock, User, ChevronRight } }],
   template: `
     <div class="min-h-screen">
       <!-- Header -->
@@ -170,6 +173,64 @@ interface OnboardingTask {
           </div>
         </div>
 
+        <!-- Próximas Citas -->
+        <div class="card-premium p-6 mb-8">
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-lg font-semibold text-surface-700">Próximas Citas</h3>
+            <a routerLink="/dashboard/schedule/calendar" class="text-sm font-medium text-primary-600 hover:text-primary-700 flex items-center gap-1 transition-colors">
+              Ver calendario completo
+              <i-lucide name="chevron-right" class="w-4 h-4"></i-lucide>
+            </a>
+          </div>
+
+          @if (upcomingAppointments().length === 0) {
+            <div class="text-center py-8 bg-surface-50 rounded-xl border border-surface-100 border-dashed">
+              <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm">
+                <i-lucide name="calendar" class="w-6 h-6 text-surface-400"></i-lucide>
+              </div>
+              <p class="text-surface-500 font-medium">No tienes citas programadas</p>
+              <p class="text-sm text-surface-400 mt-1">Comparte tu landing page para recibir reservas</p>
+            </div>
+          } @else {
+            <div class="divide-y divide-surface-100">
+              @for (apt of upcomingAppointments(); track apt.id) {
+                <div class="flex items-center justify-between py-4 first:pt-0 last:pb-0">
+                  <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-primary-50 text-primary-700 rounded-xl flex flex-col items-center justify-center font-semibold border border-primary-100">
+                      <span class="text-xs uppercase">{{ apt.date | date:'MMM' }}</span>
+                      <span class="text-lg leading-none">{{ apt.date | date:'dd' }}</span>
+                    </div>
+                    <div>
+                      <p class="font-medium text-surface-900">{{ apt.student_name }}</p>
+                      <div class="flex items-center gap-3 text-sm text-surface-500 mt-0.5">
+                        <span class="flex items-center gap-1">
+                          <i-lucide name="clock" class="w-3.5 h-3.5"></i-lucide>
+                          {{ apt.start_time.substring(0, 5) }} - {{ apt.end_time.substring(0, 5) }}
+                        </span>
+                        @if (apt.services?.name) {
+                          <span class="w-1 h-1 bg-surface-300 rounded-full"></span>
+                          <span>{{ apt.services.name }}</span>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                  <div class="hidden sm:block">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                          [class.bg-blue-100]="apt.status === 'scheduled'"
+                          [class.text-blue-800]="apt.status === 'scheduled'"
+                          [class.bg-green-100]="apt.status === 'confirmed'"
+                          [class.text-green-800]="apt.status === 'confirmed'"
+                          [class.bg-yellow-100]="apt.status === 'pending'"
+                          [class.text-yellow-800]="apt.status === 'pending'">
+                      {{ apt.status === 'scheduled' ? 'Confirmada' : apt.status }}
+                    </span>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
         <!-- Acciones Rápidas -->
         <div class="card-premium p-6">
           <h3 class="text-lg font-semibold text-surface-700 mb-5">Acciones Rápidas</h3>
@@ -261,12 +322,31 @@ export class DashboardHomeComponent implements OnInit {
   ];
 
   completedTasks = signal(0);
+  upcomingAppointments = signal<any[]>([]);
 
   constructor(private supabaseService: SupabaseService) { }
 
   async ngOnInit() {
     await this.loadProfile();
     await this.loadOnboardingProgress();
+    await this.loadAppointments();
+  }
+
+  private async loadAppointments() {
+    const user = await this.supabaseService.getCurrentUser();
+    if (user) {
+      const appointments = await this.supabaseService.getAppointments(user.id);
+
+      if (appointments) {
+        // Filter future appointments and take top 5
+        const now = new Date();
+        const future = appointments
+          .filter((a: any) => new Date(a.date + 'T' + a.start_time) >= now && a.status !== 'cancelled')
+          .slice(0, 5);
+
+        this.upcomingAppointments.set(future);
+      }
+    }
   }
 
   private async loadProfile() {

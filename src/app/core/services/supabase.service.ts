@@ -539,9 +539,73 @@ export class SupabaseService {
     return { data, error };
   }
 
-  // Get available slots for a specific date (for booking)
+
+  // ============================================
+  // PUBLIC BOOKING METHODS
+  // ============================================
+
+  // Securely get busy slots (RPC)
+  async getPublicBusySlots(tutorId: string, date: string) {
+    const { data, error } = await this.supabase
+      .rpc('get_busy_slots', {
+        p_tutor_id: tutorId,
+        p_date: date
+      });
+
+    return { data, error };
+  }
+
+  // Create appointment for guest/public (No auth required)
+  async createPublicAppointment(appointment: {
+    tutor_id: string;
+    student_name: string;
+    student_email: string;
+    date: string;
+    start_time: string;
+    end_time: string;
+    service_id?: string;
+    notes?: string;
+  }) {
+    // Basic validation
+    if (!appointment.tutor_id || !appointment.date || !appointment.start_time || !appointment.end_time || !appointment.student_email || !appointment.student_name) {
+      return { data: null, error: { message: 'Faltan campos obligatorios' } };
+    }
+
+    // Generate appointment_date (Timestamp with Time Zone)
+    // Combine date and start_time
+    const dateTimeStr = `${appointment.date}T${appointment.start_time}`;
+    const appointmentDate = new Date(dateTimeStr).toISOString();
+
+    // Calculate duration in minutes
+    const start = this.timeToMinutes(appointment.start_time);
+    const end = this.timeToMinutes(appointment.end_time);
+    const durationMinutes = end - start;
+
+    const { data, error } = await this.supabase
+      .from('appointments')
+      .insert({
+        user_id: appointment.tutor_id,
+        student_name: appointment.student_name,
+        student_email: appointment.student_email,
+        appointment_date: appointmentDate, // Required by DB
+        duration_minutes: durationMinutes, // Required by DB
+        date: appointment.date,
+        start_time: appointment.start_time,
+        end_time: appointment.end_time,
+        service_id: appointment.service_id || null,
+        notes: appointment.notes || '',
+        status: 'scheduled'
+      })
+      .select()
+      .single();
+
+    return { data, error };
+  }
+
+  // Updated to work for both Auth and Public users
   async getAvailableSlotsForDate(tutorId: string, date: string) {
     // Get tutor's availability settings
+    // Since settings are public read, this works for everyone
     const settings = await this.getAvailabilitySettings(tutorId);
     if (!settings) return [];
 
@@ -558,7 +622,12 @@ export class SupabaseService {
     }
 
     // Get day of week and weekly schedule
-    const dayOfWeek = new Date(date).getDay();
+    // Create date with timezone awareness to avoid day shift issues
+    // We assume the date string is YYYY-MM-DD
+    const [year, month, day] = date.split('-').map(Number);
+    const dateObj = new Date(year, month - 1, day);
+    const dayOfWeek = dateObj.getDay();
+
     const { data: weeklySlot } = await this.supabase
       .from('weekly_schedule')
       .select('*')
@@ -569,9 +638,20 @@ export class SupabaseService {
 
     if (!weeklySlot) return []; // Day not available
 
-    // Get existing appointments for this date
-    const { data: appointments } = await this.getAppointmentsByDate(tutorId, date);
-    const bookedSlots = appointments || [];
+    // Get booked slots - Use RPC for security/public access
+    // This allows anon users to see busy times without seeing WHO is booked
+    let bookedSlots: { start_time: string, end_time: string }[] = [];
+
+    const { data: rpcSlots, error: rpcError } = await this.getPublicBusySlots(tutorId, date);
+
+    if (!rpcError && rpcSlots) {
+      bookedSlots = rpcSlots;
+    } else {
+      // Fallback for authenticated tutor viewing their own schedule
+      // (or if RPC is not set up, but RLS blocks this for anon)
+      const { data: appointments } = await this.getAppointmentsByDate(tutorId, date);
+      bookedSlots = appointments || [];
+    }
 
     // Generate available slots
     const slots: { startTime: string; endTime: string }[] = [];
@@ -579,6 +659,9 @@ export class SupabaseService {
 
     let currentTime = this.timeToMinutes(weeklySlot.start_time);
     const endTime = this.timeToMinutes(weeklySlot.end_time);
+
+    // Add buffer if configured
+    const buffer = settings.buffer_between_sessions || 0;
 
     while (currentTime + slotDuration <= endTime) {
       const slotStart = this.minutesToTime(currentTime);
@@ -593,7 +676,8 @@ export class SupabaseService {
         slots.push({ startTime: slotStart, endTime: slotEnd });
       }
 
-      currentTime += slotDuration;
+      // Increment by duration + buffer
+      currentTime += slotDuration + buffer;
     }
 
     return slots;
