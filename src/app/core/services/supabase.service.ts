@@ -1110,6 +1110,65 @@ export class SupabaseService {
 
     return { data, error };
   }
+  // ============================================
+  // PAGOS Y COBROS (Dashboard)
+  // ============================================
+
+  async getPayoutSettings(userId: string) {
+    const { data, error } = await this.supabase
+      .from('payout_settings')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (error && error.code !== 'PGRST116') {
+      console.error('Error fetching payout settings:', error);
+    }
+    return data;
+  }
+
+  async upsertPayoutSettings(settings: any) {
+    // Check if exists
+    const existing = await this.getPayoutSettings(settings.user_id);
+
+    let result;
+    if (existing) {
+      result = await this.supabase
+        .from('payout_settings')
+        .update({
+          bank_name: settings.bank_name,
+          account_number: settings.account_number,
+          account_holder: settings.account_holder,
+          updated_at: new Date()
+        })
+        .eq('user_id', settings.user_id);
+    } else {
+      result = await this.supabase
+        .from('payout_settings')
+        .insert(settings);
+    }
+
+    return result;
+  }
+
+  async getPaymentHistory(userId: string) {
+    // Obtener citas pagadas
+    const { data, error } = await this.supabase
+      .from('appointments')
+      .select(`
+        *,
+        students ( first_name, last_name, email )
+      `)
+      .eq('user_id', userId)
+      .eq('payment_status', 'paid')
+      .order('appointment_date', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching payment history:', error);
+      return [];
+    }
+    return data;
+  }
 }
 
 export interface TutorProfile {
