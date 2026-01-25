@@ -24,7 +24,12 @@ export class ServicesListComponent implements OnInit {
   showCreateForm = signal(false);
   loading = signal(false);
   errorMessage = signal('');
+  successMessage = signal('');
   serviceForm: FormGroup;
+
+  // Edit mode
+  editingService = signal<Service | null>(null);
+  showDeleteConfirm = signal<string | null>(null);
 
   // Helper para formatear precios en pesos mexicanos
   formatPrice(price: number): string {
@@ -94,6 +99,7 @@ export class ServicesListComponent implements OnInit {
         // Recargar servicios y cerrar formulario
         await this.loadServices();
         this.cancelCreate();
+        this.showSuccess('Servicio creado correctamente');
 
       } catch (error: any) {
         this.errorMessage.set('Error inesperado. Inténtalo de nuevo.');
@@ -105,9 +111,96 @@ export class ServicesListComponent implements OnInit {
 
   cancelCreate() {
     this.showCreateForm.set(false);
+    this.editingService.set(null);
     this.serviceForm.reset({
       duration_minutes: 60
     });
     this.errorMessage.set('');
+  }
+
+  // Edit methods
+  startEdit(service: Service) {
+    this.editingService.set(service);
+    this.showCreateForm.set(true);
+    this.serviceForm.patchValue({
+      name: service.name,
+      description: service.description || '',
+      price: service.price,
+      duration_minutes: service.duration_minutes,
+      category: service.category || ''
+    });
+  }
+
+  async saveEdit() {
+    if (this.serviceForm.valid && this.editingService()) {
+      this.loading.set(true);
+      this.errorMessage.set('');
+
+      try {
+        const formData = this.serviceForm.value;
+        const updates = {
+          name: formData.name,
+          description: formData.description,
+          price: parseFloat(formData.price),
+          duration_minutes: parseInt(formData.duration_minutes),
+          category: formData.category
+        };
+
+        const { error } = await this.supabaseService.updateService(
+          this.editingService()!.id,
+          updates
+        );
+
+        if (error) {
+          this.errorMessage.set('Error al actualizar el servicio');
+          return;
+        }
+
+        await this.loadServices();
+        this.cancelCreate();
+        this.showSuccess('Servicio actualizado correctamente');
+
+      } catch (error: any) {
+        this.errorMessage.set('Error inesperado. Inténtalo de nuevo.');
+      } finally {
+        this.loading.set(false);
+      }
+    }
+  }
+
+  // Delete methods
+  confirmDelete(serviceId: string) {
+    this.showDeleteConfirm.set(serviceId);
+  }
+
+  cancelDelete() {
+    this.showDeleteConfirm.set(null);
+  }
+
+  async deleteService(serviceId: string) {
+    this.loading.set(true);
+
+    try {
+      const { error } = await this.supabaseService.deleteService(serviceId);
+
+      if (error) {
+        this.errorMessage.set('Error al eliminar el servicio');
+        return;
+      }
+
+      await this.loadServices();
+      this.showDeleteConfirm.set(null);
+      this.showSuccess('Servicio eliminado correctamente');
+
+    } catch (error: any) {
+      this.errorMessage.set('Error inesperado. Inténtalo de nuevo.');
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  private showSuccess(message: string) {
+    this.successMessage.set(message);
+    setTimeout(() => this.successMessage.set(''), 3000);
   }
 }

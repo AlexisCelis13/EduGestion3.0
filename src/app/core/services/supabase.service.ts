@@ -298,6 +298,27 @@ export class SupabaseService {
     return { data, error };
   }
 
+  async updateService(serviceId: string, updates: any) {
+    const { data, error } = await this.supabase
+      .from('services')
+      .update(updates)
+      .eq('id', serviceId)
+      .select()
+      .single();
+
+    return { data, error };
+  }
+
+  async deleteService(serviceId: string) {
+    // Soft delete by setting is_active to false
+    const { error } = await this.supabase
+      .from('services')
+      .update({ is_active: false })
+      .eq('id', serviceId);
+
+    return { error };
+  }
+
   // ============================================
   // SCHEDULE MANAGEMENT METHODS
   // ============================================
