@@ -30,11 +30,6 @@ interface OnboardingTask {
                 Bienvenido a tu panel de control de EduGestión
               </p>
             </div>
-            <div class="flex items-center gap-3">
-              <button class="btn-premium">
-                + Nuevo Alumno
-              </button>
-            </div>
           </div>
         </div>
       </div>

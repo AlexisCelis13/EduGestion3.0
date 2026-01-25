@@ -30,6 +30,41 @@ export interface TenantSettings {
   is_active: boolean;
 }
 
+export interface Student {
+  id: string;
+  user_id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
+  date_of_birth?: string;
+  parent_name?: string;
+  parent_email?: string;
+  parent_phone?: string;
+  notes?: string;
+  is_active: boolean;
+  created_at?: string;
+}
+
+export interface StudentFeedback {
+  id: string;
+  user_id: string;
+  student_id: string;
+  message: string;
+  created_at: string;
+}
+
+export interface StudentMaterial {
+  id: string;
+  user_id: string;
+  student_id: string;
+  title: string;
+  type: 'pdf' | 'doc' | 'link';
+  url: string;
+  description?: string;
+  created_at: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -678,5 +713,205 @@ export class SupabaseService {
       return false;
     }
     return true;
+  }
+
+  // ============================================
+  // STUDENTS MANAGEMENT METHODS
+  // ============================================
+
+  async getStudents(userId: string) {
+    const { data, error } = await this.supabase
+      .from('students')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+
+    return { data, error };
+  }
+
+  async createStudent(student: any) {
+    const { data, error } = await this.supabase
+      .from('students')
+      .insert(student)
+      .select()
+      .single();
+
+    return { data, error };
+  }
+
+  async updateStudent(studentId: string, updates: any) {
+    const { data, error } = await this.supabase
+      .from('students')
+      .update(updates)
+      .eq('id', studentId)
+      .select()
+      .single();
+
+    return { data, error };
+  }
+
+  async deleteStudent(studentId: string) {
+    // Soft delete by setting is_active to false
+    const { error } = await this.supabase
+      .from('students')
+      .update({ is_active: false })
+      .eq('id', studentId);
+
+    return { error };
+  }
+
+  // ============================================
+  // STUDENT FEEDBACK METHODS
+  // ============================================
+
+  async getStudentFeedback(studentId: string) {
+    const { data, error } = await this.supabase
+      .from('student_feedback')
+      .select('*')
+      .eq('student_id', studentId)
+      .order('created_at', { ascending: false });
+
+    return { data, error };
+  }
+
+  async createFeedback(feedback: { user_id: string; student_id: string; message: string }) {
+    const { data, error } = await this.supabase
+      .from('student_feedback')
+      .insert(feedback)
+      .select()
+      .single();
+
+    return { data, error };
+  }
+
+  async deleteFeedback(feedbackId: string) {
+    const { error } = await this.supabase
+      .from('student_feedback')
+      .delete()
+      .eq('id', feedbackId);
+
+    return { error };
+  }
+
+  // ============================================
+  // STUDENT MATERIALS METHODS
+  // ============================================
+
+  async getStudentMaterials(studentId: string) {
+    const { data, error } = await this.supabase
+      .from('student_materials')
+      .select('*')
+      .eq('student_id', studentId)
+      .order('created_at', { ascending: false });
+
+    return { data, error };
+  }
+
+  async createMaterial(material: {
+    user_id: string;
+    student_id: string;
+    title: string;
+    type: 'pdf' | 'doc' | 'link';
+    url: string;
+    description?: string | null;
+  }) {
+    // Filter out null/undefined description
+    const insertData: any = {
+      user_id: material.user_id,
+      student_id: material.student_id,
+      title: material.title,
+      type: material.type,
+      url: material.url
+    };
+    if (material.description) {
+      insertData.description = material.description;
+    }
+
+    const { data, error } = await this.supabase
+      .from('student_materials')
+      .insert(insertData)
+      .select()
+      .single();
+
+    return { data, error };
+  }
+
+  async deleteMaterial(materialId: string) {
+    const { error } = await this.supabase
+      .from('student_materials')
+      .delete()
+      .eq('id', materialId);
+
+    return { error };
+  }
+
+  // ============================================
+  // STUDENT MATERIALS STORAGE METHODS
+  // ============================================
+
+  /**
+   * Upload a material file to Supabase Storage
+   * @param userId - The user ID (used as folder name)
+   * @param studentId - The student ID
+   * @param file - The file to upload
+   * @returns The public URL of the uploaded file or null on error
+   */
+  async uploadStudentMaterial(userId: string, studentId: string, file: File): Promise<string | null> {
+    try {
+      // Create a unique filename with timestamp
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${userId}/${studentId}/${Date.now()}_${file.name}`;
+
+      // Upload the file
+      const { data, error } = await this.supabase.storage
+        .from('student-materials')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) {
+        console.error('Error uploading student material:', error);
+        return null;
+      }
+
+      // Get the signed URL (valid for 1 year)
+      const { data: urlData, error: urlError } = await this.supabase.storage
+        .from('student-materials')
+        .createSignedUrl(fileName, 31536000); // 1 year in seconds
+
+      if (urlError) {
+        console.error('Error getting signed URL:', urlError);
+        return null;
+      }
+
+      return urlData.signedUrl;
+    } catch (error) {
+      console.error('Error in uploadStudentMaterial:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Delete a material file from Supabase Storage
+   * @param filePath - The file path in storage
+   */
+  async deleteStudentMaterialFile(filePath: string): Promise<boolean> {
+    try {
+      const { error } = await this.supabase.storage
+        .from('student-materials')
+        .remove([filePath]);
+
+      if (error) {
+        console.error('Error deleting student material file:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error in deleteStudentMaterialFile:', error);
+      return false;
+    }
   }
 }
