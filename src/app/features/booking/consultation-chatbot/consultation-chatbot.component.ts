@@ -379,7 +379,7 @@ export class ConsultationChatbotComponent implements OnInit {
                 specificTopics: extractedData.specificTopics,
                 currentStruggles: extractedData.currentStruggles,
                 learningGoals: extractedData.learningGoals
-            }, this.pricePerHour);
+            }, this.pricePerHour, this.messages().map(m => `${m.role}: ${m.content}`).join('\n'));
 
             this.generatedPlan.set(plan);
             this.step.set('plan_ready');

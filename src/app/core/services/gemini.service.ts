@@ -44,15 +44,23 @@ export class GeminiService {
     ): Promise<string> {
         const systemPrompt = this.buildChatSystemPrompt(tutorName, conversationHistory);
 
-        const messages = [
+        const messages: any[] = [
             { role: 'user', parts: [{ text: systemPrompt }] },
-            { role: 'model', parts: [{ text: 'Entendido, soy el asistente de ' + tutorName + '. ¿En qué puedo ayudarte?' }] },
-            ...conversationHistory.map(msg => ({
-                role: msg.role === 'user' ? 'user' : 'model',
-                parts: [{ text: msg.content }]
-            })),
-            { role: 'user', parts: [{ text: userMessage }] }
+            { role: 'model', parts: [{ text: 'Entendido, soy el asistente de ' + tutorName + '. ¿En qué puedo ayudarte?' }] }
         ];
+
+        // Agregar historial
+        messages.push(...conversationHistory.map(msg => ({
+            role: msg.role === 'user' ? 'user' : 'model',
+            parts: [{ text: msg.content }]
+        })));
+
+        // Solo agregar el mensaje actual si no está ya al final del historial
+        // Esto previene duplicar el mensaje si el componente ya lo agregó al historial
+        const lastMessage = conversationHistory[conversationHistory.length - 1];
+        if (!lastMessage || lastMessage.content !== userMessage) {
+            messages.push({ role: 'user', parts: [{ text: userMessage }] });
+        }
 
         return this.callGeminiWithRetry(messages);
     }
@@ -119,10 +127,11 @@ export class GeminiService {
             currentStruggles: string;
             learningGoals: string;
         },
-        pricePerHour: number = 200 // Precio default por hora
+        pricePerHour: number = 200, // Precio default por hora
+        chatContext: string = '' // Contexto adicional del chat
     ): Promise<GeneratedStudyPlan> {
         const prompt = `
-Eres un asesor educativo experto. Basándote en la siguiente información del estudiante, genera un plan de estudios personalizado.
+Eres un asesor educativo experto. Basándote en la siguiente información del estudiante y el contexto de la conversación, genera un plan de estudios personalizado y altamente detallado.
 
 **Información del estudiante:**
 - Nombre: ${studentInfo.name}
@@ -132,31 +141,36 @@ Eres un asesor educativo experto. Basándote en la siguiente información del es
 - Dificultades actuales: ${studentInfo.currentStruggles}
 - Objetivos de aprendizaje: ${studentInfo.learningGoals}
 
-**Precio por hora de clase:** $100 MXN
+**Contexto de la conversación (para referencia de temas):**
+${chatContext}
 
-**Genera un plan para UNA SOLA SESIÓN DIAGNÓSTICA/INTRODUCTORIA que incluya:**
-1. Título atractivo del plan
-2. Descripción general (2-3 oraciones)
-3. Un único módulo de contenido
-4. Número de sesiones: 1
-5. Duración: 60 minutos
-6. Precio total: $100
+**Configuración:**
+- Precio por hora: $${pricePerHour} MXN
+- Duración sesión: 60 min
 
-**IMPORTANTE: Responde ÚNICAMENTE con un JSON válido en el siguiente formato exacto, sin texto adicional:**
+**Instrucciones:**
+1. Si la lista de "Materias de interés" está vacía, DEBES INFERIRLA del "Contexto de la conversación".
+2. Genera un plan de estudios completo (NO genérico) que aborde específicamente los temas (POO, Álgebra, Inglés, etc.) discutidos.
+3. El título debe ser atractivo y mencionar la materia principal explícitamente.
+4. El plan debe dividirse en **módulos para UNA SOLA SESIÓN (1 sesión)**.
+5. Define exactamente **1 sesión recomendada**.
+6. Calcula el precio total (igual al precio por hora).
+
+**IMPORTANTE: Responde ÚNICAMENTE con un JSON válido en el siguiente formato exacto:**
 
 {
-  "planTitle": "Sesión Diagnóstica de...",
-  "planDescription": "Evaluación inicial y plan de trabajo...",
+  "planTitle": "Master class de [MATERIA DETECTADA]",
+  "planDescription": "Propuesta de trabajo intensiva para [TEMAS]...",
   "recommendedSessions": 1,
   "sessionDurationMinutes": 60,
   "totalHours": 1,
-  "estimatedPrice": 100,
+  "estimatedPrice": 200,
   "planContent": [
     {
-      "module": "Diagnóstico y Fundamentos",
-      "topics": ["Evaluación nivel actual", "Identificación de brechas", "Plan de ruta"],
+      "module": "Nombre descriptivo del módulo",
+      "topics": ["Tema 1", "Tema 2"],
       "sessions": 1,
-      "description": "Sesión única para establecer bases y ruta de aprendizaje"
+      "description": "Descripción..."
     }
   ]
 }
