@@ -1,0 +1,221 @@
+{
+    "name": "EduGestion Bot Complete",
+    "nodes": [
+        {
+            "parameters": {
+                "updates": [
+                    "message"
+                ],
+                "additionalFields": {}
+            },
+            "name": "Telegram Trigger",
+            "type": "n8n-nodes-base.telegramTrigger",
+            "typeVersion": 1,
+            "position": [
+                460,
+                300
+            ],
+            "webhookId": "edugestion-bot",
+            "credentials": {
+                "telegramApi": {
+                    "id": "YOUR_CREDENTIAL_ID_HERE",
+                    "name": "Telegram account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "dataType": "string",
+                "value1": "={{$json[\"message\"][\"text\"]}}",
+                "rules": {
+                    "rules": [
+                        {
+                            "value2": "/start",
+                            "output": 0
+                        },
+                        {
+                            "value2": "/agenda",
+                            "output": 1
+                        },
+                        {
+                            "value2": "/alumnos",
+                            "output": 2
+                        },
+                        {
+                            "value2": "/ingresos",
+                            "output": 3
+                        }
+                    ]
+                },
+                "fallbackOutput": 4
+            },
+            "name": "Command Switch",
+            "type": "n8n-nodes-base.switch",
+            "typeVersion": 1,
+            "position": [
+                680,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "chatId": "={{$node[\"Telegram Trigger\"].json[\"message\"][\"chat\"][\"id\"]}}",
+                "text": "👋 *Bienvenido a EduGestion Bot*\n\nSoy tu asistente personal. Aquí tienes lo que puedo hacer:\n\n📅 /agenda - Ver tus clases de hoy\n🎓 /alumnos - Lista de alumnos\n💰 /ingresos - Ver tus ganancias\n\n_Selecciona un comando para empezar._",
+                "additionalFields": {
+                    "parse_mode": "Markdown"
+                }
+            },
+            "name": "Welcome Message",
+            "type": "n8n-nodes-base.telegram",
+            "typeVersion": 1,
+            "position": [
+                940,
+                100
+            ],
+            "credentials": {
+                "telegramApi": {
+                    "id": "YOUR_CREDENTIAL_ID_HERE",
+                    "name": "Telegram account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "chatId": "={{$node[\"Telegram Trigger\"].json[\"message\"][\"chat\"][\"id\"]}}",
+                "text": "📅 *Tu Agenda de Hoy*\n\n🕒 10:00 AM - **Juan Pérez** (Matemáticas)\n🕒 12:30 PM - **María López** (Física)\n🕒 04:00 PM - **Carlos Ruiz** (Asesoría)\n\n_Tienes 3 clases pendientes._",
+                "additionalFields": {
+                    "parse_mode": "Markdown"
+                }
+            },
+            "name": "Agenda Response",
+            "type": "n8n-nodes-base.telegram",
+            "typeVersion": 1,
+            "position": [
+                940,
+                300
+            ],
+            "credentials": {
+                "telegramApi": {
+                    "id": "YOUR_CREDENTIAL_ID_HERE",
+                    "name": "Telegram account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "chatId": "={{$node[\"Telegram Trigger\"].json[\"message\"][\"chat\"][\"id\"]}}",
+                "text": "🎓 *Lista de Alumnos Activos*\n\n1. Juan Pérez (Matemáticas)\n2. María López (Física)\n3. Carlos Ruiz (Química)\n4. Ana García (Inglés)\n\n_Total: 4 alumnos activos._",
+                "additionalFields": {
+                    "parse_mode": "Markdown"
+                }
+            },
+            "name": "Students Response",
+            "type": "n8n-nodes-base.telegram",
+            "typeVersion": 1,
+            "position": [
+                940,
+                500
+            ],
+            "credentials": {
+                "telegramApi": {
+                    "id": "YOUR_CREDENTIAL_ID_HERE",
+                    "name": "Telegram account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "chatId": "={{$node[\"Telegram Trigger\"].json[\"message\"][\"chat\"][\"id\"]}}",
+                "text": "💰 *Resumen Financiero (Enero)*\n\n💵 **Ingresos:** $12,500.00 MXN\n💳 **Pendiente:** $2,400.00 MXN\n\n_¡Vas muy bien este mes!_ 🚀",
+                "additionalFields": {
+                    "parse_mode": "Markdown"
+                }
+            },
+            "name": "Finance Response",
+            "type": "n8n-nodes-base.telegram",
+            "typeVersion": 1,
+            "position": [
+                940,
+                700
+            ],
+            "credentials": {
+                "telegramApi": {
+                    "id": "YOUR_CREDENTIAL_ID_HERE",
+                    "name": "Telegram account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "chatId": "={{$node[\"Telegram Trigger\"].json[\"message\"][\"chat\"][\"id\"]}}",
+                "text": "❌ Comando no reconocido.\n\nIntenta con:\n/agenda\n/alumnos\n/ingresos",
+                "additionalFields": {}
+            },
+            "name": "Unknown Command",
+            "type": "n8n-nodes-base.telegram",
+            "typeVersion": 1,
+            "position": [
+                940,
+                900
+            ],
+            "credentials": {
+                "telegramApi": {
+                    "id": "YOUR_CREDENTIAL_ID_HERE",
+                    "name": "Telegram account"
+                }
+            }
+        }
+    ],
+    "connections": {
+        "Telegram Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "Command Switch",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Command Switch": {
+            "main": [
+                [
+                    {
+                        "node": "Welcome Message",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Agenda Response",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Students Response",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Finance Response",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Unknown Command",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

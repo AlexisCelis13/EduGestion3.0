@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - NODE_ENV=production
+      - WEBHOOK_URL=https://taking-explaining-improved-teeth.trycloudflare.com/
+      - GENERIC_TIMEZONE=America/Mexico_City
+    volumes:
+      - n8n_data:/home/node/.n8n
+    # command: /bin/sh -c "n8n start"
+    depends_on:
+      - cloudflared
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --url http://n8n:5678
+    restart: unless-stopped
+
+volumes:
+  n8n_data:
