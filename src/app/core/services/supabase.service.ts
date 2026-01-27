@@ -82,6 +82,17 @@ export interface Service {
   created_at?: string;
 }
 
+export interface AppNotification {
+  id: string;
+  user_id: string;
+  type: 'booking_new' | 'booking_cancel' | 'booking_reminder' | 'system';
+  title: string;
+  message: string;
+  data?: any;
+  is_read: boolean;
+  created_at: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -542,6 +553,20 @@ export class SupabaseService {
       .select()
       .single();
 
+    if (data && !error) {
+      await this.createAppNotification({
+        user_id: appointment.user_id, // If self-booking, user_id is the tutor
+        type: 'booking_new',
+        title: 'Cita Creada',
+        message: `Has agendado una cita con ${appointment.student_name} para el ${appointment.date}.`,
+        data: {
+          appointment_id: data.id,
+          date: appointment.date,
+          time: appointment.start_time
+        }
+      });
+    }
+
     return { data, error };
   }
 
@@ -552,6 +577,19 @@ export class SupabaseService {
       .eq('id', appointmentId)
       .select()
       .single();
+
+    if (data && !error) {
+      // Trigger notification if validation/cancellation
+      if (status === 'cancelled') {
+        await this.createAppNotification({
+          user_id: data.user_id,
+          type: 'booking_cancel',
+          title: 'Cita Cancelada',
+          message: `La cita con ${data.student_name} para el ${data.date} ha sido cancelada.`,
+          data: { appointment_id: appointmentId, date: data.date }
+        });
+      }
+    }
 
     return { data, error };
   }
@@ -675,6 +713,22 @@ export class SupabaseService {
       .select()
       .single();
 
+    if (data && !error) {
+      // Notify the Tutor
+      await this.createAppNotification({
+        user_id: appointment.tutor_id,
+        type: 'booking_new',
+        title: '¡Nueva Reserva!',
+        message: `Has recibido una nueva reserva de ${appointment.student_name} para el ${appointment.date} a las ${appointment.start_time}.`,
+        data: {
+          appointment_id: data.id,
+          student_id: studentId,
+          date: appointment.date,
+          time: appointment.start_time
+        }
+      });
+    }
+
     return { data, error };
   }
 
@@ -784,6 +838,112 @@ export class SupabaseService {
     const s2 = this.timeToMinutes(start2);
     const e2 = this.timeToMinutes(end2);
     return s1 < e2 && e1 > s2;
+  }
+
+  // ============================================
+  // NOTIFICATION METHODS (APP)
+  // ============================================
+
+  private unreadCountSubject = new BehaviorSubject<number>(0);
+  public unreadCount$ = this.unreadCountSubject.asObservable();
+  private notificationSubscription: any = null;
+
+  async initializeNotificationSubscription(userId: string) {
+    if (this.notificationSubscription) {
+      return;
+    }
+
+    // Initial count fetch
+    await this.getAppUnreadCount(userId);
+
+    this.notificationSubscription = this.supabase
+      .channel('public:notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${userId}`
+        },
+        async (payload) => {
+          // On any change, refresh the count
+          // We could be more efficient, but this ensures accuracy
+          await this.getAppUnreadCount(userId);
+        }
+      )
+      .subscribe();
+  }
+
+  async getAppNotifications(userId: string, limit = 20) {
+    const { data, error } = await this.supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    return { data, error };
+  }
+
+  async getAppUnreadCount(userId: string) {
+    const { count, error } = await this.supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('is_read', false); // Only count unread
+
+    if (count !== null) {
+      this.unreadCountSubject.next(count);
+    }
+
+    return { count, error };
+  }
+
+  async markAppNotificationAsRead(notificationId: string) {
+    const { data, error } = await this.supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('id', notificationId)
+      .select()
+      .single();
+
+    // Refresh count after marking as read
+    const user = await this.getCurrentUser();
+    if (user) {
+      this.getAppUnreadCount(user.id);
+    }
+
+    return { data, error };
+  }
+
+  async markAllAppNotificationsAsRead(userId: string) {
+    const { data, error } = await this.supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('user_id', userId)
+      .eq('is_read', false);
+
+    // Update local count immediately
+    this.unreadCountSubject.next(0);
+
+    return { data, error };
+  }
+
+  async createAppNotification(notification: {
+    user_id: string;
+    type: 'booking_new' | 'booking_cancel' | 'booking_reminder' | 'system';
+    title: string;
+    message: string;
+    data?: any;
+  }) {
+    const { data, error } = await this.supabase
+      .from('notifications')
+      .insert(notification)
+      .select()
+      .single();
+
+    return { data, error };
   }
 
   // ============================================
