@@ -23,7 +23,7 @@ interface PricingPlan {
         <div class="max-w-6xl mx-auto px-6 lg:px-8">
           <div class="flex justify-between items-center h-16">
             <div class="flex items-center">
-              <h1 class="text-xl font-semibold text-surface-700 tracking-tight">EduGestión</h1>
+              <img src="assets/LogoCompleto.png" class="h-10">
             </div>
             <div class="flex items-center gap-4">
               <a routerLink="/auth/login" 

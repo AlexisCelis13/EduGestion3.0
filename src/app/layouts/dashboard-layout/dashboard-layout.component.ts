@@ -20,7 +20,7 @@ interface MenuItem {
       <div class="w-64 bg-surface-700 text-white flex flex-col">
         <!-- Logo -->
         <div class="flex items-center justify-center h-[65px] border-b border-surface-600">
-          <h1 class="text-xl font-semibold tracking-tight">EduGestión</h1>
+        <h1 class="text-xl font-semibold tracking-tight">Edu</h1><img src="assets/isotipo.png" class="h-10"><h1 class="text-xl font-semibold tracking-tight">estion</h1>
         </div>
 
         <!-- Navigation -->
