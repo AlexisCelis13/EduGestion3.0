@@ -297,6 +297,8 @@ export class PaymentsComponent implements OnInit {
       ...formValue
     });
     if (!error) {
+      // Sync onboarding progress
+      await this.supabaseService.updateOnboardingStep(this.userId, 'bank-account', true);
       this.showLinkModal.set(false);
       this.loadData();
     } else {

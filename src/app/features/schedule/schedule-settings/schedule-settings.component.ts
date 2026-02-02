@@ -701,6 +701,9 @@ export class ScheduleSettingsComponent implements OnInit {
 
       await this.supabaseService.saveTimeBlocks(user.id, timeBlocksToSave);
 
+      // Sync onboarding progress
+      await this.supabaseService.updateOnboardingStep(user.id, 'schedule', true);
+
       this.successMessage.set('Configuración guardada correctamente');
     } catch (error) {
       this.errorMessage.set('Error al guardar la configuración');

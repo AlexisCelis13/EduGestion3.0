@@ -38,71 +38,73 @@ import { LucideAngularModule, Calendar, Clock, User, ChevronRight } from 'lucide
       </div>
 
       <div class="max-w-7xl mx-auto px-6 lg:px-8 py-8">
-        <!-- Widget Principal de Onboarding -->
-        <div class="card-premium p-6 mb-8">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-            <div>
-              <h2 class="text-xl font-semibold text-surface-700">
-                Explora EduGestión siguiendo estos pasos
-              </h2>
-              <p class="text-surface-400 mt-1">
-                Completa estos pasos para aprovechar al máximo la plataforma
-              </p>
-            </div>
-            <div class="text-right">
-              <div class="text-3xl font-semibold text-primary-600">
-                {{ completedTasks() }}/{{ onboardingTasks.length }}
+        <!-- Widget Principal de Onboarding - Solo visible si no se han completado todos los pasos -->
+        @if (completedTasks() < onboardingTasks.length) {
+          <div class="card-premium p-6 mb-8">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+              <div>
+                <h2 class="text-xl font-semibold text-surface-700">
+                  Explora EduGestión siguiendo estos pasos
+                </h2>
+                <p class="text-surface-400 mt-1">
+                  Completa estos pasos para aprovechar al máximo la plataforma
+                </p>
               </div>
-              <div class="text-sm text-surface-400">completados</div>
-            </div>
-          </div>
-
-          <!-- Barra de Progreso -->
-          <div class="mb-8">
-            <div class="flex justify-between text-sm text-surface-500 mb-2">
-              <span>Progreso de configuración</span>
-              <span class="font-medium text-surface-700">{{ Math.round((completedTasks() / onboardingTasks.length) * 100) }}%</span>
-            </div>
-            <div class="w-full bg-surface-100 rounded-full h-2.5">
-              <div 
-                class="bg-gradient-to-r from-primary-500 to-primary-600 h-2.5 rounded-full transition-all duration-500"
-                [style.width.%]="(completedTasks() / onboardingTasks.length) * 100">
+              <div class="text-right">
+                <div class="text-3xl font-semibold text-primary-600">
+                  {{ completedTasks() }}/{{ onboardingTasks.length }}
+                </div>
+                <div class="text-sm text-surface-400">completados</div>
               </div>
             </div>
-          </div>
 
-          <!-- Tarjetas de Tareas -->
-          <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-            @for (task of onboardingTasks; track task.id) {
-              <div class="card-premium p-5 cursor-pointer hover-lift"
-                   [class.bg-accent-green]="task.completed"
-                   [class.bg-opacity-5]="task.completed"
-                   [routerLink]="task.route">
-                <div class="flex items-center justify-between mb-4">
-                  <div class="w-12 h-12 rounded-2xl flex items-center justify-center"
-                       [class.bg-accent-green]="task.completed"
-                       [class.bg-opacity-15]="task.completed"
-                       [class.bg-primary-50]="!task.completed">
+            <!-- Barra de Progreso -->
+            <div class="mb-8">
+              <div class="flex justify-between text-sm text-surface-500 mb-2">
+                <span>Progreso de configuración</span>
+                <span class="font-medium text-surface-700">{{ Math.round((completedTasks() / onboardingTasks.length) * 100) }}%</span>
+              </div>
+              <div class="w-full bg-surface-100 rounded-full h-2.5">
+                <div 
+                  class="bg-gradient-to-r from-primary-500 to-primary-600 h-2.5 rounded-full transition-all duration-500"
+                  [style.width.%]="(completedTasks() / onboardingTasks.length) * 100">
+                </div>
+              </div>
+            </div>
+
+            <!-- Tarjetas de Tareas -->
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+              @for (task of onboardingTasks; track task.id) {
+                <div class="card-premium p-5 cursor-pointer hover-lift"
+                     [class.bg-accent-green]="task.completed"
+                     [class.bg-opacity-5]="task.completed"
+                     [routerLink]="task.route">
+                  <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center"
+                         [class.bg-accent-green]="task.completed"
+                         [class.bg-opacity-15]="task.completed"
+                         [class.bg-primary-50]="!task.completed">
+                      @if (task.completed) {
+                        <svg class="w-6 h-6 text-accent-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      } @else {
+                        <span class="text-2xl">{{ task.icon }}</span>
+                      }
+                    </div>
                     @if (task.completed) {
-                      <svg class="w-6 h-6 text-accent-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                      </svg>
-                    } @else {
-                      <span class="text-2xl">{{ task.icon }}</span>
+                      <span class="text-xs font-medium bg-accent-green bg-opacity-10 text-accent-green px-2.5 py-1 rounded-full">
+                        Completado
+                      </span>
                     }
                   </div>
-                  @if (task.completed) {
-                    <span class="text-xs font-medium bg-accent-green bg-opacity-10 text-accent-green px-2.5 py-1 rounded-full">
-                      Completado
-                    </span>
-                  }
+                  <h3 class="font-semibold text-surface-700 mb-1.5">{{ task.title }}</h3>
+                  <p class="text-sm text-surface-400 leading-relaxed">{{ task.description }}</p>
                 </div>
-                <h3 class="font-semibold text-surface-700 mb-1.5">{{ task.title }}</h3>
-                <p class="text-sm text-surface-400 leading-relaxed">{{ task.description }}</p>
-              </div>
-            }
+              }
+            </div>
           </div>
-        </div>
+        }
 
 
         <!-- Stats Cards -->
@@ -119,7 +121,7 @@ import { LucideAngularModule, Calendar, Clock, User, ChevronRight } from 'lucide
               </div>
               <div class="ml-4">
                 <p class="text-sm font-medium text-surface-400">Alumnos Activos</p>
-                <p class="text-2xl font-semibold text-surface-700">0</p>
+                <p class="text-2xl font-semibold text-surface-700">{{ activeStudents() }}</p>
               </div>
             </div>
           </div>
@@ -136,7 +138,7 @@ import { LucideAngularModule, Calendar, Clock, User, ChevronRight } from 'lucide
               </div>
               <div class="ml-4">
                 <p class="text-sm font-medium text-surface-400">Clases Esta Semana</p>
-                <p class="text-2xl font-semibold text-surface-700">0</p>
+                <p class="text-2xl font-semibold text-surface-700">{{ classesThisWeek() }}</p>
               </div>
             </div>
           </div>
@@ -152,7 +154,7 @@ import { LucideAngularModule, Calendar, Clock, User, ChevronRight } from 'lucide
               </div>
               <div class="ml-4">
                 <p class="text-sm font-medium text-surface-400">Ingresos Este Mes</p>
-                <p class="text-2xl font-semibold text-surface-700">$0</p>
+                <p class="text-2xl font-semibold text-surface-700">{{ formatCurrency(monthlyRevenue()) }}</p>
               </div>
             </div>
           </div>
@@ -167,7 +169,7 @@ import { LucideAngularModule, Calendar, Clock, User, ChevronRight } from 'lucide
               </div>
               <div class="ml-4">
                 <p class="text-sm font-medium text-surface-400">Servicios Activos</p>
-                <p class="text-2xl font-semibold text-surface-700">0</p>
+                <p class="text-2xl font-semibold text-surface-700">{{ activeServices() }}</p>
               </div>
             </div>
           </div>
@@ -312,17 +314,23 @@ export class DashboardHomeComponent implements OnInit {
       route: '/dashboard/payments'
     },
     {
-      id: 'test-student',
-      title: 'Registra un alumno de prueba',
-      description: 'Prueba el sistema agregando tu primer estudiante',
-      icon: '👨‍🎓',
+      id: 'schedule',
+      title: 'Configura tu horario',
+      description: 'Define tu disponibilidad para recibir reservaciones',
+      icon: '⏰',
       completed: false,
-      route: '/dashboard/students'
+      route: '/dashboard/schedule/settings'
     }
   ];
 
   completedTasks = signal(0);
   upcomingAppointments = signal<any[]>([]);
+
+  // Dashboard stats
+  activeStudents = signal(0);
+  classesThisWeek = signal(0);
+  monthlyRevenue = signal(0);
+  activeServices = signal(0);
 
   constructor(private supabaseService: SupabaseService) { }
 
@@ -330,6 +338,60 @@ export class DashboardHomeComponent implements OnInit {
     await this.loadProfile();
     await this.loadOnboardingProgress();
     await this.loadAppointments();
+    await this.loadStats();
+  }
+
+  formatCurrency(amount: number): string {
+    return amount.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
+  }
+
+  private async loadStats() {
+    const user = await this.supabaseService.getCurrentUser();
+    if (!user) return;
+
+    // Load active students count
+    const { data: students } = await this.supabaseService.getStudents(user.id);
+    if (students) {
+      this.activeStudents.set(students.length); // getStudents already filters by is_active
+    }
+
+    // Load active services count
+    const { data: services } = await this.supabaseService.getServices(user.id);
+    if (services) {
+      this.activeServices.set(services.length);
+    }
+
+    // Load appointments for stats
+    const appointments = await this.supabaseService.getAppointments(user.id);
+    if (appointments) {
+      const now = new Date();
+
+      // Classes this week
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay());
+      startOfWeek.setHours(0, 0, 0, 0);
+
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 7);
+
+      const thisWeekClasses = appointments.filter((a: any) => {
+        const aptDate = new Date(a.date);
+        return aptDate >= startOfWeek && aptDate < endOfWeek && a.status !== 'cancelled';
+      });
+      this.classesThisWeek.set(thisWeekClasses.length);
+
+      // Revenue this month
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+      const monthlyPaid = appointments.filter((a: any) => {
+        const aptDate = new Date(a.date);
+        return aptDate >= startOfMonth && aptDate <= endOfMonth && a.payment_status === 'paid';
+      });
+
+      const totalRevenue = monthlyPaid.reduce((sum: number, a: any) => sum + (Number(a.amount_paid) || 0), 0);
+      this.monthlyRevenue.set(totalRevenue);
+    }
   }
 
   private async loadAppointments() {
@@ -362,17 +424,45 @@ export class DashboardHomeComponent implements OnInit {
     if (user) {
       const { data: progress } = await this.supabaseService.getOnboardingProgress(user.id);
 
-      if (progress) {
-        let completed = 0;
-        this.onboardingTasks.forEach(task => {
+      let completed = 0;
+
+      // Check each task's actual state
+      for (const task of this.onboardingTasks) {
+        let isCompleted = false;
+
+        // First check onboarding_progress table
+        if (progress) {
           const taskProgress = progress.find(p => p.step_name === task.id);
           if (taskProgress?.completed) {
-            task.completed = true;
-            completed++;
+            isCompleted = true;
           }
-        });
-        this.completedTasks.set(completed);
+        }
+
+        // For bank-account, also check if payout_settings exists
+        if (task.id === 'bank-account' && !isCompleted) {
+          const payoutSettings = await this.supabaseService.getPayoutSettings(user.id);
+          if (payoutSettings && payoutSettings.account_number) {
+            isCompleted = true;
+            // Sync back to onboarding_progress
+            await this.supabaseService.updateOnboardingStep(user.id, 'bank-account', true);
+          }
+        }
+
+        // For schedule, check if weekly_schedule exists
+        if (task.id === 'schedule' && !isCompleted) {
+          const weeklySchedule = await this.supabaseService.getWeeklySchedule(user.id);
+          if (weeklySchedule && weeklySchedule.length > 0) {
+            isCompleted = true;
+            // Sync back to onboarding_progress
+            await this.supabaseService.updateOnboardingStep(user.id, 'schedule', true);
+          }
+        }
+
+        task.completed = isCompleted;
+        if (isCompleted) completed++;
       }
+
+      this.completedTasks.set(completed);
     }
   }
 }
