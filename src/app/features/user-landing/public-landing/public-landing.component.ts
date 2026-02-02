@@ -40,6 +40,10 @@ export class PublicLandingComponent implements OnInit {
     }
   }
 
+  scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   constructor(
     private route: ActivatedRoute,
     private supabaseService: SupabaseService

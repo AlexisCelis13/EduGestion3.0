@@ -1,7 +1,8 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { SupabaseService } from '../../core/services/supabase.service';
+import { NotificationListComponent } from '../../shared/components/notification-list/notification-list.component';
 
 interface MenuItem {
   name: string;
@@ -12,14 +13,14 @@ interface MenuItem {
 @Component({
   selector: 'app-dashboard-layout',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, NotificationListComponent],
   template: `
     <div class="flex h-screen bg-surface-50">
       <!-- Sidebar -->
       <div class="w-64 bg-surface-700 text-white flex flex-col">
         <!-- Logo -->
         <div class="flex items-center justify-center h-[65px] border-b border-surface-600">
-          <h1 class="text-xl font-semibold tracking-tight">EduGestión</h1>
+        <h1 class="text-xl font-semibold tracking-tight">Edu</h1><img src="assets/isotipo.png" class="h-10"><h1 class="text-xl font-semibold tracking-tight">estion</h1>
         </div>
 
         <!-- Navigation -->
@@ -79,13 +80,27 @@ interface MenuItem {
 
             <div class="flex items-center gap-3">
               <!-- Notifications -->
-              <button class="p-2.5 rounded-xl hover:bg-surface-100 relative transition-colors">
-                <svg class="w-5 h-5 text-surface-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                  <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                </svg>
-                <span class="absolute top-1.5 right-1.5 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
-              </button>
+              <div class="relative">
+                <button 
+                  (click)="toggleNotifications()"
+                  class="p-2.5 rounded-xl hover:bg-surface-100 relative transition-colors"
+                  [class.bg-surface-100]="showNotifications()">
+                  <svg class="w-5 h-5 text-surface-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                  </svg>
+                  @if (unreadCount() > 0) {
+                    <span class="absolute top-1.5 right-1.5 block h-2.5 w-2.5 rounded-full bg-blue-600 ring-2 ring-white z-10"></span>
+                  }
+                </button>
+
+                @if (showNotifications()) {
+                  <app-notification-list></app-notification-list>
+                  
+                  <!-- Backdrop to close -->
+                  <div class="fixed inset-0 z-40 bg-transparent" (click)="toggleNotifications()"></div>
+                }
+              </div>
 
               <!-- Profile Dropdown -->
               <div class="relative">
@@ -132,12 +147,15 @@ interface MenuItem {
     }
   `
 })
-export class DashboardLayoutComponent {
+export class DashboardLayoutComponent implements OnInit {
   sidebarOpen = signal(false);
   showProfileMenu = signal(false);
+  showNotifications = signal(false);
+
   userName = signal('Usuario');
   userEmail = signal('');
   userInitials = signal('U');
+  unreadCount = signal(0);
 
   menuItems: MenuItem[] = [
     { name: 'Dashboard', route: '/dashboard' },
@@ -159,6 +177,13 @@ export class DashboardLayoutComponent {
     this.loadUserInfo();
   }
 
+  ngOnInit() {
+    // Subscribe to count updates
+    this.supabaseService.unreadCount$.subscribe(count => {
+      this.unreadCount.set(count);
+    });
+  }
+
   toggleSidebar() {
     this.sidebarOpen.set(!this.sidebarOpen());
   }
@@ -167,10 +192,21 @@ export class DashboardLayoutComponent {
     this.showProfileMenu.set(!this.showProfileMenu());
   }
 
+  toggleNotifications() {
+    this.showNotifications.set(!this.showNotifications());
+    // No need to manually refresh here if real-time works, but we can
+    if (this.showNotifications()) {
+      // Maybe mark as read? No, that happens on click or "mark all"
+    }
+  }
+
   async loadUserInfo() {
     const user = await this.supabaseService.getCurrentUser();
     if (user) {
       this.userEmail.set(user.email || '');
+
+      // Initialize real-time notifications
+      this.supabaseService.initializeNotificationSubscription(user.id);
 
       const profile = await this.supabaseService.getProfile(user.id);
       if (profile) {
@@ -183,6 +219,14 @@ export class DashboardLayoutComponent {
           : (user.email?.[0] || 'U').toUpperCase();
         this.userInitials.set(initials);
       }
+    }
+  }
+
+  async loadUnreadCount() {
+    // Deprecated in favor of subscription, but method kept if needed or called elsewhere
+    const user = await this.supabaseService.getCurrentUser();
+    if (user) {
+      await this.supabaseService.getAppUnreadCount(user.id);
     }
   }
 

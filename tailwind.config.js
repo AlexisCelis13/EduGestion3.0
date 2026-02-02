@@ -10,14 +10,14 @@ module.exports = {
         primary: {
           50: '#f0f7ff',
           100: '#e0efff',
-          200: '#b8dbff',
-          300: '#7ac0ff',
-          400: '#369eff',
-          500: '#0077ED',  // Apple blue
-          600: '#0071E3',  // Apple link blue
-          700: '#0051A3',
-          800: '#004085',
-          900: '#003366',
+          200: '#76e0caff',
+          300: '#5bd3bbff',
+          400: '#53ceb5ff',
+          500: '#48c9b0',  // Apple blue
+          600: '#42b8a8',  // Apple link blue
+          700: '#36a29fff',
+          800: '#2aa195ff',
+          900: '#1e918bff',
         },
         // Premium grays (Apple-style)
         surface: {
@@ -55,7 +55,7 @@ module.exports = {
         'premium': '0 0 0 1px rgba(0,0,0,0.03), 0 2px 4px rgba(0,0,0,0.05), 0 12px 24px rgba(0,0,0,0.05)',
         'premium-lg': '0 0 0 1px rgba(0,0,0,0.03), 0 4px 8px rgba(0,0,0,0.04), 0 24px 48px rgba(0,0,0,0.08)',
         'premium-hover': '0 0 0 1px rgba(0,0,0,0.03), 0 8px 16px rgba(0,0,0,0.08), 0 32px 64px rgba(0,0,0,0.12)',
-        'glow': '0 0 20px rgba(0,119,237,0.3)',
+        'glow': '0 0 20px rgba(0, 237, 178, 0.3)',
         'glow-lg': '0 0 40px rgba(0,119,237,0.4)',
         'inner-light': 'inset 0 1px 0 rgba(255,255,255,0.2)',
       },

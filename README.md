@@ -85,7 +85,7 @@ export const environment = {
 ng serve
 ```
 
-El proyecto estará disponible en `http://localhost:4200`
+El proyecto estará disponible en `http://localhost:5500`
 
 ## 🗄️ Base de Datos
 

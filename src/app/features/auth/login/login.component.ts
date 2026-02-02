@@ -11,7 +11,7 @@ import { SupabaseService } from '../../../core/services/supabase.service';
   template: `
     <div class="min-h-screen bg-gradient-to-br from-surface-50 via-primary-50/30 to-surface-100 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div class="sm:mx-auto sm:w-full sm:max-w-md">
-        <h1 class="text-2xl font-semibold text-surface-700 text-center mb-2">EduGestión</h1>
+        <div class="flex items-center justify-center mb-4"><img src="assets/isotipo.png" class="h-20"></div>
         <h2 class="text-center text-title text-surface-700">
           Iniciar Sesión
         </h2>

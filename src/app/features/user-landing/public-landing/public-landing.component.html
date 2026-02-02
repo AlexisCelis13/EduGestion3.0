@@ -19,7 +19,9 @@
     [style.background]="'linear-gradient(to right, ' + settings()?.primary_color + ', ' + settings()?.secondary_color + ')'">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
       @if (settings()?.logo_url) {
-      <img [src]="settings()?.logo_url" alt="Logo" class="w-20 h-20 mx-auto mb-6 rounded-lg">
+      <img [src]="settings()?.logo_url" alt="Logo"
+        class="w-20 h-20 mx-auto mb-6 rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+        (click)="scrollToTop()">
       }
       <h1 class="text-4xl font-bold mb-4">
         {{ getDisplayName() }}
