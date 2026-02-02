@@ -68,9 +68,16 @@ interface PricingPlan {
             <h2 class="text-title text-surface-700 mb-4">
               Elige el plan perfecto para ti
             </h2>
-            <p class="text-subtitle text-surface-400">
+            <p class="text-subtitle text-surface-400 mb-4">
               Comienza con 14 días gratis. Cancela cuando quieras.
             </p>
+            <div class="flex items-center justify-center gap-2 text-sm text-surface-500 bg-surface-50 inline-flex px-4 py-2 rounded-full border border-surface-200">
+               <svg class="w-5 h-5 text-[#003087]" viewBox="0 0 24 24" fill="currentColor">
+                 <path d="M20.067 8.284c.642 4.606-2.583 8.358-8.24 8.358h-2.14l-1.026 6.551a.602.602 0 01-.595.507H4.558a.5.5 0 01-.497-.577l2.843-18.006a.8.8 0 01.789-.675h5.45c4.086 0 7.378 1.487 6.924 3.843z"/>
+                 <path d="M7.076 21.337l.732-4.634h2.695c4.221 0 7.716-2.029 8.281-6.623.364-2.964-1.343-4.832-3.832-5.753-1.638-.606-3.805-.487-3.805-.487l-.46 2.87s1.396-.062 2.456.326c1.556.57 2.213 1.764 1.959 3.827-.406 3.328-3.085 4.098-5.368 4.098h-1.61L7.076 21.337z" fill="#009cde"/>
+               </svg>
+               Pagos seguros procesados por <strong>PayPal</strong>
+            </div>
           </div>
 
           <!-- Pricing Cards -->

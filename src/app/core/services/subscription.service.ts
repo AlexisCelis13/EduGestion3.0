@@ -111,7 +111,9 @@ export class SubscriptionService {
     async createSubscription(
         userId: string,
         planId: string,
-        startTrial: boolean = true
+        startTrial: boolean = true,
+        paymentProvider: string = 'simulated',
+        paymentDetails: any = null
     ): Promise<Subscription> {
         const now = new Date();
         const trialEnd = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000); // 14 days
@@ -121,7 +123,8 @@ export class SubscriptionService {
             plan_id: planId,
             status: startTrial ? 'trial' : 'active',
             billing_cycle: 'monthly',
-            payment_provider: 'simulated',
+            payment_provider: paymentProvider,
+            payment_provider_subscription_id: paymentDetails?.id || null,
             trial_start: startTrial ? now.toISOString() : null,
             trial_end: startTrial ? trialEnd.toISOString() : null,
             current_period_start: startTrial ? null : now.toISOString(),

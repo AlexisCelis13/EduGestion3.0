@@ -148,7 +148,7 @@ export class DashboardLayoutComponent {
     { name: 'Planes de Estudio', route: '/dashboard/study-plans' },
     { name: 'Pagos', route: '/dashboard/payments' },
     { name: 'Mi Landing Page', route: '/dashboard/landing-editor' },
-    { name: 'Reportes', route: '/dashboard/reports' },
+    // { name: 'Reportes', route: '/dashboard/reports' }, // Oculto temporalmente
     { name: 'Configuración', route: '/dashboard/settings' }
   ];
 

@@ -92,8 +92,15 @@ interface PricingPlan {
 
         <!-- Trust Indicators -->
         <div class="mt-12 text-center">
-          <p class="text-sm text-gray-500">
-            🔒 Pago seguro con Stripe • 📞 Soporte 24/7 • 💰 Garantía de 30 días
+          <p class="text-sm text-gray-500 flex items-center justify-center gap-2">
+            <svg class="w-5 h-5 text-blue-600" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M7.076 21.337l.732-4.634h2.695c4.221 0 7.716-2.029 8.281-6.623.364-2.964-1.343-4.832-3.832-5.753-1.638-.606-3.805-.487-3.805-.487l-.46 2.87s1.396-.062 2.456.326c1.556.57 2.213 1.764 1.959 3.827-.406 3.328-3.085 4.098-5.368 4.098h-1.61L7.076 21.337z"/>
+            </svg>
+            <span>Pago 100% seguro con <strong>PayPal</strong></span>
+            <span class="mx-2">•</span>
+            <span>📞 Soporte 24/7</span>
+            <span class="mx-2">•</span>
+            <span>💰 Garantía de 30 días</span>
           </p>
         </div>
       </div>

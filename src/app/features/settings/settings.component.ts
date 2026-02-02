@@ -1,9 +1,10 @@
-import { Component, signal, OnInit } from '@angular/core';
+import { Component, signal, OnInit, ViewChild, ElementRef, afterNextRender } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { SupabaseService, Profile } from '../../core/services/supabase.service';
 import { SubscriptionService, Plan, SubscriptionWithPlan, SubscriptionHistory } from '../../core/services/subscription.service';
+import { PaymentService } from '../../core/services/payment.service';
 
 @Component({
   selector: 'app-settings',
@@ -96,23 +97,26 @@ import { SubscriptionService, Plan, SubscriptionWithPlan, SubscriptionHistory } 
 
               <!-- Actions -->
               <div class="flex flex-col gap-3">
-                <button (click)="showChangePlanModal.set(true)" class="btn-premium">
-                  Cambiar Plan
-                </button>
-                @if (subscription()?.status !== 'cancelled' && subscription()?.status !== 'expired') {
-                  <button (click)="showCancelModal.set(true)" class="btn-outline text-red-600 border-red-200 hover:bg-red-50">
-                    Cancelar Suscripción
-                  </button>
-                }
+                
                 @if (subscription()?.status === 'cancelled') {
-                  <button (click)="reactivateSubscription()" [disabled]="processing()" class="btn-premium">
-                    @if (processing()) {
-                      Reactivando...
-                    } @else {
-                      Reactivar Suscripción
-                    }
+                   <div class="p-3 bg-red-50 text-red-700 rounded-lg text-sm text-center mb-2">
+                      Suscripción cancelada. <br> Para reactivar, deberás suscribirte nuevamente.
+                   </div>
+                   <button (click)="openChangePlanModal()" class="btn-premium">
+                      Renovar Suscripción ahora
+                   </button>
+                } @else {
+                  <button (click)="openChangePlanModal()" class="btn-premium">
+                    Cambiar Plan
                   </button>
+                  
+                  @if (subscription()?.status !== 'expired') {
+                    <button (click)="showCancelModal.set(true)" class="btn-outline text-red-600 border-red-200 hover:bg-red-50">
+                      Cancelar Suscripción
+                    </button>
+                  }
                 }
+
               </div>
             </div>
           </div>
@@ -133,10 +137,15 @@ import { SubscriptionService, Plan, SubscriptionWithPlan, SubscriptionHistory } 
           </div>
         </div>
 
+        <!-- Subscription History and Profile sections omitted for brevity but remain unchanged -->
+
+        <!-- ...existing code... -->
+        
         <!-- Profile Section -->
         <div class="card-premium mb-8">
-          <div class="p-6 border-b border-surface-100 flex items-center justify-between">
-            <h2 class="text-lg font-semibold text-surface-700">Información del Perfil</h2>
+          <div class="p-6 border-b border-surface-100 flex items-center justify-center sm:justify-between">
+             <!-- ...existing code... -->
+             <h2 class="text-lg font-semibold text-surface-700">Información del Perfil</h2>
             @if (!editingProfile()) {
               <button (click)="startEditProfile()" class="btn-secondary text-sm">
                 Editar
@@ -242,7 +251,7 @@ import { SubscriptionService, Plan, SubscriptionWithPlan, SubscriptionHistory } 
                     </div>
                   </div>
                   <div class="text-right">
-                    @if (event.amount) {
+                    @if (event.amount !== null && event.amount !== undefined) {
                       <p class="font-semibold text-surface-700">\${{ formatPrice(event.amount) }}</p>
                     }
                     <p class="text-sm text-surface-400">{{ formatDate(event.created_at) }}</p>
@@ -256,8 +265,8 @@ import { SubscriptionService, Plan, SubscriptionWithPlan, SubscriptionHistory } 
 
       <!-- Change Plan Modal -->
       @if (showChangePlanModal()) {
-        <div class="fixed inset-0 bg-surface-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" (click)="showChangePlanModal.set(false)">
-          <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" (click)="$event.stopPropagation()">
+        <div class="fixed inset-0 bg-surface-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div class="p-6 border-b border-surface-100">
               <h2 class="text-xl font-semibold text-surface-800">Cambiar Plan</h2>
               <p class="text-surface-500 mt-1">Selecciona el plan que mejor se adapte a tus necesidades</p>
@@ -293,38 +302,43 @@ import { SubscriptionService, Plan, SubscriptionWithPlan, SubscriptionHistory } 
                         <p class="text-sm text-surface-400">/mes</p>
                       </div>
                     </div>
-                    @if (plan.id === subscription()?.plan_id) {
-                      <div class="mt-2 text-sm text-primary-600 font-medium">Tu plan actual</div>
-                    }
                   </div>
                 }
               </div>
 
               @if (selectedNewPlan() && selectedNewPlan() !== subscription()?.plan_id) {
                 <div class="mt-6 p-4 bg-surface-50 rounded-xl">
-                  <p class="text-sm text-surface-600">
-                    @if (isUpgrade()) {
-                      Se te cobrará la diferencia prorrateada por los días restantes del ciclo actual.
-                    } @else {
-                      Tu crédito se aplicará a futuras facturas.
-                    }
-                  </p>
+                  @if (isUpgrade()) {
+                     <p class="text-sm text-surface-600 mb-3">
+                      Estás actualizando a un plan superior. Tu próximo pago será promediado.
+                    </p>
+                    <div class="font-semibold text-surface-700 mb-4">
+                      Pago requerido: \${{ formatPrice(getSelectedPlanPrice()) }} <span class="text-sm font-normal text-surface-500">(/mes)</span>
+                    </div>
+
+                    <!-- Paypal Container -->
+                    <div id="paypal-button-container" #paypalContainer class="w-full"></div>
+                  } @else {
+                     <p class="text-sm text-surface-600">
+                      El cambio se aplicará al final del ciclo actual. Tu crédito restante se usará en futuras facturas.
+                    </p>
+                  }
                 </div>
               }
             </div>
             <div class="p-6 border-t border-surface-100 flex justify-end gap-3">
-              <button (click)="showChangePlanModal.set(false)" class="btn-outline">Cancelar</button>
-              <button 
-                (click)="changePlan()" 
-                [disabled]="!selectedNewPlan() || selectedNewPlan() === subscription()?.plan_id || processing()"
-                class="btn-premium"
-              >
-                @if (processing()) {
-                  Procesando...
-                } @else {
+              <button (click)="closeChangePlanModal()" class="btn-outline">Cancelar</button>
+              
+              <!-- Only show main button if it is NOT an upgrade (downgrades are free/immediate) -->
+              @if (!isUpgrade()) {
+                <button 
+                  (click)="changePlan()" 
+                  [disabled]="!selectedNewPlan() || selectedNewPlan() === subscription()?.plan_id || processing()"
+                  class="btn-premium"
+                >
                   Confirmar Cambio
-                }
-              </button>
+                </button>
+              }
             </div>
           </div>
         </div>
@@ -332,14 +346,17 @@ import { SubscriptionService, Plan, SubscriptionWithPlan, SubscriptionHistory } 
 
       <!-- Cancel Subscription Modal -->
       @if (showCancelModal()) {
-        <div class="fixed inset-0 bg-surface-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" (click)="showCancelModal.set(false)">
-          <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full" (click)="$event.stopPropagation()">
+        <!-- ...existing code... -->
+           <div class="fixed inset-0 bg-surface-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+           <!-- ... -->
+              <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full" (click)="$event.stopPropagation()">
             <div class="p-6 border-b border-surface-100">
               <h2 class="text-xl font-semibold text-surface-800">¿Cancelar suscripción?</h2>
             </div>
             <div class="p-6">
               <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
-                <div class="flex items-start gap-3">
+                <!-- ... -->
+                   <div class="flex items-start gap-3">
                   <svg class="w-5 h-5 text-amber-600 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"></circle>
                     <line x1="12" y1="8" x2="12" y2="12"></line>
@@ -375,7 +392,7 @@ import { SubscriptionService, Plan, SubscriptionWithPlan, SubscriptionHistory } 
               </button>
             </div>
           </div>
-        </div>
+         </div>
       }
     </div>
   `
@@ -406,15 +423,20 @@ export class SettingsComponent implements OnInit {
     role: 'tutor_independiente' as 'director' | 'tutor_independiente'
   };
 
+  @ViewChild('paypalContainer') paypalContainer!: ElementRef;
+
   constructor(
     private supabaseService: SupabaseService,
     private subscriptionService: SubscriptionService,
+    private paymentService: PaymentService,
     private router: Router
   ) { }
 
   async ngOnInit() {
     await this.loadData();
   }
+
+  // ...existing methods...
 
   private async loadData() {
     try {
@@ -448,6 +470,7 @@ export class SettingsComponent implements OnInit {
   }
 
   getStatusLabel(): string {
+     // ...same code same code...
     const status = this.subscription()?.status || this.profile()?.subscription_status;
     const labels: Record<string, string> = {
       'trial': 'Período de Prueba',
@@ -576,9 +599,29 @@ export class SettingsComponent implements OnInit {
   }
 
   // Plan change methods
+  openChangePlanModal() {
+    this.showChangePlanModal.set(true);
+    this.selectedNewPlan.set(null);
+  }
+
+  closeChangePlanModal() {
+    this.showChangePlanModal.set(false);
+    this.selectedNewPlan.set(null);
+    // Clear PayPal buttons if any
+    const container = document.getElementById('paypal-button-container');
+    if (container) container.innerHTML = '';
+  }
+
   selectPlan(planId: string) {
     if (planId !== this.subscription()?.plan_id) {
       this.selectedNewPlan.set(planId);
+      
+      // If it's an upgrade, initialize PayPal
+      if (this.isUpgrade()) {
+        setTimeout(() => {
+           this.initUpgradePayPal();
+        }, 100);
+      }
     }
   }
 
@@ -589,12 +632,54 @@ export class SettingsComponent implements OnInit {
     return newPlan.price_monthly > currentPlan.price_monthly;
   }
 
+  getSelectedPlanPrice(): number {
+    const newPlan = this.plans().find(p => p.id === this.selectedNewPlan());
+    return newPlan?.price_monthly || 0;
+  }
+
+  async initUpgradePayPal() {
+     const price = this.getSelectedPlanPrice();
+     if (price > 0) {
+        // Clear previous buttons
+        const container = document.getElementById('paypal-button-container');
+        if (container) container.innerHTML = '';
+
+        await this.paymentService.initPayPalButton(
+          '#paypal-button-container',
+          price,
+          (details) => this.handleUpgradePaymentSuccess(details)
+        );
+     }
+  }
+
+  async handleUpgradePaymentSuccess(details: any) {
+    this.processing.set(true);
+    try {
+      console.log('Upgrade success, PayPal:', details);
+      // Pass the PayPal ID or details if needed by backend, 
+      // currently upgradePlan just updates the record
+      await this.subscriptionService.upgradePlan(this.subscription()!.id, this.selectedNewPlan()!);
+      
+      await this.loadData();
+      this.closeChangePlanModal();
+      alert('¡Plan actualizado exitosamente!');
+
+    } catch (error) {
+      console.error('Error upgrading plan:', error);
+      alert('Error actualizando el plan. Por favor contacta a soporte.');
+    } finally {
+       this.processing.set(false);
+    }
+  }
+
   async changePlan() {
+    // Only used for Downgrades now via UI button
     if (!this.selectedNewPlan() || !this.subscription()) return;
 
     this.processing.set(true);
     try {
       if (this.isUpgrade()) {
+        // Should not be reached via button click if we hid it
         await this.subscriptionService.upgradePlan(this.subscription()!.id, this.selectedNewPlan()!);
       } else {
         await this.subscriptionService.downgradePlan(this.subscription()!.id, this.selectedNewPlan()!);
@@ -602,8 +687,7 @@ export class SettingsComponent implements OnInit {
 
       // Reload data
       await this.loadData();
-      this.showChangePlanModal.set(false);
-      this.selectedNewPlan.set(null);
+      this.closeChangePlanModal();
     } catch (error) {
       console.error('Error changing plan:', error);
     } finally {
