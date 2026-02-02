@@ -372,24 +372,6 @@
         </div>
 
         <div class="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-            <!-- Quick Actions -->
-            <div class="flex gap-3 mb-6">
-                <button (click)="openFeedbackModal(selectedStudent()!)"
-                    class="flex-1 bg-accent-green/10 text-accent-green px-4 py-3 rounded-xl text-sm font-medium hover:bg-accent-green/20 transition-colors flex items-center justify-center gap-2">
-                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                    </svg>
-                    Enviar Feedback
-                </button>
-                <button (click)="openMaterialModal(selectedStudent()!)"
-                    class="flex-1 bg-primary-50 text-primary-600 px-4 py-3 rounded-xl text-sm font-medium hover:bg-primary-100 transition-colors flex items-center justify-center gap-2">
-                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                        <polyline points="14 2 14 8 20 8"></polyline>
-                    </svg>
-                    Enviar Material
-                </button>
-            </div>
 
             <!-- Student Info -->
             @if (selectedStudent()?.phone || selectedStudent()?.date_of_birth || selectedStudent()?.notes) {
@@ -438,9 +420,19 @@
                 } @else {
                 <div class="space-y-3 max-h-48 overflow-y-auto">
                     @for (feedback of studentFeedback(); track feedback.id) {
-                    <div class="bg-surface-50 rounded-xl p-4">
-                        <p class="text-sm text-surface-700 mb-2">{{ feedback.message }}</p>
+                    <div class="bg-surface-50 rounded-xl p-4 group relative">
+                        <p class="text-sm text-surface-700 mb-2 pr-8">{{ feedback.message }}</p>
                         <p class="text-xs text-surface-400">{{ formatDate(feedback.created_at) }}</p>
+                        <button (click)="deleteFeedback(feedback.id)"
+                            class="absolute top-3 right-3 p-1.5 text-surface-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                            title="Eliminar feedback">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path
+                                    d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                                </path>
+                            </svg>
+                        </button>
                     </div>
                     }
                 </div>
@@ -457,23 +449,35 @@
                 } @else {
                 <div class="space-y-3 max-h-48 overflow-y-auto">
                     @for (material of studentMaterials(); track material.id) {
-                    <a [href]="material.url" target="_blank"
-                        class="flex items-center gap-3 bg-surface-50 rounded-xl p-4 hover:bg-surface-100 transition-colors">
-                        <span class="text-2xl">{{ getMaterialTypeIcon(material.type) }}</span>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-medium text-surface-700 truncate">{{ material.title }}</p>
-                            @if (material.description) {
-                            <p class="text-xs text-surface-400 truncate">{{ material.description }}</p>
-                            }
-                            <p class="text-xs text-surface-400">{{ formatDate(material.created_at) }}</p>
-                        </div>
-                        <svg class="w-4 h-4 text-surface-400 flex-shrink-0" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2">
-                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                            <polyline points="15 3 21 3 21 9"></polyline>
-                            <line x1="10" y1="14" x2="21" y2="3"></line>
-                        </svg>
-                    </a>
+                    <div class="flex items-center gap-3 bg-surface-50 rounded-xl p-4 group relative">
+                        <a [href]="material.url" target="_blank"
+                            class="flex items-center gap-3 flex-1 min-w-0 hover:opacity-80 transition-opacity">
+                            <span class="text-2xl">{{ getMaterialTypeIcon(material.type) }}</span>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-surface-700 truncate">{{ material.title }}</p>
+                                @if (material.description) {
+                                <p class="text-xs text-surface-400 truncate">{{ material.description }}</p>
+                                }
+                                <p class="text-xs text-surface-400">{{ formatDate(material.created_at) }}</p>
+                            </div>
+                            <svg class="w-4 h-4 text-surface-400 flex-shrink-0" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2">
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                <polyline points="15 3 21 3 21 9"></polyline>
+                                <line x1="10" y1="14" x2="21" y2="3"></line>
+                            </svg>
+                        </a>
+                        <button (click)="deleteMaterial(material.id)"
+                            class="p-1.5 text-surface-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
+                            title="Eliminar material">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path
+                                    d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                                </path>
+                            </svg>
+                        </button>
+                    </div>
                     }
                 </div>
                 }

@@ -272,6 +272,7 @@ export class StudentsListComponent implements OnInit {
     async sendFeedback() {
         if (this.feedbackForm.valid && this.selectedStudentForFeedback()) {
             this.loading.set(true);
+            this.errorMessage.set('');
 
             try {
                 const user = await this.supabaseService.getCurrentUser();
@@ -280,9 +281,13 @@ export class StudentsListComponent implements OnInit {
                     return;
                 }
 
+                // Save student ID before closing modal
+                const studentId = this.selectedStudentForFeedback()!.id;
+                const shouldReloadDetail = this.selectedStudent()?.id === studentId;
+
                 const { error } = await this.supabaseService.createFeedback({
                     user_id: user.id,
-                    student_id: this.selectedStudentForFeedback()!.id,
+                    student_id: studentId,
                     message: this.feedbackForm.value.message
                 });
 
@@ -295,8 +300,8 @@ export class StudentsListComponent implements OnInit {
                 this.showSuccess('Feedback enviado correctamente');
 
                 // Reload if detail view is open
-                if (this.selectedStudent()?.id === this.selectedStudentForFeedback()?.id) {
-                    await this.loadStudentFeedbackAndMaterials(this.selectedStudent()!.id);
+                if (shouldReloadDetail) {
+                    await this.loadStudentFeedbackAndMaterials(studentId);
                 }
 
             } catch (error: any) {
@@ -370,6 +375,7 @@ export class StudentsListComponent implements OnInit {
 
             this.loading.set(true);
             this.uploadProgress.set(true);
+            this.errorMessage.set('');
 
             try {
                 const user = await this.supabaseService.getCurrentUser();
@@ -378,6 +384,10 @@ export class StudentsListComponent implements OnInit {
                     return;
                 }
 
+                // Save student ID before closing modal
+                const studentId = this.selectedStudentForMaterial()!.id;
+                const shouldReloadDetail = this.selectedStudent()?.id === studentId;
+
                 let url = formData.url;
                 let type: 'pdf' | 'doc' | 'link' = 'link';
 
@@ -385,7 +395,7 @@ export class StudentsListComponent implements OnInit {
                 if (materialType === 'file' && this.selectedFile()) {
                     const uploadedUrl = await this.supabaseService.uploadStudentMaterial(
                         user.id,
-                        this.selectedStudentForMaterial()!.id,
+                        studentId,
                         this.selectedFile()!
                     );
 
@@ -399,7 +409,7 @@ export class StudentsListComponent implements OnInit {
 
                 const { error } = await this.supabaseService.createMaterial({
                     user_id: user.id,
-                    student_id: this.selectedStudentForMaterial()!.id,
+                    student_id: studentId,
                     title: formData.title,
                     type: type,
                     url: url,
@@ -416,8 +426,8 @@ export class StudentsListComponent implements OnInit {
                 this.showSuccess('Material enviado correctamente');
 
                 // Reload if detail view is open
-                if (this.selectedStudent()?.id === this.selectedStudentForMaterial()?.id) {
-                    await this.loadStudentFeedbackAndMaterials(this.selectedStudent()!.id);
+                if (shouldReloadDetail) {
+                    await this.loadStudentFeedbackAndMaterials(studentId);
                 }
 
             } catch (error: any) {
@@ -452,5 +462,37 @@ export class StudentsListComponent implements OnInit {
             case 'link': return '🔗';
             default: return '📎';
         }
+    }
+
+    async deleteFeedback(feedbackId: string) {
+        if (!confirm('¿Estás seguro de eliminar este feedback?')) return;
+
+        const { error } = await this.supabaseService.deleteFeedback(feedbackId);
+        if (error) {
+            this.errorMessage.set('Error al eliminar el feedback');
+            return;
+        }
+
+        // Reload feedback list
+        if (this.selectedStudent()) {
+            await this.loadStudentFeedbackAndMaterials(this.selectedStudent()!.id);
+        }
+        this.showSuccess('Feedback eliminado correctamente');
+    }
+
+    async deleteMaterial(materialId: string) {
+        if (!confirm('¿Estás seguro de eliminar este material?')) return;
+
+        const { error } = await this.supabaseService.deleteMaterial(materialId);
+        if (error) {
+            this.errorMessage.set('Error al eliminar el material');
+            return;
+        }
+
+        // Reload materials list
+        if (this.selectedStudent()) {
+            await this.loadStudentFeedbackAndMaterials(this.selectedStudent()!.id);
+        }
+        this.showSuccess('Material eliminado correctamente');
     }
 }
