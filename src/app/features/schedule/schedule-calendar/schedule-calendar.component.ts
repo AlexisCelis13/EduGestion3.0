@@ -115,7 +115,7 @@ interface Appointment {
         </div>
 
         <!-- Upcoming Appointments -->
-        <div class="card-premium p-6">
+        <div class="card-premium p-6 mb-6">
           <h3 class="text-lg font-semibold text-surface-700 mb-4">Próximas Citas</h3>
           @if (upcomingAppointments.length === 0) {
             <div class="text-center py-8">
@@ -145,9 +145,9 @@ interface Appointment {
                   <span class="text-xs font-medium px-2.5 py-1 rounded-full"
                         [class.bg-amber-100]="apt.status === 'pending'"
                         [class.text-amber-700]="apt.status === 'pending'"
-                        [class.bg-accent-green]="apt.status === 'confirmed'"
-                        [class.bg-opacity-10]="apt.status === 'confirmed'"
-                        [class.text-accent-green]="apt.status === 'confirmed'">
+                        [class.bg-accent-green]="apt.status === 'confirmed' || apt.status === 'scheduled'"
+                        [class.bg-opacity-10]="apt.status === 'confirmed' || apt.status === 'scheduled'"
+                        [class.text-accent-green]="apt.status === 'confirmed' || apt.status === 'scheduled'">
                     {{ apt.status === 'pending' ? 'Pendiente' : 'Confirmada' }}
                   </span>
                 </div>
@@ -155,6 +155,35 @@ interface Appointment {
             </div>
           }
         </div>
+
+        <!-- Past Appointments -->
+        @if (pastAppointments.length > 0) {
+          <div class="card-premium p-6">
+            <h3 class="text-lg font-semibold text-surface-700 mb-4">Clases Pasadas</h3>
+            <div class="space-y-3 max-h-96 overflow-y-auto">
+              @for (apt of pastAppointments; track apt.id) {
+                <div (click)="selectAppointment(apt)" class="flex items-center justify-between p-4 rounded-xl border border-surface-100 hover:border-surface-200 transition-colors cursor-pointer active:scale-98 opacity-75">
+                  <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-surface-100 rounded-xl flex items-center justify-center">
+                      <span class="text-sm font-semibold text-surface-500">{{ formatDay(apt.date) }}</span>
+                    </div>
+                    <div>
+                      <p class="font-medium text-surface-600">{{ apt.studentName }}</p>
+                      <p class="text-sm text-surface-400">{{ apt.startTime }} - {{ apt.endTime }}</p>
+                    </div>
+                  </div>
+                  <span class="text-xs font-medium px-2.5 py-1 rounded-full"
+                        [class.bg-green-100]="apt.status === 'completed'"
+                        [class.text-green-700]="apt.status === 'completed'"
+                        [class.bg-surface-100]="apt.status !== 'completed'"
+                        [class.text-surface-500]="apt.status !== 'completed'">
+                    {{ apt.status === 'completed' ? 'Completada' : 'Pasada' }}
+                  </span>
+                </div>
+              }
+            </div>
+          </div>
+        }
       </div>
 
       <!-- Add Override Modal -->
@@ -287,6 +316,7 @@ export class ScheduleCalendarComponent implements OnInit {
   currentMonthName = '';
   calendarDays: any[] = [];
   upcomingAppointments: Appointment[] = [];
+  pastAppointments: Appointment[] = [];
   dateOverrides: DateOverride[] = [];
 
   showAddOverride = false;
@@ -371,7 +401,10 @@ export class ScheduleCalendarComponent implements OnInit {
     // Load appointments
     const appointments = await this.supabaseService.getAppointments(user.id);
     if (appointments) {
-      this.upcomingAppointments = appointments
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const allAppointments = appointments
         .filter(apt => apt.status !== 'cancelled')
         .map(apt => ({
           id: apt.id,
@@ -384,6 +417,15 @@ export class ScheduleCalendarComponent implements OnInit {
           status: apt.status,
           notes: apt.notes
         }));
+
+      // Separate upcoming and past appointments
+      this.upcomingAppointments = allAppointments
+        .filter(apt => new Date(apt.date) >= today)
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+      this.pastAppointments = allAppointments
+        .filter(apt => new Date(apt.date) < today)
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
       // Add appointments to calendar days
       for (const apt of appointments) {
