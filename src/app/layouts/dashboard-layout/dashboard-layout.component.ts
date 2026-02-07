@@ -1,4 +1,4 @@
-import { Component, signal, OnInit } from '@angular/core';
+import { Component, signal, OnInit, ElementRef, ViewChild, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { SupabaseService } from '../../core/services/supabase.service';
@@ -64,7 +64,7 @@ interface MenuItem {
       <!-- Main Content -->
       <div class="flex-1 flex flex-col overflow-hidden">
         <!-- Top Bar -->
-        <header class="glass border-b border-surface-100 h-[65px] flex items-center">
+        <header class="glass border-b border-surface-100 h-[65px] flex items-center relative z-30">
           <div class="flex items-center justify-between w-full px-6">
             <div class="flex items-center">
               <button
@@ -80,7 +80,7 @@ interface MenuItem {
 
             <div class="flex items-center gap-3">
               <!-- Notifications -->
-              <div class="relative">
+              <div class="relative" #notificationsContainer>
                 <button 
                   (click)="toggleNotifications()"
                   class="p-2.5 rounded-xl hover:bg-surface-100 relative transition-colors"
@@ -95,10 +95,7 @@ interface MenuItem {
                 </button>
 
                 @if (showNotifications()) {
-                  <app-notification-list></app-notification-list>
-                  
-                  <!-- Backdrop to close -->
-                  <div class="fixed inset-0 z-40 bg-transparent" (click)="toggleNotifications()"></div>
+                  <app-notification-list (close)="showNotifications.set(false)"></app-notification-list>
                 }
               </div>
 
@@ -148,6 +145,8 @@ interface MenuItem {
   `
 })
 export class DashboardLayoutComponent implements OnInit {
+  @ViewChild('notificationsContainer') notificationsContainer!: ElementRef;
+
   sidebarOpen = signal(false);
   showProfileMenu = signal(false);
   showNotifications = signal(false);
@@ -172,7 +171,8 @@ export class DashboardLayoutComponent implements OnInit {
 
   constructor(
     private supabaseService: SupabaseService,
-    private router: Router
+    private router: Router,
+    private elementRef: ElementRef
   ) {
     this.loadUserInfo();
   }
@@ -194,9 +194,13 @@ export class DashboardLayoutComponent implements OnInit {
 
   toggleNotifications() {
     this.showNotifications.set(!this.showNotifications());
-    // No need to manually refresh here if real-time works, but we can
-    if (this.showNotifications()) {
-      // Maybe mark as read? No, that happens on click or "mark all"
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    // If notifications are open and click is outside the notification container
+    if (this.showNotifications() && this.notificationsContainer && !this.notificationsContainer.nativeElement.contains(event.target)) {
+      this.showNotifications.set(false);
     }
   }
 

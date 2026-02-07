@@ -3,16 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../../core/services/supabase.service';
 
-interface DateOverride {
-  id?: string;
-  date: string;
-  isAvailable: boolean;
-  startTime?: string;
-  endTime?: string;
-  reason?: string;
-}
-
-// Update Interface
 interface Appointment {
   id: string;
   date: string;
@@ -40,9 +30,7 @@ interface Appointment {
               Visualiza y gestiona tu disponibilidad y citas
             </p>
           </div>
-          <button (click)="showAddOverride = true" class="btn-premium">
-            + Marcar día especial
-          </button>
+          <!-- Action button removed as requested -->
         </div>
 
         <!-- Month Navigation -->
@@ -91,9 +79,6 @@ interface Appointment {
                         [class.rounded-full]="day.isToday">
                     {{ day.dayNumber }}
                   </span>
-                  @if (day.hasOverride && !day.isAvailable) {
-                    <span class="w-2 h-2 rounded-full bg-red-500"></span>
-                  }
                 </div>
                 @if (day.appointments.length > 0) {
                   <div class="space-y-1">
@@ -186,37 +171,54 @@ interface Appointment {
         }
       </div>
 
-      <!-- Add Override Modal -->
-      @if (showAddOverride) {
+      <!-- Day Details Modal (View Appointments) -->
+      @if (showDayDetails) {
         <div class="fixed inset-0 z-50 flex items-center justify-center">
-          <div class="fixed inset-0 bg-surface-900/60 backdrop-blur-sm" (click)="showAddOverride = false"></div>
+          <div class="fixed inset-0 bg-surface-900/60 backdrop-blur-sm" (click)="closeDayDetails()"></div>
           <div class="relative bg-white rounded-2xl shadow-premium-lg p-6 w-full max-w-md mx-4 animate-fade-in-up">
-            <h3 class="text-lg font-semibold text-surface-700 mb-4">Marcar Día Especial</h3>
-            
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-surface-700 mb-2">Fecha</label>
-                <input type="date" [(ngModel)]="newOverride.date" class="input-premium" />
-              </div>
-              
-              <div>
-                <label class="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" [(ngModel)]="newOverride.isAvailable" class="w-5 h-5 text-primary-600 border-surface-300 rounded" />
-                  <span class="text-sm text-surface-700">¿Disponible este día?</span>
-                </label>
-              </div>
-              
-              @if (!newOverride.isAvailable) {
-                <div>
-                  <label class="block text-sm font-medium text-surface-700 mb-2">Razón (opcional)</label>
-                  <input type="text" [(ngModel)]="newOverride.reason" class="input-premium" placeholder="Ej: Día festivo, vacaciones..." />
-                </div>
-              }
+            <div class="flex justify-between items-center mb-6">
+              <h3 class="text-lg font-semibold text-surface-700">Citas del {{ formatDateLong(selectedDayDate) }}</h3>
+              <button (click)="closeDayDetails()" class="text-surface-400 hover:text-surface-600">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
+            
+            @if (selectedDayAppointments.length === 0) {
+              <div class="text-center py-8">
+                <div class="w-12 h-12 bg-surface-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                   <svg class="w-6 h-6 text-surface-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
+                </div>
+                <p class="text-surface-500 font-medium">Sin citas programadas</p>
+                <p class="text-sm text-surface-400 mt-1">Este día está libre.</p>
+              </div>
+            } @else {
+              <div class="space-y-3">
+                @for (apt of selectedDayAppointments; track apt.id) {
+                  <div (click)="selectAppointment(apt); closeDayDetails()" class="flex items-center gap-4 p-3 rounded-xl border border-surface-100 hover:border-surface-200 transition-colors cursor-pointer hover:bg-surface-50">
+                    <div class="w-12 h-12 bg-primary-50 rounded-xl flex items-center justify-center text-primary-700 font-semibold text-xs flex-col">
+                       <span>{{ apt.startTime }}</span>
+                    </div>
+                    <div>
+                      <p class="font-medium text-surface-700">{{ apt.studentName }}</p>
+                      <p class="text-xs text-surface-400">{{ apt.startTime }} - {{ apt.endTime }}</p>
+                    </div>
+                    @if (apt.status === 'scheduled') {
+                        <span class="ml-auto w-2 h-2 rounded-full bg-accent-green"></span>
+                    }
+                  </div>
+                }
+              </div>
+            }
 
-            <div class="flex gap-3 mt-6">
-              <button (click)="showAddOverride = false" class="btn-secondary flex-1">Cancelar</button>
-              <button (click)="saveOverride()" class="btn-premium flex-1">Guardar</button>
+            <div class="mt-6 pt-4 border-t border-surface-100 flex justify-end">
+              <button (click)="closeDayDetails()" class="btn-secondary">Cerrar</button>
             </div>
           </div>
         </div>
@@ -317,14 +319,11 @@ export class ScheduleCalendarComponent implements OnInit {
   calendarDays: any[] = [];
   upcomingAppointments: Appointment[] = [];
   pastAppointments: Appointment[] = [];
-  dateOverrides: DateOverride[] = [];
 
-  showAddOverride = false;
-  newOverride: DateOverride = {
-    date: '',
-    isAvailable: false,
-    reason: ''
-  };
+  // Day Details Modal
+  showDayDetails = false;
+  selectedDayDate = '';
+  selectedDayAppointments: Appointment[] = [];
 
   monthNames = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -355,8 +354,6 @@ export class ScheduleCalendarComponent implements OnInit {
         isCurrentMonth: false,
         isToday: false,
         date: '',
-        hasOverride: false,
-        isAvailable: true,
         appointments: []
       });
     }
@@ -373,8 +370,6 @@ export class ScheduleCalendarComponent implements OnInit {
         isCurrentMonth: true,
         isToday,
         date: dateStr,
-        hasOverride: false,
-        isAvailable: true,
         appointments: []
       });
     }
@@ -387,8 +382,6 @@ export class ScheduleCalendarComponent implements OnInit {
         isCurrentMonth: false,
         isToday: false,
         date: '',
-        hasOverride: false,
-        isAvailable: true,
         appointments: []
       });
     }
@@ -435,18 +428,7 @@ export class ScheduleCalendarComponent implements OnInit {
         }
       }
     }
-
-    // Load date overrides
-    const overrides = await this.supabaseService.getDateOverrides(user.id);
-    if (overrides) {
-      for (const override of overrides) {
-        const dayIndex = this.calendarDays.findIndex(d => d.date === override.date);
-        if (dayIndex !== -1) {
-          this.calendarDays[dayIndex].hasOverride = true;
-          this.calendarDays[dayIndex].isAvailable = override.is_available;
-        }
-      }
-    }
+    // No longer loading overrides for the calendar view
   }
 
   selectAppointment(apt: Appointment) {
@@ -479,29 +461,48 @@ export class ScheduleCalendarComponent implements OnInit {
 
   selectDate(day: any) {
     if (!day.isCurrentMonth) return;
-    this.newOverride.date = day.date;
-    this.showAddOverride = true;
+
+    this.selectedDayDate = day.date;
+    // Map the raw appointments to the Appointment interface if needed, 
+    // but looking at loadData, day.appointments contains raw Supabase data, 
+    // so we should map them to consistent Appointment interface for the modal
+    this.selectedDayAppointments = day.appointments.map((apt: any) => ({
+      id: apt.id,
+      date: apt.date,
+      startTime: apt.start_time,
+      endTime: apt.end_time,
+      studentName: apt.student_name || 'Sin nombre',
+      studentEmail: apt.student_email,
+      serviceName: apt.services?.name,
+      status: apt.status,
+      notes: apt.notes
+    })).sort((a: Appointment, b: Appointment) => a.startTime.localeCompare(b.startTime));
+
+    this.showDayDetails = true;
   }
 
-  async saveOverride() {
-    const user = await this.supabaseService.getCurrentUser();
-    if (!user || !this.newOverride.date) return;
-
-    await this.supabaseService.upsertDateOverride({
-      user_id: user.id,
-      date: this.newOverride.date,
-      is_available: this.newOverride.isAvailable,
-      reason: this.newOverride.reason || null
-    });
-
-    this.showAddOverride = false;
-    this.newOverride = { date: '', isAvailable: false, reason: '' };
-    this.generateCalendar();
-    await this.loadData();
+  closeDayDetails() {
+    this.showDayDetails = false;
+    this.selectedDayAppointments = [];
   }
 
   formatDay(dateStr: string): string {
     const date = new Date(dateStr);
     return date.getDate().toString();
+  }
+
+  formatDateLong(dateStr: string): string {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    // Adjust for timezone offset to ensure correct day is shown
+    const userTimezoneOffset = date.getTimezoneOffset() * 60000;
+    const adjustedDate = new Date(date.getTime() + userTimezoneOffset);
+
+    return adjustedDate.toLocaleDateString('es-MX', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
   }
 }

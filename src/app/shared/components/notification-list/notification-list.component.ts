@@ -5,10 +5,10 @@ import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 @Component({
-    selector: 'app-notification-list',
-    standalone: true,
-    imports: [CommonModule],
-    template: `
+  selector: 'app-notification-list',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
     <div class="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-premium-lg py-2 z-50 border border-surface-100 max-h-[480px] flex flex-col">
       <div class="px-4 py-3 border-b border-surface-100 flex justify-between items-center">
         <h3 class="font-semibold text-surface-900">Notificaciones</h3>
@@ -29,7 +29,7 @@ import { es } from 'date-fns/locale';
             <div 
               class="px-4 py-3 hover:bg-surface-50 border-b border-surface-50 last:border-0 transition-colors cursor-pointer relative"
               [class.bg-blue-50]="!notification.is_read"
-              (click)="markAsRead(notification)">
+              (click)="handleNotificationClick(notification)">
               
               <div class="flex gap-3">
                 <div class="mt-1">
@@ -72,51 +72,56 @@ import { es } from 'date-fns/locale';
   `
 })
 export class NotificationListComponent implements OnInit {
-    @Output() close = new EventEmitter<void>();
-    notifications: AppNotification[] = [];
-    loading = true;
+  @Output() close = new EventEmitter<void>();
+  notifications: AppNotification[] = [];
+  loading = true;
 
-    constructor(private supabaseService: SupabaseService) { }
+  constructor(private supabaseService: SupabaseService) { }
 
-    async ngOnInit() {
-        await this.loadNotifications();
+  async ngOnInit() {
+    await this.loadNotifications();
+  }
+
+  async loadNotifications() {
+    try {
+      this.loading = true;
+      const user = await this.supabaseService.getCurrentUser();
+      if (!user) return;
+
+      const { data } = await this.supabaseService.getAppNotifications(user.id);
+      this.notifications = data || [];
+    } catch (error) {
+      console.error('Error loading notifications', error);
+    } finally {
+      this.loading = false;
     }
+  }
 
-    async loadNotifications() {
-        try {
-            this.loading = true;
-            const user = await this.supabaseService.getCurrentUser();
-            if (!user) return;
+  getTimeAgo(date: string): string {
+    return formatDistanceToNow(new Date(date), { addSuffix: true, locale: es });
+  }
 
-            const { data } = await this.supabaseService.getAppNotifications(user.id);
-            this.notifications = data || [];
-        } catch (error) {
-            console.error('Error loading notifications', error);
-        } finally {
-            this.loading = false;
-        }
-    }
+  async markAsRead(notification: AppNotification) {
+    if (notification.is_read) return;
 
-    getTimeAgo(date: string): string {
-        return formatDistanceToNow(new Date(date), { addSuffix: true, locale: es });
-    }
+    // Optimistic update
+    notification.is_read = true;
 
-    async markAsRead(notification: AppNotification) {
-        if (notification.is_read) return;
+    await this.supabaseService.markAppNotificationAsRead(notification.id);
+  }
 
-        // Optimistic update
-        notification.is_read = true;
+  async markAllAsRead() {
+    const user = await this.supabaseService.getCurrentUser();
+    if (!user) return;
 
-        await this.supabaseService.markAppNotificationAsRead(notification.id);
-    }
+    // Optimistic update
+    this.notifications.forEach(n => n.is_read = true);
 
-    async markAllAsRead() {
-        const user = await this.supabaseService.getCurrentUser();
-        if (!user) return;
+    await this.supabaseService.markAllAppNotificationsAsRead(user.id);
+  }
 
-        // Optimistic update
-        this.notifications.forEach(n => n.is_read = true);
-
-        await this.supabaseService.markAllAppNotificationsAsRead(user.id);
-    }
+  handleNotificationClick(notification: AppNotification) {
+    this.markAsRead(notification);
+    this.close.emit();
+  }
 }

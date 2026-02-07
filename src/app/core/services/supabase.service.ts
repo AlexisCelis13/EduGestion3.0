@@ -458,26 +458,7 @@ export class SupabaseService {
     return data;
   }
 
-  async upsertDateOverride(override: any) {
-    // If it has an ID, update it; otherwise insert
-    if (override.id) {
-      const { data, error } = await this.supabase
-        .from('date_overrides')
-        .update(override)
-        .eq('id', override.id)
-        .select()
-        .single();
-      return { data, error };
-    }
 
-    const { data, error } = await this.supabase
-      .from('date_overrides')
-      .insert(override)
-      .select()
-      .single();
-
-    return { data, error };
-  }
 
   async deleteDateOverride(overrideId: string) {
     const { error } = await this.supabase
