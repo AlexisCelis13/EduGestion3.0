@@ -1,7 +1,7 @@
 import { Component, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { SupabaseService, Profile } from '../../../core/services/supabase.service';
+import { SupabaseService, Profile, TenantSettings } from '../../../core/services/supabase.service';
 
 interface OnboardingTask {
   id: string;
@@ -12,13 +12,13 @@ interface OnboardingTask {
   route: string;
 }
 
-import { LucideAngularModule, Calendar, Clock, User, ChevronRight } from 'lucide-angular';
+import { LucideAngularModule, Calendar, Clock, User, ChevronRight, Copy, ExternalLink, Check } from 'lucide-angular';
 
 @Component({
   selector: 'app-dashboard-home',
   standalone: true,
   imports: [CommonModule, RouterModule, LucideAngularModule],
-  providers: [{ provide: 'LUCIDE_ICONS', useValue: { Calendar, Clock, User, ChevronRight } }],
+  providers: [{ provide: 'LUCIDE_ICONS', useValue: { Calendar, Clock, User, ChevronRight, Copy, ExternalLink, Check } }],
   template: `
     <div class="min-h-screen">
       <!-- Header -->
@@ -233,52 +233,95 @@ import { LucideAngularModule, Calendar, Clock, User, ChevronRight } from 'lucide
           }
         </div>
 
-        <!-- Acciones Rápidas -->
-        <div class="card-premium p-6">
-          <h3 class="text-lg font-semibold text-surface-700 mb-5">Acciones Rápidas</h3>
-          <div class="grid md:grid-cols-3 gap-4">
-            <button class="card-premium flex items-center p-5 text-left hover-lift">
-              <div class="w-12 h-12 bg-primary-50 rounded-2xl flex items-center justify-center mr-4 shrink-0">
-                <svg class="w-6 h-6 text-primary-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="12" y1="5" x2="12" y2="19"></line>
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-              </div>
-              <div>
-                <p class="font-semibold text-surface-700">Agregar Alumno</p>
-                <p class="text-sm text-surface-400">Registra un nuevo estudiante</p>
-              </div>
-            </button>
+        <!-- Tu Link de Reserva & Acciones Rápidas Combinadas -->
+        <div class="grid lg:grid-cols-3 gap-8">
+          
+          <!-- Columna Izquierda: Link de Reserva -->
+          <div class="lg:col-span-1">
+            <div class="card-premium p-6 h-full bg-gradient-to-br from-primary-600 to-primary-800 text-white relative overflow-hidden">
+              <!-- Decoración de fondo -->
+              <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white opacity-10 rounded-full blur-xl"></div>
+              <div class="absolute bottom-0 left-0 -mb-4 -ml-4 w-20 h-20 bg-white opacity-10 rounded-full blur-xl"></div>
+              
+              <div class="relative z-10 flex flex-col h-full justify-between">
+                <div>
+                  <h3 class="text-lg font-bold mb-2">Tu Academia Online</h3>
+                  <p class="text-primary-100 text-sm mb-6">Comparte este enlace para que tus alumnos reserven clases contigo.</p>
+                  
+                  <div class="bg-white/10 backdrop-blur-sm rounded-xl p-3 mb-4 border border-white/20">
+                    <p class="text-xs text-primary-200 mb-1">Tu enlace público:</p>
+                    <p class="font-mono text-sm truncate select-all">{{ getPublicLink() }}</p>
+                  </div>
+                </div>
 
-            <button class="card-premium flex items-center p-5 text-left hover-lift">
-              <div class="w-12 h-12 bg-accent-green/10 rounded-2xl flex items-center justify-center mr-4 shrink-0">
-                <svg class="w-6 h-6 text-accent-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                  <line x1="16" y1="2" x2="16" y2="6"></line>
-                  <line x1="8" y1="2" x2="8" y2="6"></line>
-                  <line x1="3" y1="10" x2="21" y2="10"></line>
-                </svg>
+                <div class="flex gap-3 mt-auto">
+                  <button 
+                    (click)="copyToClipboard(getPublicLink())"
+                    class="flex-1 bg-white text-primary-700 hover:bg-primary-50 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2"
+                    [class.bg-green-100]="copied()"
+                    [class.text-green-700]="copied()">
+                    @if (copied()) {
+                      <i-lucide name="check" class="w-4 h-4"></i-lucide>
+                      ¡Copiado!
+                    } @else {
+                      <i-lucide name="copy" class="w-4 h-4"></i-lucide>
+                      Copiar
+                    }
+                  </button>
+                  <a 
+                    [href]="getPublicLink()" 
+                    target="_blank"
+                    class="bg-primary-700 hover:bg-primary-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center border border-primary-500">
+                    Ver
+                  </a>
+                </div>
               </div>
-              <div>
-                <p class="font-semibold text-surface-700">Programar Clase</p>
-                <p class="text-sm text-surface-400">Agenda una nueva sesión</p>
-              </div>
-            </button>
-
-            <button class="card-premium flex items-center p-5 text-left hover-lift">
-              <div class="w-12 h-12 bg-accent-indigo/10 rounded-2xl flex items-center justify-center mr-4 shrink-0">
-                <svg class="w-6 h-6 text-accent-indigo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="18" y1="20" x2="18" y2="10"></line>
-                  <line x1="12" y1="20" x2="12" y2="4"></line>
-                  <line x1="6" y1="20" x2="6" y2="14"></line>
-                </svg>
-              </div>
-              <div>
-                <p class="font-semibold text-surface-700">Ver Reportes</p>
-                <p class="text-sm text-surface-400">Analiza tu rendimiento</p>
-              </div>
-            </button>
+            </div>
           </div>
+
+          <!-- Columna Derecha: Acciones Rápidas -->
+          <div class="lg:col-span-2">
+            <div class="card-premium p-6 h-full">
+              <h3 class="text-lg font-semibold text-surface-700 mb-5">Acciones Rápidas</h3>
+              <div class="grid sm:grid-cols-3 gap-4">
+                <a routerLink="/dashboard/students" class="group card-premium flex flex-col items-center p-5 text-center hover-lift border border-transparent hover:border-primary-100 transition-all">
+                  <div class="w-12 h-12 bg-primary-50 group-hover:bg-primary-100 rounded-2xl flex items-center justify-center mb-3 transition-colors">
+                    <svg class="w-6 h-6 text-primary-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="12" y1="5" x2="12" y2="19"></line>
+                      <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                  </div>
+                  <p class="font-semibold text-surface-700">Nuevo Alumno</p>
+                  <p class="text-xs text-surface-400 mt-1">Registra manual</p>
+                </a>
+
+                <a routerLink="/dashboard/schedule/calendar" class="group card-premium flex flex-col items-center p-5 text-center hover-lift border border-transparent hover:border-accent-green/20 transition-all">
+                  <div class="w-12 h-12 bg-accent-green/10 group-hover:bg-accent-green/20 rounded-2xl flex items-center justify-center mb-3 transition-colors">
+                    <svg class="w-6 h-6 text-accent-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                      <line x1="16" y1="2" x2="16" y2="6"></line>
+                      <line x1="8" y1="2" x2="8" y2="6"></line>
+                      <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                  </div>
+                  <p class="font-semibold text-surface-700">Ver Agenda</p>
+                  <p class="text-xs text-surface-400 mt-1">Gestionar clases</p>
+                </a>
+
+                <a routerLink="/dashboard/schedule" class="group card-premium flex flex-col items-center p-5 text-center hover-lift border border-transparent hover:border-accent-indigo/20 transition-all">
+                  <div class="w-12 h-12 bg-accent-indigo/10 group-hover:bg-accent-indigo/20 rounded-2xl flex items-center justify-center mb-3 transition-colors">
+                    <svg class="w-6 h-6 text-accent-indigo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                  </div>
+                  <p class="font-semibold text-surface-700">Horarios</p>
+                  <p class="text-xs text-surface-400 mt-1">Configurar disponibilidad</p>
+                </a>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
@@ -332,6 +375,9 @@ export class DashboardHomeComponent implements OnInit {
   monthlyRevenue = signal(0);
   activeServices = signal(0);
 
+  tenantSettings = signal<TenantSettings | null>(null);
+  copied = signal(false);
+
   constructor(private supabaseService: SupabaseService) { }
 
   async ngOnInit() {
@@ -339,10 +385,35 @@ export class DashboardHomeComponent implements OnInit {
     await this.loadOnboardingProgress();
     await this.loadAppointments();
     await this.loadStats();
+    await this.loadTenantSettings();
+  }
+
+  getPublicLink(): string {
+    const settings = this.tenantSettings();
+    if (!settings) return '';
+    return `${window.location.origin}/p/${settings.slug}`;
+  }
+
+  async copyToClipboard(text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      this.copied.set(true);
+      setTimeout(() => this.copied.set(false), 2000);
+    } catch (err) {
+      console.error('Error al copiar:', err);
+    }
   }
 
   formatCurrency(amount: number): string {
     return amount.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
+  }
+
+  private async loadTenantSettings() {
+    const user = await this.supabaseService.getCurrentUser();
+    if (user) {
+      const settings = await this.supabaseService.getTenantSettings(user.id);
+      this.tenantSettings.set(settings);
+    }
   }
 
   private async loadStats() {
