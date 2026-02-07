@@ -1,6 +1,7 @@
 import { Component, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { SupabaseService, Student, StudentFeedback, StudentMaterial } from '../../../core/services/supabase.service';
 import { PhoneInputComponent } from '../../../shared/components/phone-input/phone-input.component';
 
@@ -59,7 +60,8 @@ export class StudentsListComponent implements OnInit {
 
     constructor(
         private fb: FormBuilder,
-        private supabaseService: SupabaseService
+        private supabaseService: SupabaseService,
+        private route: ActivatedRoute
     ) {
         this.studentForm = this.fb.group({
             first_name: ['', Validators.required],
@@ -87,6 +89,13 @@ export class StudentsListComponent implements OnInit {
 
     async ngOnInit() {
         await this.loadStudents();
+
+        // Check for query params to auto-open create form
+        this.route.queryParams.subscribe(params => {
+            if (params['action'] === 'new') {
+                this.showCreateForm.set(true);
+            }
+        });
     }
 
     private async loadStudents() {

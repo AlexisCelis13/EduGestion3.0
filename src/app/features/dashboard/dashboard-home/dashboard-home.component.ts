@@ -284,7 +284,7 @@ import { LucideAngularModule, Calendar, Clock, User, ChevronRight, Copy, Externa
             <div class="card-premium p-6 h-full">
               <h3 class="text-lg font-semibold text-surface-700 mb-5">Acciones Rápidas</h3>
               <div class="grid sm:grid-cols-3 gap-4">
-                <a routerLink="/dashboard/students" class="group card-premium flex flex-col items-center p-5 text-center hover-lift border border-transparent hover:border-primary-100 transition-all">
+                <a routerLink="/dashboard/students" [queryParams]="{ action: 'new' }" class="group card-premium flex flex-col items-center p-5 text-center hover-lift border border-transparent hover:border-primary-100 transition-all">
                   <div class="w-12 h-12 bg-primary-50 group-hover:bg-primary-100 rounded-2xl flex items-center justify-center mb-3 transition-colors">
                     <svg class="w-6 h-6 text-primary-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                       <line x1="12" y1="5" x2="12" y2="19"></line>
