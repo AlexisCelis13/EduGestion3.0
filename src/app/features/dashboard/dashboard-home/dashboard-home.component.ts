@@ -381,11 +381,17 @@ export class DashboardHomeComponent implements OnInit {
   constructor(private supabaseService: SupabaseService) { }
 
   async ngOnInit() {
-    await this.loadProfile();
-    await this.loadOnboardingProgress();
-    await this.loadAppointments();
-    await this.loadStats();
-    await this.loadTenantSettings();
+    const user = await this.supabaseService.getCurrentUser();
+    if (!user) return;
+
+    // Load all data in parallel for maximum speed
+    await Promise.all([
+      this.loadProfile(user.id),
+      this.loadOnboardingProgress(user.id),
+      this.loadAppointments(user.id),
+      this.loadStats(user.id),
+      this.loadTenantSettings(user.id)
+    ]);
   }
 
   getPublicLink(): string {
@@ -408,32 +414,27 @@ export class DashboardHomeComponent implements OnInit {
     return amount.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
   }
 
-  private async loadTenantSettings() {
-    const user = await this.supabaseService.getCurrentUser();
-    if (user) {
-      const settings = await this.supabaseService.getTenantSettings(user.id);
-      this.tenantSettings.set(settings);
-    }
+  private async loadTenantSettings(userId: string) {
+    const settings = await this.supabaseService.getTenantSettings(userId);
+    this.tenantSettings.set(settings);
   }
 
-  private async loadStats() {
-    const user = await this.supabaseService.getCurrentUser();
-    if (!user) return;
+  private async loadStats(userId: string) {
+    // Load all stats data in parallel
+    const [studentsResult, servicesResult, appointments] = await Promise.all([
+      this.supabaseService.getStudents(userId),
+      this.supabaseService.getServices(userId),
+      this.supabaseService.getAppointments(userId)
+    ]);
 
-    // Load active students count
-    const { data: students } = await this.supabaseService.getStudents(user.id);
-    if (students) {
-      this.activeStudents.set(students.length); // getStudents already filters by is_active
+    if (studentsResult.data) {
+      this.activeStudents.set(studentsResult.data.length);
     }
 
-    // Load active services count
-    const { data: services } = await this.supabaseService.getServices(user.id);
-    if (services) {
-      this.activeServices.set(services.length);
+    if (servicesResult.data) {
+      this.activeServices.set(servicesResult.data.length);
     }
 
-    // Load appointments for stats
-    const appointments = await this.supabaseService.getAppointments(user.id);
     if (appointments) {
       const now = new Date();
 
@@ -465,75 +466,66 @@ export class DashboardHomeComponent implements OnInit {
     }
   }
 
-  private async loadAppointments() {
-    const user = await this.supabaseService.getCurrentUser();
-    if (user) {
-      const appointments = await this.supabaseService.getAppointments(user.id);
+  private async loadAppointments(userId: string) {
+    const appointments = await this.supabaseService.getAppointments(userId);
 
-      if (appointments) {
-        // Filter future appointments and take top 5
-        const now = new Date();
-        const future = appointments
-          .filter((a: any) => new Date(a.date + 'T' + a.start_time) >= now && a.status !== 'cancelled')
-          .slice(0, 5);
+    if (appointments) {
+      // Filter future appointments and take top 5
+      const now = new Date();
+      const future = appointments
+        .filter((a: any) => new Date(a.date + 'T' + a.start_time) >= now && a.status !== 'cancelled')
+        .slice(0, 5);
 
-        this.upcomingAppointments.set(future);
-      }
+      this.upcomingAppointments.set(future);
     }
   }
 
-  private async loadProfile() {
-    const user = await this.supabaseService.getCurrentUser();
-    if (user) {
-      const profile = await this.supabaseService.getProfile(user.id);
-      this.profile.set(profile);
-    }
+  private async loadProfile(userId: string) {
+    const profile = await this.supabaseService.getProfile(userId);
+    this.profile.set(profile);
   }
 
-  private async loadOnboardingProgress() {
-    const user = await this.supabaseService.getCurrentUser();
-    if (user) {
-      const { data: progress } = await this.supabaseService.getOnboardingProgress(user.id);
+  private async loadOnboardingProgress(userId: string) {
+    const { data: progress } = await this.supabaseService.getOnboardingProgress(userId);
 
-      let completed = 0;
+    let completed = 0;
 
-      // Check each task's actual state
-      for (const task of this.onboardingTasks) {
-        let isCompleted = false;
+    // Check each task's actual state
+    for (const task of this.onboardingTasks) {
+      let isCompleted = false;
 
-        // First check onboarding_progress table
-        if (progress) {
-          const taskProgress = progress.find(p => p.step_name === task.id);
-          if (taskProgress?.completed) {
-            isCompleted = true;
-          }
+      // First check onboarding_progress table
+      if (progress) {
+        const taskProgress = progress.find(p => p.step_name === task.id);
+        if (taskProgress?.completed) {
+          isCompleted = true;
         }
-
-        // For bank-account, also check if payout_settings exists
-        if (task.id === 'bank-account' && !isCompleted) {
-          const payoutSettings = await this.supabaseService.getPayoutSettings(user.id);
-          if (payoutSettings && payoutSettings.account_number) {
-            isCompleted = true;
-            // Sync back to onboarding_progress
-            await this.supabaseService.updateOnboardingStep(user.id, 'bank-account', true);
-          }
-        }
-
-        // For schedule, check if weekly_schedule exists
-        if (task.id === 'schedule' && !isCompleted) {
-          const weeklySchedule = await this.supabaseService.getWeeklySchedule(user.id);
-          if (weeklySchedule && weeklySchedule.length > 0) {
-            isCompleted = true;
-            // Sync back to onboarding_progress
-            await this.supabaseService.updateOnboardingStep(user.id, 'schedule', true);
-          }
-        }
-
-        task.completed = isCompleted;
-        if (isCompleted) completed++;
       }
 
-      this.completedTasks.set(completed);
+      // For bank-account, also check if payout_settings exists
+      if (task.id === 'bank-account' && !isCompleted) {
+        const payoutSettings = await this.supabaseService.getPayoutSettings(userId);
+        if (payoutSettings && payoutSettings.account_number) {
+          isCompleted = true;
+          // Sync back to onboarding_progress
+          await this.supabaseService.updateOnboardingStep(userId, 'bank-account', true);
+        }
+      }
+
+      // For schedule, check if weekly_schedule exists
+      if (task.id === 'schedule' && !isCompleted) {
+        const weeklySchedule = await this.supabaseService.getWeeklySchedule(userId);
+        if (weeklySchedule && weeklySchedule.length > 0) {
+          isCompleted = true;
+          // Sync back to onboarding_progress
+          await this.supabaseService.updateOnboardingStep(userId, 'schedule', true);
+        }
+      }
+
+      task.completed = isCompleted;
+      if (isCompleted) completed++;
     }
+
+    this.completedTasks.set(completed);
   }
 }

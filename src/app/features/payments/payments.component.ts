@@ -261,17 +261,21 @@ export class PaymentsComponent implements OnInit {
   }
 
   async ngOnInit() {
-    this.supabaseService.currentUser$.subscribe(async (user: any) => {
-      if (user) {
-        this.userId = user.id;
-        this.loadData();
-      }
-    });
+    const user = await this.supabaseService.getCurrentUser();
+    if (user) {
+      this.userId = user.id;
+      this.loadData();
+    }
   }
 
   async loadData() {
     if (!this.userId) return;
-    const settings = await this.supabaseService.getPayoutSettings(this.userId);
+
+    const [settings, txs] = await Promise.all([
+      this.supabaseService.getPayoutSettings(this.userId),
+      this.supabaseService.getPaymentHistory(this.userId)
+    ]);
+
     if (settings) {
       this.payoutSettings.set(settings);
       this.hasPayoutMethod.set(true);
@@ -281,7 +285,7 @@ export class PaymentsComponent implements OnInit {
         account_number: settings.account_number
       });
     }
-    const txs = await this.supabaseService.getPaymentHistory(this.userId);
+
     this.transactions.set(txs || []);
     const total = (txs || []).reduce((sum: number, tx: any) => sum + (Number(tx.amount_paid) || 0), 0);
     this.totalRevenue.set(total);

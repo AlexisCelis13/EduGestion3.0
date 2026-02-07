@@ -4,10 +4,10 @@ import { RouterModule } from '@angular/router';
 import { SupabaseService, ConsultationRequest } from '../../core/services/supabase.service';
 
 @Component({
-    selector: 'app-study-plans',
-    standalone: true,
-    imports: [CommonModule, RouterModule],
-    template: `
+  selector: 'app-study-plans',
+  standalone: true,
+  imports: [CommonModule, RouterModule],
+  template: `
     <div class="min-h-screen">
       <!-- Header -->
       <div class="bg-white border-b border-surface-100">
@@ -310,7 +310,7 @@ import { SupabaseService, ConsultationRequest } from '../../core/services/supaba
       </div>
     </div>
   `,
-    styles: [`
+  styles: [`
     .animate-scale-in {
       animation: scaleIn 0.2s ease-out;
     }
@@ -321,159 +321,158 @@ import { SupabaseService, ConsultationRequest } from '../../core/services/supaba
   `]
 })
 export class StudyPlansComponent implements OnInit {
-    consultations = signal<ConsultationRequest[]>([]);
-    loading = signal(true);
-    activeTab = signal<'pending' | 'approved' | 'all'>('pending');
-    selectedConsultation = signal<ConsultationRequest | null>(null);
-    isProcessing = signal(false);
+  consultations = signal<ConsultationRequest[]>([]);
+  loading = signal(true);
+  activeTab = signal<'pending' | 'approved' | 'all'>('pending');
+  selectedConsultation = signal<ConsultationRequest | null>(null);
+  isProcessing = signal(false);
 
-    pendingCount = signal(0);
-    toReviewCount = signal(0);
-    approvedCount = signal(0);
-    potentialRevenue = signal(0);
+  pendingCount = signal(0);
+  toReviewCount = signal(0);
+  approvedCount = signal(0);
+  potentialRevenue = signal(0);
 
-    private userId: string = '';
+  private userId: string = '';
 
-    constructor(private supabaseService: SupabaseService) { }
+  constructor(private supabaseService: SupabaseService) { }
 
-    async ngOnInit() {
-        this.supabaseService.currentUser$.subscribe(async (user: any) => {
-            if (user) {
-                this.userId = user.id;
-                await this.loadConsultations();
-            }
+  async ngOnInit() {
+    const user = await this.supabaseService.getCurrentUser();
+    if (user) {
+      this.userId = user.id;
+      await this.loadConsultations();
+    }
+  }
+
+  async loadConsultations() {
+    this.loading.set(true);
+    const data = await this.supabaseService.getConsultationRequests(this.userId);
+    this.consultations.set(data as ConsultationRequest[]);
+    this.calculateStats();
+    this.loading.set(false);
+  }
+
+  calculateStats() {
+    const all = this.consultations();
+
+    this.pendingCount.set(all.filter(c => c.status === 'pending_plan' || c.status === 'plan_generated').length);
+    this.toReviewCount.set(all.filter(c => c.status === 'client_approved').length);
+    this.approvedCount.set(all.filter(c => c.status === 'tutor_approved' || c.status === 'paid').length);
+
+    const revenue = all
+      .filter(c => c.study_plans && c.study_plans.length > 0)
+      .reduce((sum, c) => sum + (c.study_plans![0].estimated_price || 0), 0);
+    this.potentialRevenue.set(revenue);
+  }
+
+  filteredConsultations(): ConsultationRequest[] {
+    const all = this.consultations();
+    switch (this.activeTab()) {
+      case 'pending':
+        return all.filter(c => c.status === 'client_approved');
+      case 'approved':
+        return all.filter(c => c.status === 'tutor_approved' || c.status === 'paid');
+      default:
+        return all;
+    }
+  }
+
+  openDetail(consultation: ConsultationRequest) {
+    this.selectedConsultation.set(consultation);
+  }
+
+  closeDetail() {
+    this.selectedConsultation.set(null);
+  }
+
+  async approvePlan(planId: string) {
+    this.isProcessing.set(true);
+    const { error } = await this.supabaseService.approveStudyPlanAsTutor(planId);
+
+    if (!error) {
+      await this.loadConsultations();
+      this.closeDetail();
+
+      // Crear notificación para el cliente (se podría enviar email aquí también)
+      const consultation = this.selectedConsultation();
+      if (consultation) {
+        await this.supabaseService.createNotification({
+          user_id: this.userId,
+          type: 'plan_approved_tutor',
+          title: 'Plan Aprobado',
+          message: `Has aprobado el plan para ${consultation.student_first_name} ${consultation.student_last_name}`,
+          reference_type: 'study_plan',
+          reference_id: planId
         });
+      }
     }
 
-    async loadConsultations() {
-        this.loading.set(true);
-        const data = await this.supabaseService.getConsultationRequests(this.userId);
-        this.consultations.set(data as ConsultationRequest[]);
-        this.calculateStats();
-        this.loading.set(false);
+    this.isProcessing.set(false);
+  }
+
+  async rejectPlan(planId: string) {
+    const reason = prompt('¿Por qué rechazas este plan? (opcional)');
+
+    this.isProcessing.set(true);
+    const { error } = await this.supabaseService.rejectStudyPlan(planId, reason || 'Sin motivo especificado');
+
+    if (!error) {
+      await this.loadConsultations();
+      this.closeDetail();
     }
 
-    calculateStats() {
-        const all = this.consultations();
+    this.isProcessing.set(false);
+  }
 
-        this.pendingCount.set(all.filter(c => c.status === 'pending_plan' || c.status === 'plan_generated').length);
-        this.toReviewCount.set(all.filter(c => c.status === 'client_approved').length);
-        this.approvedCount.set(all.filter(c => c.status === 'tutor_approved' || c.status === 'paid').length);
+  async deleteConsultation(id: string, event: Event) {
+    event.stopPropagation();
+    if (!confirm('¿Estás seguro de eliminar esta solicitud? Esta acción no se puede deshacer.')) return;
 
-        const revenue = all
-            .filter(c => c.study_plans && c.study_plans.length > 0)
-            .reduce((sum, c) => sum + (c.study_plans![0].estimated_price || 0), 0);
-        this.potentialRevenue.set(revenue);
+    this.loading.set(true);
+    const { error } = await this.supabaseService.deleteConsultationRequest(id);
+
+    if (error) {
+      console.error('Error deleting consultation:', error);
+      alert('Error al eliminar la solicitud');
+    } else {
+      await this.loadConsultations();
     }
+    this.loading.set(false);
+  }
 
-    filteredConsultations(): ConsultationRequest[] {
-        const all = this.consultations();
-        switch (this.activeTab()) {
-            case 'pending':
-                return all.filter(c => c.status === 'client_approved');
-            case 'approved':
-                return all.filter(c => c.status === 'tutor_approved' || c.status === 'paid');
-            default:
-                return all;
-        }
-    }
+  getStatusLabel(status: string): string {
+    const labels: Record<string, string> = {
+      'pending_plan': 'Esperando plan',
+      'plan_generated': 'Plan listo',
+      'client_approved': 'Cliente aceptó',
+      'tutor_approved': 'Aprobado',
+      'paid': 'Pagado',
+      'cancelled': 'Cancelado'
+    };
+    return labels[status] || status;
+  }
 
-    openDetail(consultation: ConsultationRequest) {
-        this.selectedConsultation.set(consultation);
-    }
+  getStatusClass(status: string): string {
+    const classes: Record<string, string> = {
+      'pending_plan': 'bg-surface-100 text-surface-600',
+      'plan_generated': 'bg-blue-100 text-blue-700',
+      'client_approved': 'bg-amber-100 text-amber-700',
+      'tutor_approved': 'bg-accent-green/20 text-accent-green',
+      'paid': 'bg-primary-100 text-primary-700',
+      'cancelled': 'bg-red-100 text-red-700'
+    };
+    return classes[status] || 'bg-surface-100 text-surface-600';
+  }
 
-    closeDetail() {
-        this.selectedConsultation.set(null);
-    }
+  formatPrice(amount: number): string {
+    return amount?.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' }) || '$0';
+  }
 
-    async approvePlan(planId: string) {
-        this.isProcessing.set(true);
-        const { error } = await this.supabaseService.approveStudyPlanAsTutor(planId);
-
-        if (!error) {
-            await this.loadConsultations();
-            this.closeDetail();
-
-            // Crear notificación para el cliente (se podría enviar email aquí también)
-            const consultation = this.selectedConsultation();
-            if (consultation) {
-                await this.supabaseService.createNotification({
-                    user_id: this.userId,
-                    type: 'plan_approved_tutor',
-                    title: 'Plan Aprobado',
-                    message: `Has aprobado el plan para ${consultation.student_first_name} ${consultation.student_last_name}`,
-                    reference_type: 'study_plan',
-                    reference_id: planId
-                });
-            }
-        }
-
-        this.isProcessing.set(false);
-    }
-
-    async rejectPlan(planId: string) {
-        const reason = prompt('¿Por qué rechazas este plan? (opcional)');
-
-        this.isProcessing.set(true);
-        const { error } = await this.supabaseService.rejectStudyPlan(planId, reason || 'Sin motivo especificado');
-
-        if (!error) {
-            await this.loadConsultations();
-            this.closeDetail();
-        }
-
-        this.isProcessing.set(false);
-    }
-
-    async deleteConsultation(id: string, event: Event) {
-        event.stopPropagation();
-        if (!confirm('¿Estás seguro de eliminar esta solicitud? Esta acción no se puede deshacer.')) return;
-
-        this.loading.set(true);
-        const { error } = await this.supabaseService.deleteConsultationRequest(id);
-
-        if (error) {
-            console.error('Error deleting consultation:', error);
-            alert('Error al eliminar la solicitud');
-        } else {
-            await this.loadConsultations();
-        }
-        this.loading.set(false);
-    }
-
-    getStatusLabel(status: string): string {
-        const labels: Record<string, string> = {
-            'pending_plan': 'Esperando plan',
-            'plan_generated': 'Plan listo',
-            'client_approved': 'Cliente aceptó',
-            'tutor_approved': 'Aprobado',
-            'paid': 'Pagado',
-            'cancelled': 'Cancelado'
-        };
-        return labels[status] || status;
-    }
-
-    getStatusClass(status: string): string {
-        const classes: Record<string, string> = {
-            'pending_plan': 'bg-surface-100 text-surface-600',
-            'plan_generated': 'bg-blue-100 text-blue-700',
-            'client_approved': 'bg-amber-100 text-amber-700',
-            'tutor_approved': 'bg-accent-green/20 text-accent-green',
-            'paid': 'bg-primary-100 text-primary-700',
-            'cancelled': 'bg-red-100 text-red-700'
-        };
-        return classes[status] || 'bg-surface-100 text-surface-600';
-    }
-
-    formatPrice(amount: number): string {
-        return amount?.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' }) || '$0';
-    }
-
-    formatDate(dateStr: string): string {
-        return new Date(dateStr).toLocaleDateString('es-MX', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric'
-        });
-    }
+  formatDate(dateStr: string): string {
+    return new Date(dateStr).toLocaleDateString('es-MX', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+  }
 }

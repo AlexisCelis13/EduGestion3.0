@@ -1,12 +1,25 @@
 import { Component, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { SupabaseService, Student, StudentFeedback, StudentMaterial } from '../../../core/services/supabase.service';
+import { PhoneInputComponent } from '../../../shared/components/phone-input/phone-input.component';
+
+// Custom validator for past dates only
+function pastDateValidator(control: AbstractControl): ValidationErrors | null {
+    if (!control.value) return null;
+    const inputDate = new Date(control.value);
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    if (inputDate > today) {
+        return { futureDate: true };
+    }
+    return null;
+}
 
 @Component({
     selector: 'app-students-list',
     standalone: true,
-    imports: [CommonModule, ReactiveFormsModule],
+    imports: [CommonModule, ReactiveFormsModule, PhoneInputComponent],
     templateUrl: './students-list.component.html'
 })
 export class StudentsListComponent implements OnInit {
@@ -41,6 +54,9 @@ export class StudentsListComponent implements OnInit {
     showStudentDetail = signal(false);
     selectedStudent = signal<Student | null>(null);
 
+    // Max date for date of birth (today)
+    today = new Date().toISOString().split('T')[0];
+
     constructor(
         private fb: FormBuilder,
         private supabaseService: SupabaseService
@@ -50,7 +66,7 @@ export class StudentsListComponent implements OnInit {
             last_name: ['', Validators.required],
             email: ['', [Validators.required, Validators.email]],
             phone: [''],
-            date_of_birth: [''],
+            date_of_birth: ['', [pastDateValidator]],
             parent_name: [''],
             parent_email: [''],
             parent_phone: [''],
@@ -243,15 +259,18 @@ export class StudentsListComponent implements OnInit {
         this.loadingFeedback.set(true);
         this.loadingMaterials.set(true);
 
-        const { data: feedback } = await this.supabaseService.getStudentFeedback(studentId);
-        if (feedback) {
-            this.studentFeedback.set(feedback);
+        const [feedbackResult, materialsResult] = await Promise.all([
+            this.supabaseService.getStudentFeedback(studentId),
+            this.supabaseService.getStudentMaterials(studentId)
+        ]);
+
+        if (feedbackResult.data) {
+            this.studentFeedback.set(feedbackResult.data);
         }
         this.loadingFeedback.set(false);
 
-        const { data: materials } = await this.supabaseService.getStudentMaterials(studentId);
-        if (materials) {
-            this.studentMaterials.set(materials);
+        if (materialsResult.data) {
+            this.studentMaterials.set(materialsResult.data);
         }
         this.loadingMaterials.set(false);
     }

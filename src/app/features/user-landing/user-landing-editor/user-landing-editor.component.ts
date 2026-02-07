@@ -2,11 +2,12 @@ import { Component, signal, OnInit, ViewChild, ElementRef } from '@angular/core'
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { SupabaseService, TenantSettings } from '../../../core/services/supabase.service';
+import { PhoneInputComponent } from '../../../shared/components/phone-input/phone-input.component';
 
 @Component({
   selector: 'app-user-landing-editor',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, PhoneInputComponent],
   template: `
     <div class="min-h-screen">
       <div class="max-w-7xl mx-auto px-6 lg:px-8 py-8">
@@ -173,12 +174,7 @@ import { SupabaseService, TenantSettings } from '../../../core/services/supabase
                     <label class="block text-sm font-medium text-surface-700 mb-2">
                       Teléfono (Opcional)
                     </label>
-                    <input
-                      type="tel"
-                      formControlName="contactPhone"
-                      class="input-premium"
-                      placeholder="+52 55 0000 0000"
-                    />
+                    <app-phone-input formControlName="contactPhone"></app-phone-input>
                   </div>
                 </div>
 

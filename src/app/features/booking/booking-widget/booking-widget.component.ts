@@ -22,7 +22,7 @@ type BookingStep = 'calendar' | 'slots' | 'form' | 'payment' | 'success';
   ],
   providers: [{ provide: 'LUCIDE_ICONS', useValue: { ArrowLeft, Check, Calendar, Clock, Loader2, CreditCard } }],
   template: `
-    <div class="booking-widget bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+    <div class="booking-widget bg-white rounded-xl shadow-lg border border-gray-100 overflow-visible">
       <!-- Headers de pasos (solo móvil o si se desea mostrar progreso) -->
       
       <div class="p-6">

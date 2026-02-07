@@ -6,6 +6,15 @@
                 <h1 class="text-2xl font-semibold text-surface-700">Mis Alumnos</h1>
                 <p class="text-surface-400 mt-1">Gestiona tus alumnos y envíales feedback y material</p>
             </div>
+            @if (students().length > 0 && !showCreateForm()) {
+            <button (click)="showCreateForm.set(true)" class="btn-premium flex items-center gap-2">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Nuevo Alumno
+            </button>
+            }
         </div>
 
         <!-- Success Message -->
@@ -50,14 +59,17 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-surface-700 mb-2">Teléfono</label>
-                        <input type="tel" formControlName="phone" class="input-premium"
-                            placeholder="+52 55 1234 5678" />
+                        <app-phone-input formControlName="phone"></app-phone-input>
                     </div>
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-surface-700 mb-2">Fecha de Nacimiento</label>
-                    <input type="date" formControlName="date_of_birth" class="input-premium" />
+                    <input type="date" formControlName="date_of_birth" class="input-premium" [max]="today"
+                        [class.border-red-300]="studentForm.get('date_of_birth')?.hasError('futureDate')" />
+                    @if (studentForm.get('date_of_birth')?.hasError('futureDate')) {
+                    <p class="text-xs text-red-500 mt-1">La fecha no puede ser en el futuro.</p>
+                    }
                 </div>
 
                 <!-- Datos del padre/tutor -->
@@ -76,8 +88,7 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-surface-700 mb-2">Teléfono</label>
-                            <input type="tel" formControlName="parent_phone" class="input-premium"
-                                placeholder="+52 55 1234 5678" />
+                            <app-phone-input formControlName="parent_phone"></app-phone-input>
                         </div>
                     </div>
                 </div>

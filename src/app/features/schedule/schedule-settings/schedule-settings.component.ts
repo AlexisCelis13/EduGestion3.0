@@ -533,7 +533,13 @@ export class ScheduleSettingsComponent implements OnInit {
     const user = await this.supabaseService.getCurrentUser();
     if (!user) return;
 
-    const settings = await this.supabaseService.getAvailabilitySettings(user.id);
+    // Load all data in parallel
+    const [settings, weeklySchedule, dateOverrides] = await Promise.all([
+      this.supabaseService.getAvailabilitySettings(user.id),
+      this.supabaseService.getWeeklySchedule(user.id),
+      this.supabaseService.getDateOverrides(user.id)
+    ]);
+
     if (settings) {
       this.settingsForm.patchValue({
         dayStartTime: settings.day_start_time,
@@ -543,7 +549,6 @@ export class ScheduleSettingsComponent implements OnInit {
       });
     }
 
-    const weeklySchedule = await this.supabaseService.getWeeklySchedule(user.id);
     if (weeklySchedule && weeklySchedule.length > 0) {
       this.weeklySlots = this.weeklySlots.map(slot => {
         const saved = weeklySchedule.find(s => s.day_of_week === slot.dayOfWeek);
@@ -559,7 +564,6 @@ export class ScheduleSettingsComponent implements OnInit {
       });
     }
 
-    const dateOverrides = await this.supabaseService.getDateOverrides(user.id);
     if (dateOverrides && dateOverrides.length > 0) {
       this.timeBlocks = dateOverrides
         .filter(o => o.start_time && o.end_time)

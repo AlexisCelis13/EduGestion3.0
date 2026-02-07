@@ -1316,7 +1316,12 @@ export class SupabaseService {
     const { data, error } = await this.supabase
       .from('appointments')
       .select(`
-        *,
+        id,
+        user_id,
+        amount_paid,
+        appointment_date,
+        status,
+        service_id,
         students ( first_name, last_name, email )
       `)
       .eq('user_id', userId)
