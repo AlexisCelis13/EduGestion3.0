@@ -137,7 +137,7 @@ interface PricingPlan {
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                 <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
               </svg>
-              <span>Pago seguro con Stripe</span>
+              <span>Pago seguro con PayPal</span>
             </div>
             <div class="flex items-center gap-2">
               <svg class="w-5 h-5 text-surface-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -196,7 +196,7 @@ interface PricingPlan {
               </div>
               <h3 class="text-xl font-semibold text-surface-700 mb-3">Cobros Automáticos</h3>
               <p class="text-surface-400 leading-relaxed">
-                Recibe pagos de forma segura con Stripe. Facturas automáticas y recordatorios de pago.
+                Recibe pagos de forma segura con PayPal. Facturas automáticas y recordatorios de pago.
               </p>
             </div>
 
@@ -260,7 +260,7 @@ export class LandingComponent {
         'Hasta 50 alumnos',
         'Landing page personalizada',
         'Gestión de citas',
-        'Pagos con Stripe',
+        'Pagos con PayPal',
         'Soporte por email'
       ]
     },
@@ -275,7 +275,7 @@ export class LandingComponent {
         'Múltiples profesores',
         'Landing page personalizada',
         'Gestión avanzada de citas',
-        'Pagos con Stripe',
+        'Pagos con PayPal',
         'Reportes y estadísticas',
         'Soporte prioritario'
       ],

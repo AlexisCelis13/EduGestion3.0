@@ -192,7 +192,7 @@ export class BookingWidgetComponent implements OnInit {
   async onProcessPayment(paymentData: any) {
     this.submitting.set(true);
 
-    // AQUÍ IRÍA LA INTEGRACIÓN CON STRIPE REAL
+    // AQUÍ IRÍA LA INTEGRACIÓN CON PAYPAL REAL
     // Simulamos un delay de red
     await new Promise(resolve => setTimeout(resolve, 2000));
 

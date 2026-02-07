@@ -308,7 +308,7 @@ export class DashboardHomeComponent implements OnInit {
     {
       id: 'bank-account',
       title: 'Vincula tu cuenta bancaria',
-      description: 'Configura Stripe para recibir pagos automáticamente',
+      description: 'Configura PayPal para recibir pagos automáticamente',
       icon: '💳',
       completed: false,
       route: '/dashboard/payments'

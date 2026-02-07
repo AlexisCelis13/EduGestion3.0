@@ -43,7 +43,7 @@ interface OnboardingStep {
                       <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                     </svg>
                   </div>
-                  <span class="text-gray-700">Recibe pagos automáticamente con Stripe</span>
+                  <span class="text-gray-700">Recibe pagos automáticamente con PayPal</span>
                 </div>
                 <div class="flex items-center space-x-3">
                   <div class="flex-shrink-0 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
@@ -228,7 +228,7 @@ export class OnboardingWizardComponent implements OnInit {
         }
 
         const formData = this.profileForm.value;
-        
+
         // Actualizar perfil
         const { error: profileError } = await this.supabaseService.updateProfile(user.id, {
           first_name: formData.firstName,

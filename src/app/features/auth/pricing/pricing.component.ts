@@ -127,7 +127,7 @@ export class PricingComponent {
         'Hasta 50 alumnos',
         'Landing page personalizada',
         'Gestión de citas',
-        'Pagos con Stripe',
+        'Pagos con PayPal',
         'Soporte por email'
       ]
     },
@@ -142,7 +142,7 @@ export class PricingComponent {
         'Múltiples profesores',
         'Landing page personalizada',
         'Gestión avanzada de citas',
-        'Pagos con Stripe',
+        'Pagos con PayPal',
         'Reportes y estadísticas',
         'Soporte prioritario'
       ],
