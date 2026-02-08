@@ -15,6 +15,23 @@ interface Appointment {
   notes?: string;
 }
 
+interface TimeBlock {
+  id: string;
+  date: string | null;
+  days_of_week: number[] | null;
+  start_time: string;
+  end_time: string;
+  reason: string | null;
+  end_date: string | null;
+}
+
+interface WeeklySlot {
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  is_available: boolean;
+}
+
 @Component({
   selector: 'app-schedule-calendar',
   standalone: true,
@@ -64,22 +81,36 @@ interface Appointment {
           <!-- Calendar Days -->
           <div class="grid grid-cols-7">
             @for (day of calendarDays; track $index) {
-              <div 
-                class="min-h-24 p-2 border-b border-r border-surface-100 cursor-pointer hover:bg-surface-50 transition-colors"
-                [class.bg-surface-50]="!day.isCurrentMonth"
-                [class.opacity-50]="!day.isCurrentMonth"
-                (click)="selectDate(day)">
-                <div class="flex items-center justify-between mb-1">
-                  <span class="text-sm font-medium" 
-                        [class.text-primary-600]="day.isToday"
-                        [class.bg-primary-600]="day.isToday"
-                        [class.text-white]="day.isToday"
-                        [class.px-2]="day.isToday"
-                        [class.py-0.5]="day.isToday"
-                        [class.rounded-full]="day.isToday">
-                    {{ day.dayNumber }}
-                  </span>
+              @if (day.isCurrentMonth && !day.isWorkingDay) {
+                <!-- Non-working day: gray, non-clickable -->
+                <div class="min-h-24 p-2 border-b border-r border-surface-100 bg-surface-100 relative">
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="text-sm font-medium text-surface-400">{{ day.dayNumber }}</span>
+                  </div>
+                  <p class="text-xs text-surface-400 italic">No laboral</p>
                 </div>
+              } @else {
+                <div 
+                  class="min-h-24 p-2 border-b border-r border-surface-100 cursor-pointer hover:bg-surface-50 transition-colors relative"
+                  [class.bg-surface-50]="!day.isCurrentMonth"
+                  [class.opacity-50]="!day.isCurrentMonth"
+                  [class.bg-orange-50]="day.isCurrentMonth && day.hasTimeBlock"
+                  (click)="selectDate(day)">
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="text-sm font-medium" 
+                          [class.text-primary-600]="day.isToday"
+                          [class.bg-primary-600]="day.isToday"
+                          [class.text-white]="day.isToday"
+                          [class.px-2]="day.isToday"
+                          [class.py-0.5]="day.isToday"
+                          [class.rounded-full]="day.isToday">
+                      {{ day.dayNumber }}
+                    </span>
+                    <!-- Block indicator (orange dot for time blocks) -->
+                    @if (day.hasTimeBlock) {
+                      <span class="w-2 h-2 rounded-full bg-orange-400" title="Bloqueo de tiempo"></span>
+                    }
+                  </div>
                 @if (day.appointments.length > 0) {
                   <div class="space-y-1">
                     @for (apt of day.appointments.slice(0, 2); track apt.id) {
@@ -94,7 +125,8 @@ interface Appointment {
                     }
                   </div>
                 }
-              </div>
+                </div>
+              }
             }
           </div>
         </div>
@@ -185,6 +217,35 @@ interface Appointment {
               </button>
             </div>
             
+            <!-- Working Hours Info -->
+            @if (selectedDayWorkingHours) {
+              <div class="mb-4 p-3 bg-blue-50 rounded-xl border border-blue-200">
+                <div class="flex items-center gap-2">
+                  <span class="text-blue-500">🕐</span>
+                  <span class="text-sm font-medium text-blue-700">Horario laboral:</span>
+                  <span class="text-sm text-blue-600">{{ selectedDayWorkingHours }}</span>
+                </div>
+              </div>
+            }
+
+            <!-- Time Block Info -->
+            @if (selectedDayBlocks.length > 0) {
+              <div class="mb-4 p-3 bg-orange-50 rounded-xl border border-orange-200">
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="text-orange-500">⏰</span>
+                  <span class="text-sm font-medium text-orange-700">Bloqueos de tiempo</span>
+                </div>
+                @for (block of selectedDayBlocks; track block.id) {
+                  <div class="text-xs text-orange-600 mt-1">
+                    {{ block.start_time.substring(0,5) }} - {{ block.end_time.substring(0,5) }}
+                    @if (block.reason) {
+                      <span class="text-orange-500"> · {{ block.reason }}</span>
+                    }
+                  </div>
+                }
+              </div>
+            }
+
             @if (selectedDayAppointments.length === 0) {
               <div class="text-center py-8">
                 <div class="w-12 h-12 bg-surface-100 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -319,11 +380,15 @@ export class ScheduleCalendarComponent implements OnInit {
   calendarDays: any[] = [];
   upcomingAppointments: Appointment[] = [];
   pastAppointments: Appointment[] = [];
+  timeBlocks: TimeBlock[] = [];
+  weeklySchedule: WeeklySlot[] = [];
 
   // Day Details Modal
   showDayDetails = false;
   selectedDayDate = '';
   selectedDayAppointments: Appointment[] = [];
+  selectedDayBlocks: TimeBlock[] = [];
+  selectedDayWorkingHours = '';
 
   monthNames = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -354,7 +419,12 @@ export class ScheduleCalendarComponent implements OnInit {
         isCurrentMonth: false,
         isToday: false,
         date: '',
-        appointments: []
+        appointments: [],
+        hasTimeBlock: false,
+        isFullDayBlocked: false,
+        timeBlocks: [],
+        isWorkingDay: true,
+        workingHours: null
       });
     }
 
@@ -370,7 +440,12 @@ export class ScheduleCalendarComponent implements OnInit {
         isCurrentMonth: true,
         isToday,
         date: dateStr,
-        appointments: []
+        appointments: [],
+        hasTimeBlock: false,
+        isFullDayBlocked: false,
+        timeBlocks: [],
+        isWorkingDay: true,
+        workingHours: null
       });
     }
 
@@ -382,7 +457,12 @@ export class ScheduleCalendarComponent implements OnInit {
         isCurrentMonth: false,
         isToday: false,
         date: '',
-        appointments: []
+        appointments: [],
+        hasTimeBlock: false,
+        isFullDayBlocked: false,
+        timeBlocks: [],
+        isWorkingDay: true,
+        workingHours: null
       });
     }
   }
@@ -428,7 +508,79 @@ export class ScheduleCalendarComponent implements OnInit {
         }
       }
     }
-    // No longer loading overrides for the calendar view
+
+    // Load time blocks
+    const overrides = await this.supabaseService.getDateOverrides(user.id);
+    if (overrides) {
+      this.timeBlocks = overrides;
+      this.applyTimeBlocksToCalendar();
+    }
+
+    // Load weekly schedule
+    const schedule = await this.supabaseService.getWeeklySchedule(user.id);
+    if (schedule) {
+      this.weeklySchedule = schedule;
+      this.applyWeeklyScheduleToCalendar();
+    }
+  }
+
+  applyWeeklyScheduleToCalendar() {
+    for (const day of this.calendarDays) {
+      if (!day.isCurrentMonth || !day.date) {
+        day.isWorkingDay = true; // Default for non-current month days
+        continue;
+      }
+
+      // Parse date as local time (not UTC) to get correct day of week
+      const [year, month, dayNum] = day.date.split('-').map(Number);
+      const dayDate = new Date(year, month - 1, dayNum);
+      const dayOfWeek = dayDate.getDay();
+
+      const slot = this.weeklySchedule.find(s => s.day_of_week === dayOfWeek);
+      day.isWorkingDay = slot?.is_available ?? false;
+      day.workingHours = slot ? { start: slot.start_time, end: slot.end_time } : null;
+    }
+  }
+
+  applyTimeBlocksToCalendar() {
+    for (const day of this.calendarDays) {
+      if (!day.isCurrentMonth || !day.date) continue;
+
+      // Parse date as local time (not UTC) to get correct day of week
+      const [year, month, dayNum] = day.date.split('-').map(Number);
+      const dayDate = new Date(year, month - 1, dayNum);
+      const dayOfWeek = dayDate.getDay();
+      const blocksForDay: TimeBlock[] = [];
+
+      for (const block of this.timeBlocks) {
+        // Check if block applies to this day
+        let applies = false;
+
+        if (block.date) {
+          // Specific date block
+          applies = block.date === day.date;
+        } else if (block.days_of_week && block.days_of_week.includes(dayOfWeek)) {
+          // Recurring block - check if within end_date
+          if (block.end_date) {
+            applies = dayDate <= new Date(block.end_date);
+          } else {
+            applies = true;
+          }
+        }
+
+        if (applies) {
+          blocksForDay.push(block);
+        }
+      }
+
+      day.timeBlocks = blocksForDay;
+      day.hasTimeBlock = blocksForDay.length > 0;
+
+      // Check if full day blocked (block covers 00:00-23:59 or similar)
+      day.isFullDayBlocked = blocksForDay.some(b =>
+        b.start_time <= '00:30:00' && b.end_time >= '23:00:00'
+      );
+    }
   }
 
   selectAppointment(apt: Appointment) {
@@ -478,7 +630,26 @@ export class ScheduleCalendarComponent implements OnInit {
       notes: apt.notes
     })).sort((a: Appointment, b: Appointment) => a.startTime.localeCompare(b.startTime));
 
+    // Get time blocks for selected day
+    this.selectedDayBlocks = day.timeBlocks || [];
+
+    // Get working hours for the selected day
+    if (day.workingHours) {
+      const startFormatted = this.formatTimeDisplay(day.workingHours.start);
+      const endFormatted = this.formatTimeDisplay(day.workingHours.end);
+      this.selectedDayWorkingHours = `${startFormatted} - ${endFormatted}`;
+    } else {
+      this.selectedDayWorkingHours = '';
+    }
+
     this.showDayDetails = true;
+  }
+
+  formatTimeDisplay(time: string): string {
+    const [hours, minutes] = time.split(':').map(Number);
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const hour12 = hours % 12 || 12;
+    return `${hour12}:${minutes.toString().padStart(2, '0')} ${ampm}`;
   }
 
   closeDayDetails() {

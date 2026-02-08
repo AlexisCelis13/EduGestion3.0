@@ -721,25 +721,55 @@ export class SupabaseService {
     const settings = await this.getAvailabilitySettings(tutorId);
     if (!settings) return [];
 
-    // Check if date has an override (blocked)
-    const { data: overrides } = await this.supabase
-      .from('date_overrides')
-      .select('*')
-      .eq('user_id', tutorId)
-      .eq('date', date)
-      .maybeSingle();
-
-    if (overrides && !overrides.is_available) {
-      return []; // Date is blocked
-    }
-
-    // Get day of week and weekly schedule
-    // Create date with timezone awareness to avoid day shift issues
-    // We assume the date string is YYYY-MM-DD
+    // Get day of week for the requested date
     const [year, month, day] = date.split('-').map(Number);
     const dateObj = new Date(year, month - 1, day);
     const dayOfWeek = dateObj.getDay();
 
+    // Fetch ALL time blocks for this tutor
+    const { data: allOverrides } = await this.supabase
+      .from('date_overrides')
+      .select('*')
+      .eq('user_id', tutorId);
+
+    // Filter blocks that apply to this date
+    const blocksForDate: { start_time: string; end_time: string }[] = [];
+    let isFullDayBlocked = false;
+
+    if (allOverrides) {
+      for (const block of allOverrides) {
+        let applies = false;
+
+        if (block.date === date) {
+          // Specific date block
+          applies = true;
+        } else if (!block.date && block.days_of_week && block.days_of_week.includes(dayOfWeek)) {
+          // Recurring block - check if within end_date
+          if (block.end_date) {
+            const [endYear, endMonth, endDay] = block.end_date.split('-').map(Number);
+            const endDateObj = new Date(endYear, endMonth - 1, endDay);
+            applies = dateObj <= endDateObj;
+          } else {
+            applies = true;
+          }
+        }
+
+        if (applies) {
+          // Check if full day blocked
+          if (block.start_time <= '00:30:00' && block.end_time >= '23:00:00') {
+            isFullDayBlocked = true;
+            break;
+          }
+          blocksForDate.push({ start_time: block.start_time, end_time: block.end_time });
+        }
+      }
+    }
+
+    if (isFullDayBlocked) {
+      return []; // Entire day is blocked
+    }
+
+    // Get weekly schedule for this day
     const { data: weeklySlot } = await this.supabase
       .from('weekly_schedule')
       .select('*')
@@ -751,7 +781,6 @@ export class SupabaseService {
     if (!weeklySlot) return []; // Day not available
 
     // Get booked slots - Use RPC for security/public access
-    // This allows anon users to see busy times without seeing WHO is booked
     let bookedSlots: { start_time: string, end_time: string }[] = [];
 
     const { data: rpcSlots, error: rpcError } = await this.getPublicBusySlots(tutorId, date);
@@ -759,8 +788,6 @@ export class SupabaseService {
     if (!rpcError && rpcSlots) {
       bookedSlots = rpcSlots;
     } else {
-      // Fallback for authenticated tutor viewing their own schedule
-      // (or if RPC is not set up, but RLS blocks this for anon)
       const { data: appointments } = await this.getAppointmentsByDate(tutorId, date);
       bookedSlots = appointments || [];
     }
@@ -768,16 +795,12 @@ export class SupabaseService {
     // Generate available slots
     const slots: { startTime: string; endTime: string }[] = [];
 
-    // Duration rules:
-    // - Slot length = requested duration OR min_session_duration
-    // - Step increment = min_session_duration (allows flexible start times)
     const slotDuration = durationMinutes || settings.min_session_duration;
-    const stepIncrement = settings.min_session_duration; // Move by 30 mins (or whatever is set)
+    const stepIncrement = settings.min_session_duration;
 
     let currentTime = this.timeToMinutes(weeklySlot.start_time);
     const endTime = this.timeToMinutes(weeklySlot.end_time);
 
-    // Add buffer if configured
     const buffer = settings.buffer_between_sessions || 0;
 
     while (currentTime + slotDuration <= endTime) {
@@ -785,17 +808,19 @@ export class SupabaseService {
       const slotEnd = this.minutesToTime(currentTime + slotDuration);
 
       // Check if slot overlaps with any booked appointment
-      // Important: Check the full duration of the proposed slot against existing bookings
       const isBooked = bookedSlots.some(apt =>
         this.timesOverlap(slotStart, slotEnd, apt.start_time, apt.end_time)
       );
 
-      if (!isBooked) {
+      // Check if slot overlaps with any time block
+      const isBlocked = blocksForDate.some(block =>
+        this.timesOverlap(slotStart, slotEnd, block.start_time, block.end_time)
+      );
+
+      if (!isBooked && !isBlocked) {
         slots.push({ startTime: slotStart, endTime: slotEnd });
       }
 
-      // Increment by step (not duration) to allow overlapping start options
-      // e.g., if duration is 60m and step is 30m, show 9:00-10:00, 9:30-10:30
       currentTime += stepIncrement;
     }
 

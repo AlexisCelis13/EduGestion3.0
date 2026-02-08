@@ -22,6 +22,7 @@ interface TimeBlock {
   endType: 'never' | 'weeks' | 'date';
   endWeeks?: number;
   endDate?: string;
+  isFullDay: boolean;
 }
 
 @Component({
@@ -183,14 +184,17 @@ interface TimeBlock {
                     <div class="p-5 rounded-xl border border-surface-100 hover:border-surface-200 transition-colors bg-white">
                       <div class="flex items-start justify-between gap-4">
                         <div class="flex-1 space-y-4">
-                          <!-- Time Range -->
+                          <!-- Time Range + Full Day Toggle -->
                           <div class="flex flex-wrap items-center gap-3">
                             <div class="flex items-center gap-2">
                               <span class="text-sm text-surface-500">De</span>
                               <input
                                 type="time"
                                 [(ngModel)]="block.startTime"
+                                [disabled]="block.isFullDay"
                                 class="input-premium !py-2 !text-sm"
+                                [class.opacity-50]="block.isFullDay"
+                                [class.cursor-not-allowed]="block.isFullDay"
                               />
                             </div>
                             <div class="flex items-center gap-2">
@@ -198,10 +202,29 @@ interface TimeBlock {
                               <input
                                 type="time"
                                 [(ngModel)]="block.endTime"
+                                [disabled]="block.isFullDay"
                                 class="input-premium !py-2 !text-sm"
+                                [class.opacity-50]="block.isFullDay"
+                                [class.cursor-not-allowed]="block.isFullDay"
                               />
                             </div>
+                            <!-- Only show "Todo el día" for specific dates OR recurring with end date -->
+                            @if (!block.isRecurring || block.endType !== 'never') {
+                              <label class="flex items-center gap-2 cursor-pointer ml-4">
+                                <input 
+                                  type="checkbox" 
+                                  [(ngModel)]="block.isFullDay"
+                                  (change)="onFullDayToggle(block)"
+                                  class="w-4 h-4 text-red-600 border-surface-300 rounded focus:ring-red-500"
+                                />
+                                <span class="text-sm text-surface-600">Todo el día</span>
+                              </label>
+                            }
                           </div>
+                          <!-- Invalid time range warning -->
+                          @if (!block.isFullDay && block.startTime >= block.endTime) {
+                            <p class="text-xs text-red-500">⚠️ La hora de inicio debe ser anterior a la hora de fin</p>
+                          }
                           
                           <!-- Reason -->
                           <input
@@ -241,6 +264,9 @@ interface TimeBlock {
                               <!-- Multi-day Selection -->
                               <div>
                                 <label class="block text-sm font-medium text-surface-600 mb-2">Repetir cada semana en:</label>
+                                @if (block.daysOfWeek.length === 0) {
+                                  <p class="text-xs text-red-500 mb-2">⚠️ Selecciona al menos un día</p>
+                                }
                                 <div class="flex gap-1.5">
                                   <button
                                     type="button"
@@ -399,6 +425,19 @@ interface TimeBlock {
           }
         </div>
 
+        <!-- Messages (above save button) -->
+        @if (successMessage()) {
+          <div class="mb-4 bg-accent-green/10 border border-accent-green/20 rounded-xl p-4">
+            <p class="text-sm text-accent-green">✓ {{ successMessage() }}</p>
+          </div>
+        }
+
+        @if (errorMessage()) {
+          <div class="mb-4 bg-red-50 border border-red-100 rounded-xl p-4">
+            <p class="text-sm text-red-600">⚠️ {{ errorMessage() }}</p>
+          </div>
+        }
+
         <!-- Save Button -->
         <div class="flex justify-end gap-3">
           <button 
@@ -416,18 +455,6 @@ interface TimeBlock {
             }
           </button>
         </div>
-
-        @if (successMessage()) {
-          <div class="mt-4 bg-accent-green/10 border border-accent-green/20 rounded-xl p-4">
-            <p class="text-sm text-accent-green">{{ successMessage() }}</p>
-          </div>
-        }
-
-        @if (errorMessage()) {
-          <div class="mt-4 bg-red-50 border border-red-100 rounded-xl p-4">
-            <p class="text-sm text-red-600">{{ errorMessage() }}</p>
-          </div>
-        }
       </div>
     </div>
   `
@@ -577,7 +604,8 @@ export class ScheduleSettingsComponent implements OnInit {
           specificDate: o.date,
           endType: o.end_date ? 'date' : 'never' as 'never' | 'weeks' | 'date',
           endWeeks: 4,
-          endDate: o.end_date
+          endDate: o.end_date,
+          isFullDay: o.start_time <= '00:30:00' && o.end_time >= '23:00:00'
         }));
     }
   }
@@ -611,9 +639,17 @@ export class ScheduleSettingsComponent implements OnInit {
       specificDate: new Date().toISOString().split('T')[0],
       endType: 'never',
       endWeeks: 4,
-      endDate: undefined
+      endDate: undefined,
+      isFullDay: false
     });
     this.showAdvancedOptions = true;
+  }
+
+  onFullDayToggle(block: TimeBlock) {
+    if (block.isFullDay) {
+      block.startTime = '00:00';
+      block.endTime = '23:59';
+    }
   }
 
   removeTimeBlock(index: number) {
@@ -655,6 +691,22 @@ export class ScheduleSettingsComponent implements OnInit {
     this.errorMessage.set('');
 
     try {
+      // Validate time blocks have valid time ranges
+      const invalidTimeRanges = this.timeBlocks.filter(b => !b.isFullDay && b.startTime >= b.endTime);
+      if (invalidTimeRanges.length > 0) {
+        this.errorMessage.set('La hora de inicio debe ser anterior a la hora de fin en los bloqueos de tiempo');
+        this.saving.set(false);
+        return;
+      }
+
+      // Validate recurring blocks have at least one day selected
+      const invalidBlocks = this.timeBlocks.filter(b => b.isRecurring && b.daysOfWeek.length === 0);
+      if (invalidBlocks.length > 0) {
+        this.errorMessage.set('Los bloqueos recurrentes deben tener al menos un día seleccionado');
+        this.saving.set(false);
+        return;
+      }
+
       const user = await this.supabaseService.getCurrentUser();
       if (!user) {
         this.errorMessage.set('No se encontró el usuario');
