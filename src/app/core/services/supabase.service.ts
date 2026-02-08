@@ -575,6 +575,56 @@ export class SupabaseService {
     return { data, error };
   }
 
+  // Check if student has upcoming appointments
+  async hasUpcomingAppointments(studentId: string): Promise<boolean> {
+    const today = new Date().toISOString().split('T')[0];
+
+    const { count, error } = await this.supabase
+      .from('appointments')
+      .select('*', { count: 'exact', head: true })
+      .eq('student_id', studentId)
+      .gte('date', today)
+      .neq('status', 'cancelled');
+
+    if (error) {
+      console.error('Error checking upcoming appointments:', error);
+      return false;
+    }
+
+    return (count ?? 0) > 0;
+  }
+
+  // Get student appointment stats (for badges)
+  async getStudentAppointmentStats(studentId: string): Promise<{ upcoming: number; past: number; lastAppointmentDate: string | null }> {
+    const today = new Date().toISOString().split('T')[0];
+
+    // Get upcoming count
+    const { count: upcomingCount } = await this.supabase
+      .from('appointments')
+      .select('*', { count: 'exact', head: true })
+      .eq('student_id', studentId)
+      .gte('date', today)
+      .neq('status', 'cancelled');
+
+    // Get past count and last appointment date
+    const { data: pastAppointments, count: pastCount } = await this.supabase
+      .from('appointments')
+      .select('date', { count: 'exact' })
+      .eq('student_id', studentId)
+      .lt('date', today)
+      .neq('status', 'cancelled')
+      .order('date', { ascending: false })
+      .limit(1);
+
+    const lastAppointmentDate = pastAppointments?.[0]?.date ?? null;
+
+    return {
+      upcoming: upcomingCount ?? 0,
+      past: pastCount ?? 0,
+      lastAppointmentDate
+    };
+  }
+
 
   // ============================================
   // PUBLIC BOOKING METHODS
@@ -1086,10 +1136,11 @@ export class SupabaseService {
   }
 
   async deleteStudent(studentId: string) {
-    // Hard delete to trigger DB cascade and remove appointments
+    // Soft delete - set is_active to false instead of removing
+    // This preserves history and allows reactivation if student books again
     const { error } = await this.supabase
       .from('students')
-      .delete()
+      .update({ is_active: false })
       .eq('id', studentId);
 
     return { error };

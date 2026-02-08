@@ -158,8 +158,16 @@
                             }}</span>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <h3 class="text-lg font-semibold text-surface-700 truncate">{{ student.first_name }} {{
-                            student.last_name }}</h3>
+                        <div class="flex items-center gap-2 mb-0.5">
+                            <h3 class="text-lg font-semibold text-surface-700 truncate">{{ student.first_name }}
+                                {{ student.last_name }}</h3>
+                            @if (getStudentStatus(student.id).label) {
+                            <span class="px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap"
+                                [class]="getStudentStatus(student.id).color">
+                                {{ getStudentStatus(student.id).label }}
+                            </span>
+                            }
+                        </div>
                         <p class="text-sm text-surface-400 truncate">{{ student.email }}</p>
                         @if (student.phone) {
                         <p class="text-sm text-surface-400">{{ student.phone }}</p>

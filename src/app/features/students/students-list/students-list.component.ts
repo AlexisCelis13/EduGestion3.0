@@ -55,6 +55,9 @@ export class StudentsListComponent implements OnInit {
     showStudentDetail = signal(false);
     selectedStudent = signal<Student | null>(null);
 
+    // Student appointment stats (for badges)
+    studentStats = signal<Map<string, { upcoming: number; past: number; lastAppointmentDate: string | null }>>(new Map());
+
     // Max date for date of birth (today)
     today = new Date().toISOString().split('T')[0];
 
@@ -90,10 +93,20 @@ export class StudentsListComponent implements OnInit {
     async ngOnInit() {
         await this.loadStudents();
 
-        // Check for query params to auto-open create form
-        this.route.queryParams.subscribe(params => {
+        // Check for query params
+        this.route.queryParams.subscribe(async params => {
+            // Auto-open create form
             if (params['action'] === 'new') {
                 this.showCreateForm.set(true);
+            }
+
+            // Auto-open student detail modal
+            if (params['student']) {
+                const studentId = params['student'];
+                const student = this.students().find(s => s.id === studentId);
+                if (student) {
+                    await this.viewStudent(student);
+                }
             }
         });
     }
@@ -104,8 +117,59 @@ export class StudentsListComponent implements OnInit {
             const { data, error } = await this.supabaseService.getStudents(user.id);
             if (data) {
                 this.students.set(data);
+                // Load stats for each student in background
+                this.loadStudentStats(data);
             }
         }
+    }
+
+    private async loadStudentStats(students: Student[]) {
+        const statsMap = new Map<string, { upcoming: number; past: number; lastAppointmentDate: string | null }>();
+
+        // Load stats in parallel
+        const statsPromises = students.map(async (student) => {
+            const stats = await this.supabaseService.getStudentAppointmentStats(student.id);
+            return { id: student.id, stats };
+        });
+
+        const results = await Promise.all(statsPromises);
+
+        for (const result of results) {
+            statsMap.set(result.id, result.stats);
+        }
+
+        this.studentStats.set(statsMap);
+    }
+
+    // Get student status for badge display
+    getStudentStatus(studentId: string): { label: string; color: string } {
+        const stats = this.studentStats().get(studentId);
+
+        if (!stats) {
+            return { label: '', color: '' };
+        }
+
+        if (stats.upcoming > 0) {
+            return { label: `${stats.upcoming} cita${stats.upcoming > 1 ? 's' : ''} próxima${stats.upcoming > 1 ? 's' : ''}`, color: 'bg-green-100 text-green-700' };
+        }
+
+        if (stats.past > 0) {
+            // Calculate days since last appointment
+            if (stats.lastAppointmentDate) {
+                const lastDate = new Date(stats.lastAppointmentDate);
+                const today = new Date();
+                const diffDays = Math.floor((today.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+
+                if (diffDays <= 30) {
+                    return { label: 'Activo', color: 'bg-blue-100 text-blue-700' };
+                } else {
+                    return { label: 'Inactivo', color: 'bg-surface-100 text-surface-500' };
+                }
+            }
+            return { label: 'Inactivo', color: 'bg-surface-100 text-surface-500' };
+        }
+
+        return { label: 'Nuevo', color: 'bg-amber-100 text-amber-700' };
     }
 
     async createStudent() {
@@ -220,7 +284,16 @@ export class StudentsListComponent implements OnInit {
     }
 
     // Delete methods
-    confirmDelete(studentId: string) {
+    async confirmDelete(studentId: string) {
+        // Check if student has upcoming appointments
+        const hasUpcoming = await this.supabaseService.hasUpcomingAppointments(studentId);
+
+        if (hasUpcoming) {
+            this.errorMessage.set('No puedes eliminar este alumno porque tiene citas programadas. Cancela las citas primero.');
+            setTimeout(() => this.errorMessage.set(''), 5000);
+            return;
+        }
+
         this.showDeleteConfirm.set(studentId);
     }
 
