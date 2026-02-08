@@ -1,6 +1,7 @@
 import { Component, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { SupabaseService } from '../../../core/services/supabase.service';
 
 interface WeeklySlot {
@@ -137,7 +138,7 @@ interface TimeBlock {
         </div>
 
         <!-- Advanced Options - Time Blocks -->
-        <div class="card-premium p-6 mb-6">
+        <div id="time-blocks-section" class="card-premium p-6 mb-6">
           <button 
             (click)="showAdvancedOptions = !showAdvancedOptions"
             class="flex items-center justify-between w-full text-left">
@@ -492,7 +493,8 @@ export class ScheduleSettingsComponent implements OnInit {
 
   constructor(
     private fb: FormBuilder,
-    private supabaseService: SupabaseService
+    private supabaseService: SupabaseService,
+    private route: ActivatedRoute
   ) {
     this.settingsForm = this.fb.group({
       dayStartTime: ['08:00', Validators.required],
@@ -504,6 +506,22 @@ export class ScheduleSettingsComponent implements OnInit {
 
   async ngOnInit() {
     await this.loadSettings();
+
+    // Check for query params to auto-open time blocks
+    this.route.queryParams.subscribe(params => {
+      if (params['action'] === 'new-block') {
+        this.showAdvancedOptions = true;
+        this.addTimeBlock();
+
+        // Scroll to time blocks section after DOM update
+        setTimeout(() => {
+          const timeBlocksSection = document.getElementById('time-blocks-section');
+          if (timeBlocksSection) {
+            timeBlocksSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 150);
+      }
+    });
   }
 
   // Time conversion helpers

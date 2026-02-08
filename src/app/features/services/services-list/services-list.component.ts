@@ -1,6 +1,7 @@
 import { Component, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { SupabaseService, Service } from '../../../core/services/supabase.service';
 
 @Component({
@@ -21,6 +22,9 @@ export class ServicesListComponent implements OnInit {
   editingService = signal<Service | null>(null);
   showDeleteConfirm = signal<string | null>(null);
 
+  // Preview mode
+  selectedServicePreview = signal<Service | null>(null);
+
   // Opciones para selects
   targetLevels = ['Primaria', 'Secundaria', 'Preparatoria', 'Universidad', 'Adultos', 'Todos'];
   languages = ['Español', 'Inglés', 'Francés', 'Alemán', 'Otro'];
@@ -32,7 +36,8 @@ export class ServicesListComponent implements OnInit {
 
   constructor(
     private fb: FormBuilder,
-    private supabaseService: SupabaseService
+    private supabaseService: SupabaseService,
+    private route: ActivatedRoute
   ) {
     this.serviceForm = this.fb.group({
       name: ['', Validators.required],
@@ -50,6 +55,20 @@ export class ServicesListComponent implements OnInit {
 
   async ngOnInit() {
     await this.loadServices();
+
+    // Check for query params to auto-open forms or preview
+    this.route.queryParams.subscribe(params => {
+      if (params['action'] === 'new') {
+        // Open create form
+        this.showCreateForm.set(true);
+      } else if (params['service']) {
+        const serviceId = params['service'];
+        const service = this.services().find(s => s.id === serviceId);
+        if (service) {
+          this.viewService(service);
+        }
+      }
+    });
   }
 
   private async loadServices() {
@@ -233,5 +252,14 @@ export class ServicesListComponent implements OnInit {
   private showSuccess(message: string) {
     this.successMessage.set(message);
     setTimeout(() => this.successMessage.set(''), 3000);
+  }
+
+  // Preview methods
+  viewService(service: Service) {
+    this.selectedServicePreview.set(service);
+  }
+
+  closeServicePreview() {
+    this.selectedServicePreview.set(null);
   }
 }

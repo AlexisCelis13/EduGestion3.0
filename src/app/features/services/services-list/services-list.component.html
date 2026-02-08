@@ -233,6 +233,10 @@
         }
 
         <div class="mt-auto pt-4 flex gap-2 border-t border-surface-50">
+          <button (click)="viewService(service)"
+            class="flex-1 bg-primary-50 text-primary-600 px-3 py-2 rounded-lg text-sm font-medium hover:bg-primary-100 transition-colors">
+            Ver
+          </button>
           <button (click)="startEdit(service)"
             class="flex-1 bg-surface-50 text-surface-700 px-3 py-2 rounded-lg text-sm font-medium hover:bg-surface-100 transition-colors">
             Editar
@@ -252,3 +256,102 @@
     }
   </div>
 </div>
+
+<!-- Service Preview Modal -->
+@if (selectedServicePreview()) {
+<div class="fixed inset-0 bg-surface-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+  (click)="closeServicePreview()">
+  <div class="bg-white rounded-2xl shadow-premium-lg w-full max-w-lg max-h-[90vh] overflow-hidden animate-fade-in"
+    (click)="$event.stopPropagation()">
+
+    <!-- Header -->
+    <div class="p-6 border-b border-surface-100 flex items-center justify-between">
+      <div>
+        <h3 class="text-xl font-semibold text-surface-700">{{ selectedServicePreview()?.name }}</h3>
+        <div class="flex flex-wrap gap-2 mt-2">
+          @if (selectedServicePreview()?.category) {
+          <span class="inline-block bg-primary-50 text-primary-700 text-xs font-medium px-2.5 py-1 rounded-full">
+            {{ selectedServicePreview()?.category }}
+          </span>
+          }
+          @if (selectedServicePreview()?.target_level) {
+          <span class="inline-block bg-surface-100 text-surface-600 text-xs font-medium px-2.5 py-1 rounded-full">
+            {{ selectedServicePreview()?.target_level }}
+          </span>
+          }
+          @if (selectedServicePreview()?.language) {
+          <span class="inline-block bg-blue-50 text-blue-700 text-xs font-medium px-2.5 py-1 rounded-full">
+            {{ selectedServicePreview()?.language }}
+          </span>
+          }
+        </div>
+      </div>
+      <button (click)="closeServicePreview()" class="p-2 hover:bg-surface-100 rounded-xl transition-colors">
+        <svg class="w-5 h-5 text-surface-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Content -->
+    <div class="p-6 overflow-y-auto max-h-[calc(90vh-200px)] space-y-5">
+
+      <!-- Price & Duration -->
+      <div class="flex items-center justify-between bg-gradient-to-r from-primary-50 to-primary-100/50 rounded-xl p-4">
+        <div>
+          <p class="text-sm text-surface-500">Precio por sesión</p>
+          <p class="text-2xl font-bold text-primary-600">${{ formatPrice(selectedServicePreview()?.price || 0) }} MXN
+          </p>
+        </div>
+        <div class="text-right">
+          <p class="text-sm text-surface-500">Duración</p>
+          <p class="text-lg font-semibold text-surface-700">{{ selectedServicePreview()?.duration_minutes }} min</p>
+        </div>
+      </div>
+
+      <!-- Description -->
+      @if (selectedServicePreview()?.description) {
+      <div>
+        <h4 class="text-sm font-medium text-surface-500 mb-2">Descripción</h4>
+        <p class="text-surface-700 leading-relaxed">{{ selectedServicePreview()?.description }}</p>
+      </div>
+      }
+
+      <!-- Topics -->
+      @if (selectedServicePreview()?.topics && selectedServicePreview()!.topics!.length > 0) {
+      <div>
+        <h4 class="text-sm font-medium text-surface-500 mb-2">Temas que cubre</h4>
+        <div class="flex flex-wrap gap-2">
+          @for (topic of selectedServicePreview()?.topics; track topic) {
+          <span class="text-sm bg-surface-100 text-surface-700 px-3 py-1 rounded-full">{{ topic }}</span>
+          }
+        </div>
+      </div>
+      }
+
+      <!-- Methodology -->
+      @if (selectedServicePreview()?.methodology) {
+      <div>
+        <h4 class="text-sm font-medium text-surface-500 mb-2">Enfoque / Metodología</h4>
+        <p class="text-surface-700 leading-relaxed">{{ selectedServicePreview()?.methodology }}</p>
+      </div>
+      }
+
+      <!-- Prerequisites -->
+      @if (selectedServicePreview()?.prerequisites) {
+      <div>
+        <h4 class="text-sm font-medium text-surface-500 mb-2">Requisitos previos</h4>
+        <p class="text-surface-700 leading-relaxed">{{ selectedServicePreview()?.prerequisites }}</p>
+      </div>
+      }
+    </div>
+
+    <!-- Footer Actions -->
+    <div class="p-4 border-t border-surface-100 bg-surface-50">
+      <button (click)="startEdit(selectedServicePreview()!); closeServicePreview()" class="w-full btn-premium">Editar
+        Servicio</button>
+    </div>
+  </div>
+</div>
+}

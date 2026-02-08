@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { SupabaseService } from '../../core/services/supabase.service';
 import { NotificationListComponent } from '../../shared/components/notification-list/notification-list.component';
+import { CommandPaletteComponent } from '../../shared/components/command-palette/command-palette.component';
 
 interface MenuItem {
   name: string;
@@ -13,7 +14,7 @@ interface MenuItem {
 @Component({
   selector: 'app-dashboard-layout',
   standalone: true,
-  imports: [CommonModule, RouterModule, NotificationListComponent],
+  imports: [CommonModule, RouterModule, NotificationListComponent, CommandPaletteComponent],
   template: `
     <div class="flex h-screen bg-surface-50">
       <!-- Sidebar -->
@@ -29,7 +30,7 @@ interface MenuItem {
             <a
               [routerLink]="item.route"
               routerLinkActive="bg-primary-600 text-white"
-              [routerLinkActiveOptions]="{exact: item.route === '/dashboard' || item.route === '/dashboard/schedule'}"
+              [routerLinkActiveOptions]="{exact: item.route === '/dashboard'}"
               class="block px-4 py-3 text-sm font-medium rounded-xl hover:bg-surface-600 transition-all"
               [class.bg-primary-600]="item.active">
               {{ item.name }}
@@ -142,6 +143,11 @@ interface MenuItem {
         <div class="fixed inset-0 bg-surface-900/60 backdrop-blur-sm" (click)="toggleSidebar()"></div>
       </div>
     }
+
+    <!-- Command Palette -->
+    @if (showCommandPalette()) {
+      <app-command-palette (closed)="showCommandPalette.set(false)"></app-command-palette>
+    }
   `
 })
 export class DashboardLayoutComponent implements OnInit {
@@ -150,6 +156,7 @@ export class DashboardLayoutComponent implements OnInit {
   sidebarOpen = signal(false);
   showProfileMenu = signal(false);
   showNotifications = signal(false);
+  showCommandPalette = signal(false);
 
   userName = signal('Usuario');
   userEmail = signal('');
@@ -201,6 +208,15 @@ export class DashboardLayoutComponent implements OnInit {
     // If notifications are open and click is outside the notification container
     if (this.showNotifications() && this.notificationsContainer && !this.notificationsContainer.nativeElement.contains(event.target)) {
       this.showNotifications.set(false);
+    }
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  onKeydown(event: KeyboardEvent) {
+    // Cmd+K (Mac) or Ctrl+K (Windows/Linux)
+    if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
+      event.preventDefault();
+      this.showCommandPalette.set(true);
     }
   }
 
