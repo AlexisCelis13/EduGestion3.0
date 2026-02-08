@@ -23,6 +23,7 @@ interface TimeBlock {
   endWeeks?: number;
   endDate?: string;
   isFullDay: boolean;
+  overlapWarning?: string; // Warning message if this block overlaps with another
 }
 
 @Component({
@@ -191,6 +192,7 @@ interface TimeBlock {
                               <input
                                 type="time"
                                 [(ngModel)]="block.startTime"
+                                (ngModelChange)="checkAllBlocksForOverlaps()"
                                 [disabled]="block.isFullDay"
                                 class="input-premium !py-2 !text-sm"
                                 [class.opacity-50]="block.isFullDay"
@@ -202,6 +204,7 @@ interface TimeBlock {
                               <input
                                 type="time"
                                 [(ngModel)]="block.endTime"
+                                (ngModelChange)="checkAllBlocksForOverlaps()"
                                 [disabled]="block.isFullDay"
                                 class="input-premium !py-2 !text-sm"
                                 [class.opacity-50]="block.isFullDay"
@@ -224,6 +227,10 @@ interface TimeBlock {
                           <!-- Invalid time range warning -->
                           @if (!block.isFullDay && block.startTime >= block.endTime) {
                             <p class="text-xs text-red-500">⚠️ La hora de inicio debe ser anterior a la hora de fin</p>
+                          }
+                          <!-- Overlap warning -->
+                          @if (block.overlapWarning) {
+                            <p class="text-xs text-orange-500">⚠️ {{ block.overlapWarning }}</p>
                           }
                           
                           <!-- Reason -->
@@ -401,6 +408,7 @@ interface TimeBlock {
                               <input
                                 type="date"
                                 [(ngModel)]="block.specificDate"
+                                (ngModelChange)="checkAllBlocksForOverlaps()"
                                 class="input-premium !py-2 !text-sm !w-44"
                               />
                             </div>
@@ -654,6 +662,7 @@ export class ScheduleSettingsComponent implements OnInit {
 
   removeTimeBlock(index: number) {
     this.timeBlocks.splice(index, 1);
+    this.checkAllBlocksForOverlaps();
   }
 
   toggleDayInBlock(blockIndex: number, dayValue: number) {
@@ -664,6 +673,7 @@ export class ScheduleSettingsComponent implements OnInit {
     } else {
       block.daysOfWeek = block.daysOfWeek.filter(d => d !== dayValue);
     }
+    this.checkAllBlocksForOverlaps();
   }
 
   setEndType(blockIndex: number, type: 'never' | 'weeks' | 'date') {
@@ -685,6 +695,88 @@ export class ScheduleSettingsComponent implements OnInit {
     return date.toISOString().split('T')[0];
   }
 
+  // Check all blocks for overlaps and set warnings
+  checkAllBlocksForOverlaps() {
+    const dayNames = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
+
+    // Reset all warnings
+    this.timeBlocks.forEach(b => b.overlapWarning = undefined);
+
+    for (let i = 0; i < this.timeBlocks.length; i++) {
+      const blockA = this.timeBlocks[i];
+
+      for (let j = 0; j < this.timeBlocks.length; j++) {
+        if (i === j) continue;
+        const blockB = this.timeBlocks[j];
+
+        // Check if times overlap
+        if (!this.timesOverlap(blockA.startTime, blockA.endTime, blockB.startTime, blockB.endTime)) {
+          continue;
+        }
+
+        // Check if they apply to the same day(s)
+        const overlappingDays = this.getOverlappingDays(blockA, blockB);
+
+        if (overlappingDays.length > 0) {
+          const dayLabels = overlappingDays.map(d => dayNames[d]).join(', ');
+          const conflictLabel = blockB.reason || `${blockB.startTime} - ${blockB.endTime}`;
+
+          if (blockA.isRecurring && blockB.isRecurring) {
+            blockA.overlapWarning = `Se sobrepone con '${conflictLabel}' en: ${dayLabels}`;
+          } else if (!blockA.isRecurring && !blockB.isRecurring) {
+            blockA.overlapWarning = `Se sobrepone con '${conflictLabel}'`;
+          } else {
+            blockA.overlapWarning = `Se sobrepone con '${conflictLabel}' (${blockB.isRecurring ? 'recurrente' : 'fecha específica'})`;
+          }
+          break; // Only show first conflict
+        }
+      }
+    }
+  }
+
+  private timesOverlap(start1: string, end1: string, start2: string, end2: string): boolean {
+    // Convert to minutes for easier comparison
+    const toMinutes = (time: string) => {
+      const [h, m] = time.split(':').map(Number);
+      return h * 60 + m;
+    };
+    const s1 = toMinutes(start1), e1 = toMinutes(end1);
+    const s2 = toMinutes(start2), e2 = toMinutes(end2);
+    return s1 < e2 && e1 > s2;
+  }
+
+  private getOverlappingDays(blockA: TimeBlock, blockB: TimeBlock): number[] {
+    // Case 1: Both are specific dates
+    if (!blockA.isRecurring && !blockB.isRecurring) {
+      if (blockA.specificDate === blockB.specificDate) {
+        const [year, month, day] = (blockA.specificDate || '').split('-').map(Number);
+        const date = new Date(year, month - 1, day);
+        return [date.getDay()];
+      }
+      return [];
+    }
+
+    // Case 2: Both are recurring
+    if (blockA.isRecurring && blockB.isRecurring) {
+      return blockA.daysOfWeek.filter(d => blockB.daysOfWeek.includes(d));
+    }
+
+    // Case 3: One is recurring, one is specific date
+    const recurring = blockA.isRecurring ? blockA : blockB;
+    const specific = blockA.isRecurring ? blockB : blockA;
+
+    if (!specific.specificDate) return [];
+
+    const [year, month, day] = specific.specificDate.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    const dayOfWeek = date.getDay();
+
+    if (recurring.daysOfWeek.includes(dayOfWeek)) {
+      return [dayOfWeek];
+    }
+    return [];
+  }
+
   async saveSettings() {
     this.saving.set(true);
     this.successMessage.set('');
@@ -703,6 +795,15 @@ export class ScheduleSettingsComponent implements OnInit {
       const invalidBlocks = this.timeBlocks.filter(b => b.isRecurring && b.daysOfWeek.length === 0);
       if (invalidBlocks.length > 0) {
         this.errorMessage.set('Los bloqueos recurrentes deben tener al menos un día seleccionado');
+        this.saving.set(false);
+        return;
+      }
+
+      // Validate no overlapping blocks
+      this.checkAllBlocksForOverlaps();
+      const overlappingBlocks = this.timeBlocks.filter(b => b.overlapWarning);
+      if (overlappingBlocks.length > 0) {
+        this.errorMessage.set('Hay bloqueos de tiempo que se sobreponen entre sí. Por favor, corrige los conflictos.');
         this.saving.set(false);
         return;
       }

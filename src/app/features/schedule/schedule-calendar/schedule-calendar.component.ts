@@ -262,7 +262,7 @@ interface WeeklySlot {
             } @else {
               <div class="space-y-3">
                 @for (apt of selectedDayAppointments; track apt.id) {
-                  <div (click)="selectAppointment(apt); closeDayDetails()" class="flex items-center gap-4 p-3 rounded-xl border border-surface-100 hover:border-surface-200 transition-colors cursor-pointer hover:bg-surface-50">
+                  <div (click)="selectAppointmentFromDayDetails(apt)" class="flex items-center gap-4 p-3 rounded-xl border border-surface-100 hover:border-surface-200 transition-colors cursor-pointer hover:bg-surface-50">
                     <div class="w-12 h-12 bg-primary-50 rounded-xl flex items-center justify-center text-primary-700 font-semibold text-xs flex-col">
                        <span>{{ apt.startTime }}</span>
                     </div>
@@ -278,9 +278,6 @@ interface WeeklySlot {
               </div>
             }
 
-            <div class="mt-6 pt-4 border-t border-surface-100 flex justify-end">
-              <button (click)="closeDayDetails()" class="btn-secondary">Cerrar</button>
-            </div>
           </div>
         </div>
       }
@@ -361,9 +358,6 @@ interface WeeklySlot {
               }
             </div>
 
-            <div class="mt-8 pt-6 border-t border-surface-100 flex justify-end gap-3">
-              <button (click)="closeAppointmentDetails()" class="btn-secondary">Cerrar</button>
-            </div>
           </div>
         </div>
       }
@@ -389,6 +383,7 @@ export class ScheduleCalendarComponent implements OnInit {
   selectedDayAppointments: Appointment[] = [];
   selectedDayBlocks: TimeBlock[] = [];
   selectedDayWorkingHours = '';
+  openedFromDayDetails = false; // Track if appointment was opened from day details
 
   monthNames = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -585,10 +580,23 @@ export class ScheduleCalendarComponent implements OnInit {
 
   selectAppointment(apt: Appointment) {
     this.selectedAppointment = apt;
+    this.openedFromDayDetails = false;
+  }
+
+  selectAppointmentFromDayDetails(apt: Appointment) {
+    this.selectedAppointment = apt;
+    this.openedFromDayDetails = true;
+    // Hide day details but keep the data so we can return
+    this.showDayDetails = false;
   }
 
   closeAppointmentDetails() {
     this.selectedAppointment = null;
+    // If opened from day details, return to day details
+    if (this.openedFromDayDetails) {
+      this.showDayDetails = true;
+      this.openedFromDayDetails = false;
+    }
   }
 
   previousMonth() {
