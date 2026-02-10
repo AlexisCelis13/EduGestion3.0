@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit, ElementRef, ViewChild, HostListener, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 
@@ -12,12 +12,33 @@ interface PricingPlan {
   popular?: boolean;
 }
 
+interface Particle {
+  x: number;
+  y: number;
+  originX: number;
+  originY: number;
+  size: number;
+  alpha: number;
+  baseAlpha: number;
+  color: string;
+  // Flotación
+  floatSpeedX: number;
+  floatSpeedY: number;
+  floatPhase: number;
+  // Parpadeo
+  twinkleSpeed: number;
+  twinklePhase: number;
+}
+
 @Component({
   selector: 'app-landing',
   standalone: true,
   imports: [CommonModule, RouterModule],
   template: `
     <div class="min-h-screen bg-surface-50">
+      <!-- Particle Canvas Background -->
+      <canvas #particleCanvas class="particle-canvas"></canvas>
+
       <!-- Header with glassmorphism -->
       <header class="fixed top-0 left-0 right-0 z-50 glass border-b border-white/20">
         <div class="max-w-6xl mx-auto px-6 lg:px-8">
@@ -39,8 +60,8 @@ interface PricingPlan {
       </header>
 
       <!-- Hero Section -->
-      <section class="pt-32 pb-24 lg:pt-40 lg:pb-32">
-        <div class="max-w-6xl mx-auto px-6 lg:px-8 text-center">
+      <section class="pt-32 pb-24 lg:pt-40 lg:pb-32 relative">
+        <div class="max-w-6xl mx-auto px-6 lg:px-8 text-center relative z-10">
           <h1 class="text-hero text-surface-700 mb-6 animate-fade-in-up">
             Gestiona tu Academia
             <span class="text-gradient block">de Forma Inteligente</span>
@@ -61,7 +82,7 @@ interface PricingPlan {
       </section>
 
       <!-- Pricing Section -->
-      <section id="pricing-section" class="py-24 lg:py-32">
+      <section id="pricing-section" class="py-24 lg:py-32 relative z-10">
         <div class="max-w-6xl mx-auto px-6 lg:px-8">
           <!-- Header -->
           <div class="text-center mb-16">
@@ -157,7 +178,7 @@ interface PricingPlan {
       </section>
 
       <!-- Features Section -->
-      <section class="py-24 lg:py-32 bg-white">
+      <section class="py-24 lg:py-32 bg-white relative z-10">
         <div class="max-w-6xl mx-auto px-6 lg:px-8">
           <div class="text-center mb-16">
             <h2 class="text-title text-surface-700 mb-4">
@@ -219,7 +240,7 @@ interface PricingPlan {
       </section>
 
       <!-- CTA Section -->
-      <section class="py-24 lg:py-32 bg-gradient-to-br from-primary-600 to-primary-700">
+      <section class="py-24 lg:py-32 bg-gradient-to-br from-primary-600 to-primary-700 relative z-10">
         <div class="max-w-4xl mx-auto text-center px-6 lg:px-8">
           <h2 class="text-display text-white mb-6">
             ¿Listo para transformar tu academia?
@@ -235,7 +256,7 @@ interface PricingPlan {
       </section>
 
       <!-- Footer -->
-      <footer class="bg-surface-700 text-white py-16">
+      <footer class="bg-surface-700 text-white py-16 relative z-10">
         <div class="max-w-6xl mx-auto px-6 lg:px-8">
           <div class="text-center">
             <h3 class="text-2xl font-semibold mb-4">EduGestión</h3>
@@ -246,9 +267,44 @@ interface PricingPlan {
         </div>
       </footer>
     </div>
-  `
+  `,
+  styles: [`
+    .particle-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+  `]
 })
-export class LandingComponent {
+export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
+  @ViewChild('particleCanvas', { static: true }) canvasRef!: ElementRef<HTMLCanvasElement>;
+
+  private ctx!: CanvasRenderingContext2D;
+  private particles: Particle[] = [];
+  private animationFrameId: number = 0;
+  private mouseX = -1000;
+  private mouseY = -1000;
+  private isAnimating = false;
+  private readonly PARTICLE_COUNT = 300;
+  private readonly MOUSE_RADIUS = 120;
+  private readonly RETURN_SPEED = 0.03;
+
+  // Color palette - tonos verdes que combinan con EduGestion
+  private colors = [
+    '#10b981', // emerald-500
+    '#34d399', // emerald-400
+    '#6ee7b7', // emerald-300
+    '#059669', // emerald-600
+    '#047857', // emerald-700
+    '#22c55e', // green-500
+    '#4ade80', // green-400
+    '#86efac', // green-300
+  ];
+
   plans: PricingPlan[] = [
     {
       id: 'freelance',
@@ -299,7 +355,152 @@ export class LandingComponent {
     }
   ];
 
-  constructor(private router: Router) { }
+  constructor(private router: Router, private ngZone: NgZone) { }
+
+  ngOnInit(): void { }
+
+  ngAfterViewInit(): void {
+    this.initCanvas();
+    this.createParticles();
+    this.startAnimation();
+  }
+
+  ngOnDestroy(): void {
+    this.stopAnimation();
+  }
+
+  @HostListener('window:resize')
+  onResize(): void {
+    this.resizeCanvas();
+    this.createParticles();
+  }
+
+  @HostListener('document:mousemove', ['$event'])
+  onMouseMove(event: MouseEvent): void {
+    this.mouseX = event.clientX;
+    this.mouseY = event.clientY;
+  }
+
+  @HostListener('document:mouseleave')
+  onMouseLeave(): void {
+    this.mouseX = -1000;
+    this.mouseY = -1000;
+  }
+
+  private initCanvas(): void {
+    const canvas = this.canvasRef.nativeElement;
+    this.ctx = canvas.getContext('2d')!;
+    this.resizeCanvas();
+  }
+
+  private resizeCanvas(): void {
+    const canvas = this.canvasRef.nativeElement;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+
+  private createParticles(): void {
+    this.particles = [];
+    const canvas = this.canvasRef.nativeElement;
+
+    for (let i = 0; i < this.PARTICLE_COUNT; i++) {
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * canvas.height;
+      const size = Math.random() * 3 + 1;
+      const baseAlpha = Math.random() * 0.5 + 0.3;
+
+      this.particles.push({
+        x,
+        y,
+        originX: x,
+        originY: y,
+        size,
+        color: this.colors[Math.floor(Math.random() * this.colors.length)],
+        alpha: baseAlpha,
+        baseAlpha,
+        // Velocidad de flotación aleatoria
+        floatSpeedX: (Math.random() - 0.5) * 1.5,
+        floatSpeedY: (Math.random() - 0.5) * 1.5,
+        floatPhase: Math.random() * Math.PI * 2,
+        // Velocidad de parpadeo aleatoria
+        twinkleSpeed: Math.random() * 0.08 + 0.04,
+        twinklePhase: Math.random() * Math.PI * 2
+      });
+    }
+  }
+
+  private startAnimation(): void {
+    if (this.isAnimating) return;
+    this.isAnimating = true;
+
+    this.ngZone.runOutsideAngular(() => {
+      let time = 0;
+
+      const animate = () => {
+        if (!this.isAnimating) return;
+        time += 0.016; // Aproximadamente 60fps
+
+        this.ctx.clearRect(0, 0, this.canvasRef.nativeElement.width, this.canvasRef.nativeElement.height);
+
+        for (const p of this.particles) {
+          // Efecto de parpadeo (twinkle)
+          p.twinklePhase += p.twinkleSpeed;
+          p.alpha = p.baseAlpha + Math.sin(p.twinklePhase) * 0.2;
+          p.alpha = Math.max(0.1, Math.min(1, p.alpha));
+
+          // Calcular posición flotante base
+          p.floatPhase += 0.04;
+          const floatOffsetX = Math.sin(p.floatPhase + p.floatSpeedX * 10) * 6;
+          const floatOffsetY = Math.cos(p.floatPhase + p.floatSpeedY * 10) * 6;
+          const targetX = p.originX + floatOffsetX;
+          const targetY = p.originY + floatOffsetY;
+
+          // Calcular distancia al mouse
+          const dx = this.mouseX - p.x;
+          const dy = this.mouseY - p.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          // Si el mouse está cerca, alejar la partícula
+          if (distance < this.MOUSE_RADIUS) {
+            const force = (this.MOUSE_RADIUS - distance) / this.MOUSE_RADIUS;
+            const angle = Math.atan2(dy, dx);
+            const moveX = Math.cos(angle) * force * 15;
+            const moveY = Math.sin(angle) * force * 15;
+            p.x -= moveX;
+            p.y -= moveY;
+          } else {
+            // Retornar suavemente a la posición flotante
+            p.x += (targetX - p.x) * this.RETURN_SPEED;
+            p.y += (targetY - p.y) * this.RETURN_SPEED;
+          }
+
+          // Dibujar la partícula
+          this.ctx.beginPath();
+          this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          this.ctx.fillStyle = this.hexToRgba(p.color, p.alpha);
+          this.ctx.fill();
+        }
+
+        this.animationFrameId = requestAnimationFrame(animate);
+      };
+
+      animate();
+    });
+  }
+
+  private stopAnimation(): void {
+    this.isAnimating = false;
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+    }
+  }
+
+  private hexToRgba(hex: string, alpha: number): string {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
 
   scrollToPlans(): void {
     const element = document.getElementById('pricing-section');
