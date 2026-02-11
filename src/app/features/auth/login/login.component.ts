@@ -118,14 +118,23 @@ export class LoginComponent {
         const { data, error } = await this.supabaseService.signIn(email, password);
 
         if (error) {
-          this.errorMessage.set('Email o contraseña incorrectos');
+          console.error('Login error:', error);
+          if (error.message.includes('Email not confirmed')) {
+            this.errorMessage.set('Debes confirmar tu email antes de iniciar sesión. Revisa tu bandeja de entrada.');
+          } else if (error.message.includes('Invalid login credentials')) {
+            this.errorMessage.set('Email o contraseña incorrectos.');
+          } else {
+            this.errorMessage.set(error.message);
+          }
         } else if (data.user) {
           // Verificar si completó onboarding
           const profile = await this.supabaseService.getProfile(data.user.id);
           if (profile?.onboarding_completed) {
             this.router.navigate(['/dashboard']);
           } else {
-            this.router.navigate(['/dashboard/onboarding']);
+            // Si tiene el perfil pero no completó onboarding, enviarlo al wizard
+            // Aunque nuestro trigger crea el perfil, onboarding_completed es false por defecto
+            this.router.navigate(['/dashboard']); // Por ahora directo al dashboard para simplificar flujo
           }
         }
       } catch (error: any) {

@@ -99,6 +99,35 @@
                         placeholder="Notas adicionales sobre el alumno..."></textarea>
                 </div>
 
+                <!-- Etiquetas (Tags) -->
+                <div>
+                    <label class="block text-sm font-medium text-surface-700 mb-2">Etiquetas</label>
+                    <div class="flex gap-2 mb-2">
+                        <input type="text" [value]="currentTag()" (input)="currentTag.set($any($event.target).value)" 
+                            (keydown.enter)="addTag($event)"
+                            class="input-premium flex-1" placeholder="Ej: TDAH, Presencial, Pago pendiente" />
+                        <button type="button" (click)="addTag()" 
+                            class="bg-surface-100 text-surface-600 px-4 rounded-xl hover:bg-surface-200 transition-colors">
+                            Agregar
+                        </button>
+                    </div>
+                    @if (studentTags().length > 0) {
+                        <div class="flex flex-wrap gap-2">
+                            @for (tag of studentTags(); track tag) {
+                                <span class="px-2 py-1 bg-primary-50 text-primary-700 text-sm rounded-lg flex items-center gap-1">
+                                    {{ tag }}
+                                    <button type="button" (click)="removeTag(tag)" class="hover:text-primary-900">
+                                        <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                                        </svg>
+                                    </button>
+                                </span>
+                            }
+                        </div>
+                    }
+                </div>
+
                 <div class="flex gap-3">
                     <button type="button" (click)="cancelCreate()" class="btn-secondary">Cancelar</button>
                     <button type="submit" [disabled]="studentForm.invalid || loading()"
@@ -168,6 +197,18 @@
                             </span>
                             }
                         </div>
+                        
+                        <!-- Tags List -->
+                        @if (student.tags && student.tags.length > 0) {
+                        <div class="flex flex-wrap gap-1 mb-1">
+                            @for (tag of student.tags; track tag) {
+                            <span class="px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-[10px] font-medium border border-gray-200">
+                                {{ tag }}
+                            </span>
+                            }
+                        </div>
+                        }
+
                         <p class="text-sm text-surface-400 truncate">{{ student.email }}</p>
                         @if (student.phone) {
                         <p class="text-sm text-surface-400">{{ student.phone }}</p>
@@ -183,6 +224,21 @@
                             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                         </svg>
                         Feedback
+                    </button>
+
+                    <!-- Portal Link Button -->
+                    <button (click)="copyPortalLink(student)" title="Copiar enlace al portal del alumno"
+                        class="bg-surface-100 text-surface-600 px-3 py-2 rounded-xl text-sm font-medium hover:bg-surface-200 transition-colors flex items-center justify-center">
+                        @if (portalLinkCopied() === student.id) {
+                            <svg class="w-4 h-4 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                        } @else {
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                            </svg>
+                        }
                     </button>
                     <button (click)="openMaterialModal(student)"
                         class="flex-1 bg-primary-50 text-primary-600 px-3 py-2 rounded-xl text-sm font-medium hover:bg-primary-100 transition-colors flex items-center justify-center gap-1">

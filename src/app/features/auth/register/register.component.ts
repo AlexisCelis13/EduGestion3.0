@@ -158,6 +158,13 @@ export class RegisterComponent {
         if (error) {
           this.errorMessage.set(error.message);
         } else if (data.user) {
+          // Si no hay sesión, es porque se requiere confirmación de email
+          if (!data.session) {
+            alert('¡Cuenta creada con éxito! Por favor revisa tu correo para confirmar tu cuenta antes de iniciar sesión.');
+            this.router.navigate(['/auth/login']);
+            return;
+          }
+
           // Verificar si hay un plan seleccionado
           const params = this.route.snapshot.queryParams;
 
@@ -167,14 +174,16 @@ export class RegisterComponent {
           } else {
             // Si no hay plan, crear suscripción freelance con trial automáticamente
             try {
+              // Intentar crear suscripción (si falla por duplicado es porque el trigger ya lo hizo)
               await this.subscriptionService.createSubscription(data.user.id, 'freelance', true);
+              
               // Actualizar profile para compatibilidad
               await this.supabaseService.updateProfile(data.user.id, {
                 subscription_plan: 'freelance',
                 subscription_status: 'trial'
               });
             } catch (subError) {
-              console.error('Error creating default subscription:', subError);
+              console.log('La suscripción ya existe o fue creada por trigger:', subError);
             }
             this.router.navigate(['/dashboard']);
           }

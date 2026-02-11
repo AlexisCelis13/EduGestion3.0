@@ -42,8 +42,26 @@ export interface Student {
   parent_email?: string;
   parent_phone?: string;
   notes?: string;
+  tags?: string[];
+  access_token?: string;
   is_active: boolean;
   created_at?: string;
+}
+
+export interface StudentPortalData {
+  student: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    tutor_name: string;
+    company_name: string;
+    logo_url: string;
+    primary_color: string;
+    secondary_color: string;
+  };
+  feedback: StudentFeedback[];
+  materials: StudentMaterial[];
 }
 
 export interface StudentFeedback {
@@ -644,11 +662,11 @@ export class SupabaseService {
   // Create appointment for guest/public (No auth required)
   async createPublicAppointment(appointment: {
     tutor_id: string;
-    student_name: string; // This will now be First Name
-    student_last_name?: string; // New
+    student_name: string;
+    student_last_name?: string;
     student_email: string;
     student_phone?: string;
-    student_dob?: string; // New
+    student_dob?: string;
     date: string;
     start_time: string;
     end_time: string;
@@ -657,113 +675,58 @@ export class SupabaseService {
     parent_name?: string;
     parent_email?: string;
     parent_phone?: string;
-    payment_status?: 'pending' | 'free' | 'paid'; // New
-    amount_paid?: number; // New
+    payment_status?: 'pending' | 'free' | 'paid';
+    amount_paid?: number;
   }) {
-    // Basic validation
-    if (!appointment.tutor_id || !appointment.date || !appointment.start_time || !appointment.end_time || !appointment.student_email || !appointment.student_name) {
+    // Usamos la RPC inteligente 'create_public_booking'
+    // Esta función maneja: crear/actualizar estudiante, reactivarlo si es necesario, y crear la cita
+    // Todo en una sola transacción segura.
+    
+    // Validar campos básicos
+    if (!appointment.tutor_id || !appointment.date || !appointment.start_time || !appointment.student_email) {
       return { data: null, error: { message: 'Faltan campos obligatorios' } };
     }
 
-    // 1. Upsert Student (Create or Update) to ensure they appear in Dashboard
-    // We match by email and tutor_id to avoid duplicates for this tutor
-    const studentData = {
-      user_id: appointment.tutor_id,
-      first_name: appointment.student_name,
-      last_name: appointment.student_last_name || '',
-      email: appointment.student_email,
-      phone: appointment.student_phone || null,
-      date_of_birth: appointment.student_dob || null, // Map DOB
-      parent_name: appointment.parent_name || null,
-      parent_email: appointment.parent_email || null,
-      parent_phone: appointment.parent_phone || null,
-      is_active: true,
-      notes: appointment.notes || null // Save notes to student profile
-    };
-
-    // Try to find existing student first to get ID
-    let studentId = null;
-
-    // Check if student exists
-    const { data: existingStudent } = await this.supabase
-      .from('students')
-      .select('id')
-      .eq('user_id', appointment.tutor_id)
-      .eq('email', appointment.student_email)
-      .maybeSingle();
-
-    if (existingStudent) {
-      studentId = existingStudent.id;
-      // Optional: Update details if provided?
-      // For now, let's update contact info
-      await this.supabase
-        .from('students')
-        .update(studentData)
-        .eq('id', studentId);
-    } else {
-      // Create new
-      const { data: newStudent, error: createError } = await this.supabase
-        .from('students')
-        .insert(studentData)
-        .select()
-        .single();
-
-      if (!createError && newStudent) {
-        studentId = newStudent.id;
-      }
-    }
-
-    // Generate appointment_date (Timestamp with Time Zone)
-    // Combine date and start_time
-    const dateTimeStr = `${appointment.date}T${appointment.start_time}`;
-    const appointmentDate = new Date(dateTimeStr).toISOString();
-
-    // Calculate duration in minutes
-    const start = this.timeToMinutes(appointment.start_time);
-    const end = this.timeToMinutes(appointment.end_time);
-    const durationMinutes = end - start;
-
-    const { data, error } = await this.supabase
-      .from('appointments')
-      .insert({
-        user_id: appointment.tutor_id,
-        student_id: studentId, // Link to student record
-        student_name: appointment.student_name,
-        student_email: appointment.student_email,
-        appointment_date: appointmentDate, // Required by DB
-        duration_minutes: durationMinutes, // Required by DB
-        date: appointment.date,
-        start_time: appointment.start_time,
-        end_time: appointment.end_time,
-        service_id: appointment.service_id || null,
-        notes: appointment.notes || '',
-        status: 'scheduled',
-        payment_status: appointment.payment_status || 'pending', // Pending by default
-        amount_paid: appointment.amount_paid || 0
-      })
-      .select()
-      .single();
+    const { data, error } = await this.supabase.rpc('create_public_booking', {
+      p_tutor_id: appointment.tutor_id,
+      p_student_name: appointment.student_name,
+      p_student_last_name: appointment.student_last_name || '',
+      p_student_email: appointment.student_email,
+      p_student_phone: appointment.student_phone || null,
+      p_student_dob: appointment.student_dob || null,
+      p_date: appointment.date,
+      p_start_time: appointment.start_time,
+      p_end_time: appointment.end_time,
+      p_service_id: appointment.service_id || null,
+      p_notes: appointment.notes || '',
+      p_parent_name: appointment.parent_name || null,
+      p_parent_email: appointment.parent_email || null,
+      p_parent_phone: appointment.parent_phone || null,
+      p_payment_status: appointment.payment_status || 'pending',
+      p_amount_paid: appointment.amount_paid || 0
+    });
 
     if (data && !error) {
-      // Notify the Tutor
+      // Notify the Tutor (Client side notification logic preserved)
       await this.createAppNotification({
         user_id: appointment.tutor_id,
         type: 'booking_new',
         title: '¡Nueva Reserva!',
         message: `Has recibido una nueva reserva de ${appointment.student_name} para el ${appointment.date} a las ${appointment.start_time}.`,
         data: {
-          appointment_id: data.id,
-          student_id: studentId,
+          appointment_id: data.appointment_id, // RPC returns appointment_id
+          student_id: data.student_id,
           date: appointment.date,
           time: appointment.start_time
         }
       });
+      
+      return { data: { id: data.appointment_id, ...data }, error: null };
     }
 
     return { data, error };
   }
 
-  // Updated to work for both Auth and Public users
   // Updated to work for both Auth and Public users
   async getAvailableSlotsForDate(tutorId: string, date: string, durationMinutes?: number) {
     // Get tutor's availability settings
@@ -1114,6 +1077,13 @@ export class SupabaseService {
     return { data, error };
   }
 
+  async getStudentPortalData(token: string) {
+    const { data, error } = await this.supabase
+      .rpc('get_student_portal_data', { p_access_token: token });
+    
+    return { data: data as StudentPortalData, error };
+  }
+
   async createStudent(student: any) {
     const { data, error } = await this.supabase
       .from('students')
@@ -1121,6 +1091,12 @@ export class SupabaseService {
       .select()
       .single();
 
+    return { data, error };
+  }
+
+  async checkStudentStatus(tutorId: string, email: string) {
+    const { data, error } = await this.supabase
+      .rpc('check_student_status', { p_tutor_id: tutorId, p_email: email });
     return { data, error };
   }
 

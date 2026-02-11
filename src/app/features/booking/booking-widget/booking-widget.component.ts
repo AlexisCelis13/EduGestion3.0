@@ -57,6 +57,7 @@ type BookingStep = 'calendar' | 'slots' | 'form' | 'payment' | 'success';
         <div *ngIf="currentStep() === 'form'">
           <h2 class="text-xl font-bold text-gray-900 mb-4">Completa tu reserva</h2>
           <app-booking-form 
+            [tutorId]="tutorId"
             [date]="selectedDate"
             [startTime]="selectedSlot?.startTime || ''"
             [endTime]="selectedSlot?.endTime || ''"
@@ -230,6 +231,11 @@ export class BookingWidgetComponent implements OnInit {
 
       if (result.error) {
         throw result.error;
+      }
+
+      console.log('Reserva creada con éxito:', result.data);
+      if (result.data.reactivated) {
+        console.log('✅ Estudiante reactivado y datos actualizados');
       }
 
       this.confirmedEmail = formData.studentEmail || formData.parentEmail;

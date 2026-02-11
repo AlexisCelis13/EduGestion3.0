@@ -58,6 +58,13 @@ export class StudentsListComponent implements OnInit {
     // Student appointment stats (for badges)
     studentStats = signal<Map<string, { upcoming: number; past: number; lastAppointmentDate: string | null }>>(new Map());
 
+    // Tags management
+    currentTag = signal('');
+    studentTags = signal<string[]>([]);
+    
+    // Portal Link
+    portalLinkCopied = signal<string | null>(null);
+
     // Max date for date of birth (today)
     today = new Date().toISOString().split('T')[0];
 
@@ -88,6 +95,33 @@ export class StudentsListComponent implements OnInit {
             url: [''],
             description: ['']
         });
+    }
+
+    addTag(event?: Event) {
+        if (event) event.preventDefault();
+        const tag = this.currentTag().trim();
+        if (tag && !this.studentTags().includes(tag)) {
+            this.studentTags.update(tags => [...tags, tag]);
+            this.currentTag.set('');
+        }
+    }
+
+    removeTag(tag: string) {
+        this.studentTags.update(tags => tags.filter(t => t !== tag));
+    }
+
+    async copyPortalLink(student: Student) {
+        if (!student.access_token) return;
+        const origin = window.location.origin;
+        const link = `${origin}/student-portal/${student.access_token}`;
+        
+        try {
+            await navigator.clipboard.writeText(link);
+            this.portalLinkCopied.set(student.id);
+            setTimeout(() => this.portalLinkCopied.set(null), 2000);
+        } catch (err) {
+            console.error('Failed to copy link', err);
+        }
     }
 
     async ngOnInit() {
@@ -196,7 +230,8 @@ export class StudentsListComponent implements OnInit {
                     parent_email: formData.parent_email || null,
                     parent_phone: formData.parent_phone || null,
                     notes: formData.notes || null,
-                    is_active: true
+                    is_active: true,
+                    tags: this.studentTags()
                 };
 
                 const { error } = await this.supabaseService.createStudent(studentData);
@@ -221,6 +256,8 @@ export class StudentsListComponent implements OnInit {
     cancelCreate() {
         this.showCreateForm.set(false);
         this.editingStudent.set(null);
+        this.studentTags.set([]);
+        this.currentTag.set('');
         this.studentForm.reset();
         this.errorMessage.set('');
     }
@@ -229,6 +266,7 @@ export class StudentsListComponent implements OnInit {
     startEdit(student: Student) {
         this.editingStudent.set(student);
         this.showCreateForm.set(true);
+        this.studentTags.set(student.tags || []);
         this.studentForm.patchValue({
             first_name: student.first_name,
             last_name: student.last_name,
@@ -258,7 +296,8 @@ export class StudentsListComponent implements OnInit {
                     parent_name: formData.parent_name || null,
                     parent_email: formData.parent_email || null,
                     parent_phone: formData.parent_phone || null,
-                    notes: formData.notes || null
+                    notes: formData.notes || null,
+                    tags: this.studentTags()
                 };
 
                 const { error } = await this.supabaseService.updateStudent(
