@@ -681,7 +681,7 @@ export class SupabaseService {
     // Usamos la RPC inteligente 'create_public_booking'
     // Esta función maneja: crear/actualizar estudiante, reactivarlo si es necesario, y crear la cita
     // Todo en una sola transacción segura.
-    
+
     // Validar campos básicos
     if (!appointment.tutor_id || !appointment.date || !appointment.start_time || !appointment.student_email) {
       return { data: null, error: { message: 'Faltan campos obligatorios' } };
@@ -720,7 +720,7 @@ export class SupabaseService {
           time: appointment.start_time
         }
       });
-      
+
       return { data: { id: data.appointment_id, ...data }, error: null };
     }
 
@@ -1080,7 +1080,7 @@ export class SupabaseService {
   async getStudentPortalData(token: string) {
     const { data, error } = await this.supabase
       .rpc('get_student_portal_data', { p_access_token: token });
-    
+
     return { data: data as StudentPortalData, error };
   }
 
