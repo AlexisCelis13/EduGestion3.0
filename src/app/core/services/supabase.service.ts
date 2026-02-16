@@ -54,6 +54,8 @@ export interface StudentPortalData {
     first_name: string;
     last_name: string;
     email: string;
+    phone?: string;
+    academic_level?: string;
     tutor_name: string;
     company_name: string;
     logo_url: string;
@@ -1705,6 +1707,25 @@ export class SupabaseService {
       .eq('id', id);
 
     return { error };
+  }
+
+  // =============================================
+  // MAGIC LINK AUTH
+  // =============================================
+
+  async sendMagicLink(email: string) {
+    return this.supabase.functions.invoke('send-magic-link', {
+      body: {
+        email,
+        origin: window.location.origin
+      }
+    });
+  }
+
+  async verifyMagicLink(token: string) {
+    return this.supabase.functions.invoke('verify-magic-link', {
+      body: { token }
+    });
   }
 }
 

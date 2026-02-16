@@ -44,6 +44,10 @@ export const routes: Routes = [
 
   // Student Portal (Solo lectura con token)
   {
+    path: 'student-portal/login',
+    loadComponent: () => import('./features/student-portal/student-login/student-login.component').then(m => m.StudentLoginComponent)
+  },
+  {
     path: 'student-portal/:token',
     loadComponent: () => import('./features/student-portal/student-portal.component').then(m => m.StudentPortalComponent)
   },

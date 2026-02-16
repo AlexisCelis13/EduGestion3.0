@@ -49,6 +49,15 @@ BEGIN
       'first_name', s.first_name,
       'last_name', s.last_name,
       'email', s.email,
+      'phone', s.phone,
+      'academic_level', (
+        SELECT cr.academic_level 
+        FROM consultation_requests cr 
+        WHERE cr.tutor_id = s.user_id 
+          AND (cr.student_email = s.email OR cr.student_first_name = s.first_name)
+        ORDER BY cr.created_at DESC 
+        LIMIT 1
+      ),
       'tutor_name', p.first_name || ' ' || COALESCE(p.last_name, ''),
       'company_name', COALESCE(p.company_name, ''), 
       'logo_url', COALESCE(ts.logo_url, ''),
