@@ -1,10 +1,12 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { create, getNumericDate } from "https://deno.land/x/djwt@v2.9.1/mod.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+const JWT_SECRET = Deno.env.get("SUPABASE_JWT_SECRET") || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
@@ -17,6 +19,19 @@ interface RequestData {
     origin: string;
 }
 
+// Helper to create crypto key for JWT
+async function getCryptoKey(secret: string) {
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(secret);
+    return await crypto.subtle.importKey(
+        "raw",
+        keyData,
+        { name: "HMAC", hash: "SHA-256" },
+        false,
+        ["sign", "verify"]
+    );
+}
+
 serve(async (req: Request) => {
     if (req.method === "OPTIONS") {
         return new Response("ok", { headers: corsHeaders });
@@ -25,6 +40,10 @@ serve(async (req: Request) => {
     try {
         if (!RESEND_API_KEY) {
             throw new Error("RESEND_API_KEY is not set");
+        }
+
+        if (!JWT_SECRET) {
+            throw new Error("JWT_SECRET (SUPABASE_JWT_SECRET or SUPABASE_SERVICE_ROLE_KEY) is not set");
         }
 
         const { email, origin } = await req.json() as RequestData;
@@ -39,17 +58,14 @@ serve(async (req: Request) => {
         );
 
         // 1. Verify student exists
-        // We check against the 'students' table. Adjust this according to your actual schema if needed.
-        // Assuming 'email' is a unique field in 'students' table.
         const { data: student, error: studentError } = await supabase
             .from("students")
             .select("id, first_name")
             .eq("email", email)
-            .single();
+            .maybeSingle();
 
         if (studentError || !student) {
-            // Return 200 even if email not found to prevent user enumeration, 
-            // but log it internally.
+            // Return 200 even if email not found to prevent enumeration
             console.error("Student not found or error:", studentError);
             return new Response(
                 JSON.stringify({ message: "If the email exists, a link has been sent." }),
@@ -60,29 +76,26 @@ serve(async (req: Request) => {
             );
         }
 
-        // 2. Generate secure token
-        const token = crypto.randomUUID();
-        const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+        // 2. Generate signed JWT token
+        const key = await getCryptoKey(JWT_SECRET);
+        const jwt = await create(
+            { alg: "HS256", typ: "JWT" },
+            {
+                email: email,
+                student_id: student.id,
+                role: 'student_magic_link',
+                exp: getNumericDate(15 * 60) // 15 minutes
+            },
+            key
+        );
 
-        // 3. Store token
-        const { error: tokenError } = await supabase
-            .from("student_access_tokens")
-            .insert({
-                student_email: email,
-                token: token,
-                expires_at: expiresAt.toISOString(),
-            });
-
-        if (tokenError) {
-            throw tokenError;
-        }
-
-        // 4. Send Email
+        // 3. Send Email
         const resend = new Resend(RESEND_API_KEY);
-        const magicLink = `${origin}/student-portal/${token}`;
+        // Encode token to be URL safe just in case, though JWTs are URL safe by spec usually
+        const magicLink = `${origin}/student-portal/${jwt}`;
 
         const { data: emailData, error: emailError } = await resend.emails.send({
-            from: "EduGestión <onboarding@resend.dev>", // TODO: Update with user's domain
+            from: "EduGestión <onboarding@resend.dev>",
             to: [email],
             subject: "Acceso a tu Portal de Alumno",
             html: `

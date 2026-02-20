@@ -1,4 +1,4 @@
-import { Component, signal, OnInit, ElementRef, ViewChild, HostListener } from '@angular/core';
+import { Component, signal, OnInit, OnDestroy, ElementRef, ViewChild, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { SupabaseService } from '../../core/services/supabase.service';
@@ -70,7 +70,7 @@ interface MenuItem {
             <a
               [routerLink]="item.route"
               routerLinkActive="bg-primary-600/20 text-primary-400 after:absolute after:right-0 after:top-1/2 after:-translate-y-1/2 after:w-1 after:h-8 after:bg-primary-500 after:rounded-l-full"
-              [routerLinkActiveOptions]="{exact: item.route === '/dashboard'}"
+              [routerLinkActiveOptions]="{exact: item.route === '/dashboard' || item.route === '/dashboard/schedule'}"
               class="group relative flex items-center px-3 py-3 text-sm font-medium rounded-xl hover:bg-white/5 transition-all duration-200 overflow-hidden whitespace-nowrap"
               [class.text-surface-300]="!isRouteActive(item.route)"
               [title]="!isSidebarExpanded() ? item.name : ''">
@@ -113,16 +113,6 @@ interface MenuItem {
               <p class="text-sm font-medium truncate text-white">{{ userName() }}</p>
               <p class="text-xs text-surface-400 truncate">{{ userEmail() }}</p>
             </div>
-
-            <!-- Logout Button (Only visible when expanded) -->
-             @if (isSidebarExpanded()) {
-              <button
-                (click)="logout(); $event.stopPropagation()"
-                class="ml-2 p-2 rounded-lg hover:bg-red-500/20 hover:text-red-400 text-surface-400 transition-colors"
-                title="Cerrar sesión">
-                <lucide-icon name="log-out" class="w-4 h-4"></lucide-icon>
-              </button>
-            }
           </div>
         </div>
       </div>
@@ -136,7 +126,7 @@ interface MenuItem {
               <button
                 (click)="toggleSidebarMobile()"
                 class="lg:hidden p-2 rounded-xl hover:bg-surface-100 mr-4">
-                <lucide-icon name="menu" class="w-6 h-6 text-surface-700"></lucide-icon>
+                <lucide-icon [name]="MenuIcon" class="w-6 h-6 text-surface-700"></lucide-icon>
               </button>
               
               <!-- Breadcrumbs or Page Title could go here -->
@@ -145,16 +135,22 @@ interface MenuItem {
               </h2>
             </div>
 
-            <div class="flex items-center gap-4">
-              <!-- Search/Command Palette Trigger -->
+            <!-- Centered Search/Command Palette Trigger -->
+            <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:block">
               <button 
                 (click)="showCommandPalette.set(true)"
-                class="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-100 hover:bg-surface-200 text-surface-500 hover:text-surface-700 transition-colors border border-surface-200">
-                <span class="text-xs font-medium">Buscar...</span>
+                class="flex items-center gap-2 px-4 py-2 w-72 md:w-96 lg:w-[500px] justify-between rounded-lg bg-surface-100 hover:bg-surface-200 text-surface-500 hover:text-surface-700 transition-colors border border-surface-200 shadow-sm relative overflow-hidden group">
+                <div class="flex items-center gap-3 w-full">
+                   <lucide-icon name="search" class="w-4 h-4 text-surface-400 group-hover:text-surface-600 transition-colors"></lucide-icon>
+                   <span class="text-sm font-medium truncate transition-all duration-300">{{ searchPlaceholder() }}</span>
+                </div>
                 <kbd class="hidden lg:inline-flex h-5 items-center gap-1 rounded border border-surface-300 bg-surface-50 px-1 font-mono text-[10px] font-medium text-surface-500">
                   <span class="text-xs">⌘</span>K
                 </kbd>
               </button>
+            </div>
+
+            <div class="flex items-center gap-4">
 
               <!-- Notifications -->
               <div class="relative" #notificationsContainer>
@@ -164,7 +160,7 @@ interface MenuItem {
                   style="color: #000000;"
                   [class.bg-primary-50]="showNotifications()"
                   [class.text-primary-700]="showNotifications()">
-                  <lucide-icon name="bell" class="w-5 h-5"></lucide-icon>
+                  <lucide-icon [name]="BellIcon" class="w-5 h-5"></lucide-icon>
                   @if (unreadCount() > 0) {
                     <span class="absolute top-1.5 right-1.5 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white animate-pulse"></span>
                   }
@@ -183,7 +179,7 @@ interface MenuItem {
                   <div class="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-700 rounded-lg flex items-center justify-center text-white shadow-sm">
                     <span class="text-xs font-bold">{{ userInitials() }}</span>
                   </div>
-                  <lucide-icon name="chevron-down" class="w-4 h-4 text-surface-400"></lucide-icon>
+                  <lucide-icon [name]="ChevronDownIcon" class="w-4 h-4 text-surface-400"></lucide-icon>
                 </button>
 
                 @if (showProfileMenu()) {
@@ -194,11 +190,11 @@ interface MenuItem {
                     </div>
                     
                     <a routerLink="/dashboard/profile" class="flex items-center gap-2 px-4 py-2.5 text-sm text-surface-700 hover:bg-surface-50 transition-colors">
-                      <lucide-icon name="user" class="w-4 h-4"></lucide-icon>
+                      <lucide-icon [name]="UserIcon" class="w-4 h-4"></lucide-icon>
                       Mi Perfil
                     </a>
                     <a routerLink="/dashboard/settings" class="flex items-center gap-2 px-4 py-2.5 text-sm text-surface-700 hover:bg-surface-50 transition-colors">
-                      <lucide-icon name="settings" class="w-4 h-4"></lucide-icon>
+                      <lucide-icon [name]="SettingsIcon" class="w-4 h-4"></lucide-icon>
                       Configuración
                     </a>
                     
@@ -207,7 +203,7 @@ interface MenuItem {
                     <button
                       (click)="logout()"
                       class="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors">
-                      <lucide-icon name="log-out" class="w-4 h-4"></lucide-icon>
+                      <lucide-icon [name]="LogOutIcon" class="w-4 h-4"></lucide-icon>
                       Cerrar Sesión
                     </button>
                   </div>
@@ -219,12 +215,6 @@ interface MenuItem {
 
         <!-- Page Content -->
         <main class="flex-1 overflow-y-auto bg-surface-50/50 relative">
-          <!-- Background decoration -->
-          <div class="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
-             <div class="absolute top-0 left-0 w-[500px] h-[500px] bg-primary-200/20 rounded-full blur-[100px] -translate-x-1/2 -translate-y-1/2"></div>
-             <div class="absolute bottom-0 right-0 w-[500px] h-[500px] bg-blue-200/20 rounded-full blur-[100px] translate-x-1/2 translate-y-1/2"></div>
-          </div>
-          
           <div class="relative z-10">
              <router-outlet></router-outlet>
           </div>
@@ -242,7 +232,7 @@ interface MenuItem {
            <div class="flex items-center justify-between h-[70px] px-6 border-b border-white/10">
              <img src="assets/LogoCompleto.png" class="h-8 w-auto">
              <button (click)="toggleSidebarMobile()" class="p-2 -mr-2 text-surface-400 hover:text-white">
-               <lucide-icon name="chevron-left" class="w-6 h-6"></lucide-icon>
+               <lucide-icon [name]="ChevronLeftIcon" class="w-6 h-6"></lucide-icon>
              </button>
            </div>
            
@@ -270,7 +260,7 @@ interface MenuItem {
     }
   `
 })
-export class DashboardLayoutComponent implements OnInit {
+export class DashboardLayoutComponent implements OnInit, OnDestroy {
   @ViewChild('notificationsContainer') notificationsContainer!: ElementRef;
 
   // Sidebar State
@@ -278,6 +268,15 @@ export class DashboardLayoutComponent implements OnInit {
   mobileSidebarOpen = signal(false);
   isAnimating = false;
   private expandTimeout: any;
+
+  // Icons used directly in template
+  BellIcon = Bell;
+  MenuIcon = Menu;
+  ChevronDownIcon = ChevronDown;
+  UserIcon = User;
+  SettingsIcon = Settings;
+  LogOutIcon = LogOut;
+  ChevronLeftIcon = ChevronLeft;
 
   // Other UI State
   showProfileMenu = signal(false);
@@ -302,6 +301,19 @@ export class DashboardLayoutComponent implements OnInit {
     { name: 'Configuración', route: '/dashboard/settings', icon: Settings }
   ];
 
+  // Search Placeholder State
+  searchPlaceholder = signal('Buscar "Alumnos"...');
+  private placeholderIndex = 0;
+  private placeholderOptions = [
+    'Buscar "Alumnos"...',
+    'Crear "Nuevo Servicio"...',
+    'Buscar "Facturación"...',
+    'Ir a "Configuración"...',
+    'Buscar "Horarios"...',
+    'Presiona ⌘K para comandos...'
+  ];
+  private placeholderInterval: any;
+
   constructor(
     private supabaseService: SupabaseService,
     public router: Router,
@@ -314,6 +326,18 @@ export class DashboardLayoutComponent implements OnInit {
     this.supabaseService.unreadCount$.subscribe(count => {
       this.unreadCount.set(count);
     });
+
+    // Start cycling placeholders
+    this.placeholderInterval = setInterval(() => {
+      this.placeholderIndex = (this.placeholderIndex + 1) % this.placeholderOptions.length;
+      this.searchPlaceholder.set(this.placeholderOptions[this.placeholderIndex]);
+    }, 4000); // Change every 4 seconds
+  }
+
+  ngOnDestroy() {
+    if (this.placeholderInterval) {
+      clearInterval(this.placeholderInterval);
+    }
   }
 
   // Sidebar Hover Logic
@@ -401,9 +425,11 @@ export class DashboardLayoutComponent implements OnInit {
   }
 
   isRouteActive(route: string): boolean {
-    const isDashboard = route === '/dashboard';
+    // Both Dashboard and Horarios need exact matching to prevent overlap
+    // with sub-routes like /dashboard/schedule/calendar
+    const isExactMatch = route === '/dashboard' || route === '/dashboard/schedule';
     return this.router.isActive(route, {
-      paths: isDashboard ? 'exact' : 'subset',
+      paths: isExactMatch ? 'exact' : 'subset',
       queryParams: 'ignored',
       fragment: 'ignored',
       matrixParams: 'ignored'

@@ -5,10 +5,10 @@ import { SupabaseService } from '../../../core/services/supabase.service';
 import { RouterModule } from '@angular/router';
 
 @Component({
-    selector: 'app-student-login',
-    standalone: true,
-    imports: [CommonModule, ReactiveFormsModule, RouterModule],
-    template: `
+  selector: 'app-student-login',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  template: `
     <div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div class="sm:mx-auto sm:w-full sm:max-w-md">
         <div class="flex items-center justify-center mb-4"><img src="assets/isotipo.png" class="h-16"></div>
@@ -113,43 +113,62 @@ import { RouterModule } from '@angular/router';
   `
 })
 export class StudentLoginComponent {
-    loginForm: FormGroup;
-    loading = signal(false);
-    errorMessage = signal('');
-    successMessage = signal('');
+  loginForm: FormGroup;
+  loading = signal(false);
+  errorMessage = signal('');
+  successMessage = signal('');
 
-    constructor(
-        private fb: FormBuilder,
-        private supabaseService: SupabaseService
-    ) {
-        this.loginForm = this.fb.group({
-            email: ['', [Validators.required, Validators.email]]
-        });
-    }
+  constructor(
+    private fb: FormBuilder,
+    private supabaseService: SupabaseService
+  ) {
+    this.loginForm = this.fb.group({
+      email: ['', [Validators.required, Validators.email]]
+    });
+  }
 
-    async onSubmit() {
-        if (this.loginForm.valid) {
-            this.loading.set(true);
-            this.errorMessage.set('');
-            this.successMessage.set('');
+  async onSubmit() {
+    if (this.loginForm.valid) {
+      this.loading.set(true);
+      this.errorMessage.set('');
+      this.successMessage.set('');
 
-            const { email } = this.loginForm.value;
+      const { email } = this.loginForm.value;
 
-            try {
-                const { data, error } = await this.supabaseService.sendMagicLink(email);
+      try {
+        const { data, error } = await this.supabaseService.sendMagicLink(email);
 
-                if (error) {
-                    throw error;
-                }
-
-                this.successMessage.set(`Hemos enviado un enlace de acceso a ${email}. Revisa tu bandeja de entrada (y la carpeta de spam por si acaso). El enlace expira en 15 minutos.`);
-                this.loginForm.reset();
-            } catch (error: any) {
-                console.error('Error sending magic link:', error);
-                this.errorMessage.set('Hubo un error al enviar el enlace. Por favor intenta de nuevo.');
-            } finally {
-                this.loading.set(false);
-            }
+        if (error) {
+          throw error;
         }
+
+        this.successMessage.set(`Hemos enviado un enlace de acceso a ${email}. Revisa tu bandeja de entrada (y la carpeta de spam por si acaso). El enlace expira en 15 minutos.`);
+        this.loginForm.reset();
+      } catch (error: any) {
+        console.error('Error sending magic link:', error);
+        // Try to extract the specific error message from the function response
+        let detailedError = 'Hubo un error al enviar el enlace. Por favor intenta de nuevo.';
+        if (error instanceof Error) {
+          detailedError += ` Detalle: ${error.message}`;
+          // If it's a FunctionsHttpError, it might have a context or error property with the JSON body
+          const errAny = error as any;
+          if (errAny && errAny.context instanceof Response && !errAny.context.bodyUsed) {
+            errAny.context.json().then((body: any) => {
+              console.error('Edge Function Error Body:', body);
+              if (body.error) {
+                this.errorMessage.set(`Error: ${body.error}`);
+              }
+            }).catch((parsingErr: any) => {
+              console.error('Error parsing error body:', parsingErr);
+            });
+          } else if (errAny && errAny.context instanceof Response && errAny.context.bodyUsed) {
+            console.log('Response body already read, cannot extract detailed error.');
+          }
+        }
+        this.errorMessage.set(detailedError);
+      } finally {
+        this.loading.set(false);
+      }
     }
+  }
 }
