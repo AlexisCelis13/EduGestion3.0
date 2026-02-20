@@ -30,7 +30,7 @@ import { LucideAngularModule, Calendar, Clock, User, ChevronRight, Copy, Externa
                 ¡Hola{{ profile()?.first_name ? ', ' + profile()?.first_name : '' }}!
               </h1>
               <p class="text-surface-400 mt-1">
-                Bienvenido a tu panel de control de EduGestión
+                Bienvenido a tu panel de control de {{ profile()?.company_name || 'EduGestión' }}
               </p>
             </div>
           </div>

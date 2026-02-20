@@ -38,8 +38,9 @@ import { PhoneInputComponent } from '../../../shared/components/phone-input/phon
                     <input
                       type="text"
                       formControlName="slug"
+                      (input)="sanitizeSlug()"
                       class="flex-1 min-w-0 block w-full px-4 py-3 rounded-none rounded-r-xl border border-surface-200 focus:ring-2 focus:ring-primary-100 focus:border-primary-400 text-sm transition-all"
-                      placeholder="tu-nombre"
+                      placeholder="mi-academia"
                     />
                   </div>
                   <p class="mt-2 text-xs text-surface-400">
@@ -223,41 +224,109 @@ import { PhoneInputComponent } from '../../../shared/components/phone-input/phon
             <div class="card-premium p-6">
               <h2 class="text-lg font-semibold text-surface-700 mb-6">Vista Previa</h2>
               
-              <!-- Preview Content -->
-              <div class="border border-surface-100 rounded-2xl overflow-hidden">
-                <div class="text-white p-8 text-center"
-                     [style.background]="'linear-gradient(135deg, ' + editorForm.get('primaryColor')?.value + ', ' + editorForm.get('secondaryColor')?.value + ')'">
+              <!-- Preview Content - Matches real landing page -->
+              <div class="border border-surface-100 rounded-2xl overflow-hidden bg-gray-50" style="max-height: 700px; overflow-y: auto;">
+                
+                <!-- Hero Section -->
+                <div class="text-white py-10 px-6 text-center"
+                     [style.background]="'linear-gradient(to right, ' + editorForm.get('primaryColor')?.value + ', ' + editorForm.get('secondaryColor')?.value + ')'">
                   @if (logoPreview() || currentSettings()?.logo_url) {
-                    <img [src]="logoPreview() || currentSettings()?.logo_url" alt="Logo" class="w-16 h-16 mx-auto mb-4 rounded-xl object-cover">
+                    <img [src]="logoPreview() || currentSettings()?.logo_url" alt="Logo" class="w-16 h-16 mx-auto mb-4 rounded-lg object-cover">
                   }
-                  <h1 class="text-2xl font-semibold mb-2">
-                    {{ editorForm.get('slug')?.value || 'tu-nombre' }}
+                  <h1 class="text-2xl font-bold mb-2">
+                    {{ getPreviewDisplayName() }}
                   </h1>
-                  <p class="text-white/80 text-sm">
-                    {{ editorForm.get('description')?.value || 'Descripción de tu academia o servicio educativo' }}
-                  </p>
+                  @if (editorForm.get('description')?.value) {
+                    <p class="text-white/90 text-sm max-w-md mx-auto">
+                      {{ editorForm.get('description')?.value }}
+                    </p>
+                  }
                 </div>
                 
-                <div class="p-6 bg-white">
-                  <h3 class="text-lg font-semibold text-surface-700 mb-4">Mis Servicios</h3>
-                  <div class="space-y-3">
-                    <div class="border border-surface-100 rounded-xl p-4 hover:border-surface-200 transition-colors">
-                      <h4 class="font-medium text-surface-700">Matemáticas ESO</h4>
-                      <p class="text-sm text-surface-400">Clases particulares de matemáticas</p>
-                      <p class="text-lg font-semibold text-primary-600 mt-2">$500/hora</p>
+                <!-- Services Section -->
+                <div class="py-8 px-5">
+                  <div class="text-center mb-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-1">Mis Servicios</h2>
+                    <p class="text-sm text-gray-600">Elige el servicio que mejor se adapte a tus necesidades</p>
+                  </div>
+
+                  @if (previewServices().length === 0) {
+                    <div class="text-center py-8">
+                      <div class="w-12 h-12 bg-gray-200 rounded-full mx-auto mb-3 flex items-center justify-center">
+                        <span class="text-gray-400 text-lg">📚</span>
+                      </div>
+                      <p class="text-sm font-medium text-gray-900 mb-1">Próximamente</p>
+                      <p class="text-xs text-gray-500">Crea servicios para que aparezcan aquí</p>
                     </div>
-                    <div class="border border-surface-100 rounded-xl p-4 hover:border-surface-200 transition-colors">
-                      <h4 class="font-medium text-surface-700">Física Bachillerato</h4>
-                      <p class="text-sm text-surface-400">Preparación para selectividad</p>
-                      <p class="text-lg font-semibold text-primary-600 mt-2">$600/hora</p>
+                  } @else {
+                    <div class="space-y-4">
+                      @for (service of previewServices(); track service.id) {
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+                          <!-- Header: Name + Price -->
+                          <div class="flex justify-between items-start mb-2">
+                            <div class="flex-1 pr-3">
+                              <h3 class="text-sm font-bold text-gray-900 leading-tight">{{ service.name }}</h3>
+                              <div class="flex flex-wrap gap-1 mt-1">
+                                @if (service.category) {
+                                  <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                                    {{ service.category }}
+                                  </span>
+                                }
+                                @if (service.target_level) {
+                                  <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-purple-50 text-purple-700 border border-purple-100">
+                                    🎓 {{ service.target_level }}
+                                  </span>
+                                }
+                              </div>
+                            </div>
+                            <div class="text-right shrink-0">
+                              <p class="text-base font-bold text-gray-900">{{ '$' + service.price }}</p>
+                              <p class="text-[10px] text-gray-500">⏱️ {{ service.duration_minutes }} min</p>
+                            </div>
+                          </div>
+
+                          @if (service.description) {
+                            <p class="text-xs text-gray-600 mb-2 border-b border-gray-100 pb-2">{{ service.description }}</p>
+                          }
+
+                          @if (service.topics && service.topics.length > 0) {
+                            <div class="mb-2">
+                              <p class="text-[10px] font-semibold text-gray-900 uppercase tracking-wider mb-1">📚 Qué aprenderás</p>
+                              <div class="flex flex-wrap gap-1">
+                                @for (topic of service.topics; track topic) {
+                                  <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] text-gray-700 bg-gray-50 border border-gray-200">{{ topic }}</span>
+                                }
+                              </div>
+                            </div>
+                          }
+
+                          <button class="w-full py-2 px-3 rounded-lg text-xs font-semibold text-white bg-gray-900 mt-2">
+                            Reservar Clase →
+                          </button>
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+
+                <!-- Contact Section -->
+                @if (editorForm.get('contactEmail')?.value || editorForm.get('contactPhone')?.value) {
+                  <div class="bg-white py-6 px-5 border-t border-gray-200">
+                    <h3 class="text-base font-bold text-gray-900 text-center mb-4">Contacto</h3>
+                    <div class="flex flex-col sm:flex-row gap-3 justify-center items-center text-sm">
+                      @if (editorForm.get('contactEmail')?.value) {
+                        <span class="text-gray-600">📧 {{ editorForm.get('contactEmail')?.value }}</span>
+                      }
+                      @if (editorForm.get('contactPhone')?.value) {
+                        <span class="text-gray-600">📞 {{ editorForm.get('contactPhone')?.value }}</span>
+                      }
                     </div>
                   </div>
-                  
-                  <div class="mt-6">
-                    <button class="btn-premium w-full">
-                      Agendar Cita
-                    </button>
-                  </div>
+                }
+
+                <!-- Footer -->
+                <div class="bg-gray-900 text-center py-4 px-5">
+                  <p class="text-gray-400 text-xs">Powered by <span class="text-white font-semibold">EduGestion</span></p>
                 </div>
               </div>
             </div>
@@ -277,6 +346,7 @@ export class UserLandingEditorComponent implements OnInit {
   successMessage = signal('');
   currentSettings = signal<TenantSettings | null>(null);
   logoPreview = signal<string | null>(null);
+  previewServices = signal<any[]>([]);
 
   private pendingLogoFile: File | null = null;
 
@@ -296,6 +366,7 @@ export class UserLandingEditorComponent implements OnInit {
 
   async ngOnInit() {
     await this.loadCurrentSettings();
+    await this.loadPreviewServices();
   }
 
   private async loadCurrentSettings() {
@@ -313,7 +384,62 @@ export class UserLandingEditorComponent implements OnInit {
           contactPhone: settings.contact_phone || ''
         });
       }
+
+      // If slug is empty, auto-generate from company name
+      if (!this.editorForm.get('slug')?.value) {
+        const profile = await this.supabaseService.getProfile(user.id);
+        if (profile?.company_name) {
+          const autoSlug = this.toSlug(profile.company_name);
+          this.editorForm.patchValue({ slug: autoSlug });
+        }
+      }
     }
+  }
+
+  /** Converts any string to a URL-safe slug (lowercase, no accents, hyphens only) */
+  private toSlug(text: string): string {
+    return text
+      .toLowerCase()
+      .normalize('NFD')                    // decompose accents
+      .replace(/[\u0300-\u036f]/g, '')     // remove accent marks
+      .replace(/[^a-z0-9\s-]/g, '')        // remove special chars
+      .replace(/\s+/g, '-')                // spaces → hyphens
+      .replace(/-+/g, '-')                 // collapse multiple hyphens
+      .replace(/^-|-$/g, '');              // trim leading/trailing hyphens
+  }
+
+  /** Sanitizes slug input in real-time */
+  sanitizeSlug() {
+    const control = this.editorForm.get('slug');
+    if (control) {
+      const sanitized = this.toSlug(control.value || '');
+      if (sanitized !== control.value) {
+        control.setValue(sanitized, { emitEvent: false });
+      }
+    }
+  }
+
+  /** Loads real services for the preview panel */
+  private async loadPreviewServices() {
+    const user = await this.supabaseService.getCurrentUser();
+    if (user) {
+      const { data } = await this.supabaseService.getServices(user.id);
+      if (data) {
+        this.previewServices.set(data);
+      }
+    }
+  }
+
+  /** Generates display name from slug, matching the real landing page logic */
+  getPreviewDisplayName(): string {
+    const slug = this.editorForm.get('slug')?.value;
+    if (slug) {
+      return slug
+        .split('-')
+        .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+    }
+    return 'Mi Academia';
   }
 
   onFileSelected(event: Event) {
