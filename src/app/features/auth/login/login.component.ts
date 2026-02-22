@@ -157,7 +157,11 @@ export class LoginComponent {
           }
         }
       } catch (error: any) {
-        this.errorMessage.set('Error inesperado. Inténtalo de nuevo.');
+        if (error?.name === 'AuthRetryableFetchError' || error?.message?.includes('Failed to fetch')) {
+          this.errorMessage.set('No se pudo conectar con el servidor. Verifica tu conexión a internet e inténtalo de nuevo.');
+        } else {
+          this.errorMessage.set('Error inesperado. Inténtalo de nuevo.');
+        }
       } finally {
         this.loading.set(false);
       }
