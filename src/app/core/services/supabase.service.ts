@@ -54,6 +54,8 @@ export interface StudentPortalData {
     first_name: string;
     last_name: string;
     email: string;
+    phone?: string;
+    academic_level?: string;
     tutor_name: string;
     company_name: string;
     logo_url: string;
@@ -122,13 +124,46 @@ export class SupabaseService {
   constructor() {
     this.supabase = createClient(
       environment.supabaseUrl,
-      environment.supabaseAnonKey
+      environment.supabaseAnonKey,
+      {
+        auth: {
+          autoRefreshToken: true,
+          persistSession: true,
+          detectSessionInUrl: true
+        }
+      }
     );
 
-    // Escuchar cambios de autenticación
+    // Escuchar cambios de autenticación con manejo de errores
     this.supabase.auth.onAuthStateChange((event, session) => {
       this.currentUserSubject.next(session?.user ?? null);
     });
+  }
+
+  /**
+   * Retry helper con backoff exponencial para errores de red transitorios
+   * (AuthRetryableFetchError / Failed to fetch)
+   */
+  private async retryOperation<T>(operation: () => Promise<T>, maxRetries = 3): Promise<T> {
+    let lastError: any;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (err: any) {
+        lastError = err;
+        const isRetryable =
+          err?.name === 'AuthRetryableFetchError' ||
+          err?.message?.includes('Failed to fetch') ||
+          err?.message?.includes('NetworkError') ||
+          err?.message?.includes('fetch');
+        if (!isRetryable || attempt === maxRetries - 1) {
+          throw err;
+        }
+        // Backoff exponencial: 1s, 2s, 4s …
+        await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
+      }
+    }
+    throw lastError;
   }
 
   // Auth Methods
@@ -187,11 +222,21 @@ export class SupabaseService {
 
 
   async signIn(email: string, password: string) {
-    const { data, error } = await this.supabase.auth.signInWithPassword({
-      email,
-      password
-    });
-    return { data, error };
+    try {
+      const result = await this.retryOperation(() =>
+        this.supabase.auth.signInWithPassword({ email, password })
+      );
+      return result;
+    } catch (err: any) {
+      // Si tras reintentos sigue fallando, devolver error amigable
+      return {
+        data: { user: null, session: null },
+        error: {
+          message: 'No se pudo conectar con el servidor. Verifica tu conexión a internet e inténtalo de nuevo.',
+          status: 0
+        } as any
+      };
+    }
   }
 
   async signOut() {
@@ -215,8 +260,15 @@ export class SupabaseService {
   }
 
   async getCurrentUser() {
-    const { data: { user } } = await this.supabase.auth.getUser();
-    return user;
+    try {
+      const { data: { user } } = await this.retryOperation(() =>
+        this.supabase.auth.getUser()
+      );
+      return user;
+    } catch (err: any) {
+      console.warn('getCurrentUser failed (network):', err?.message);
+      return null;
+    }
   }
 
   // Profile Methods
@@ -1705,6 +1757,25 @@ export class SupabaseService {
       .eq('id', id);
 
     return { error };
+  }
+
+  // =============================================
+  // MAGIC LINK AUTH
+  // =============================================
+
+  async sendMagicLink(email: string) {
+    return this.supabase.functions.invoke('send-magic-link', {
+      body: {
+        email,
+        origin: window.location.origin
+      }
+    });
+  }
+
+  async verifyMagicLink(token: string) {
+    return this.supabase.functions.invoke('verify-magic-link', {
+      body: { token }
+    });
   }
 }
 

@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, HostListener, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { SupabaseService, StudentPortalData, StudentFeedback, StudentMaterial } from '../../core/services/supabase.service';
@@ -10,10 +10,14 @@ import { SupabaseService, StudentPortalData, StudentFeedback, StudentMaterial } 
   templateUrl: './student-portal.component.html'
 })
 export class StudentPortalComponent implements OnInit {
+  @ViewChild('profileMenu') profileMenu!: ElementRef;
+
   loading = signal(true);
   error = signal('');
   data = signal<StudentPortalData | null>(null);
   activeTab = signal<'feedback' | 'materials'>('feedback');
+  showProfileMenu = signal(false);
+  showProfileModal = signal(false);
 
   constructor(
     private route: ActivatedRoute,
@@ -31,11 +35,20 @@ export class StudentPortalComponent implements OnInit {
     }
 
     try {
-      const { data, error } = await this.supabaseService.getStudentPortalData(token);
+      // Intenta verificar como Magic Link (acceso temporal)
+      let { data, error } = await this.supabaseService.verifyMagicLink(token);
+
+      // Si falla, intenta como Token Permanente (acceso directo antiguo)
+      if (error || !data) {
+        // console.log('Magic link failed, trying legacy token:', error);
+        const legacyResult = await this.supabaseService.getStudentPortalData(token);
+        data = legacyResult.data;
+        error = legacyResult.error;
+      }
 
       if (error) {
         console.error('Portal Error:', error);
-        this.error.set(`Error: ${error.message || 'Error desconocido'}`);
+        this.error.set(`Error: ${error.message || 'El enlace ha caducado o no es válido'}`);
         return;
       }
 
@@ -67,5 +80,21 @@ export class StudentPortalComponent implements OnInit {
 
   getInitials(first: string, last: string): string {
     return `${first.charAt(0)}${last.charAt(0)}`.toUpperCase();
+  }
+  toggleProfileMenu() {
+    this.showProfileMenu.set(!this.showProfileMenu());
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    if (this.showProfileMenu() && this.profileMenu && !this.profileMenu.nativeElement.contains(event.target)) {
+      this.showProfileMenu.set(false);
+    }
+  }
+
+  logout() {
+    this.data.set(null);
+    this.showProfileMenu.set(false);
+    this.router.navigate(['/student-portal/login']);
   }
 }

@@ -1,97 +1,168 @@
-import { Component, signal, OnInit, ElementRef, ViewChild, HostListener } from '@angular/core';
+import { Component, signal, OnInit, OnDestroy, ElementRef, ViewChild, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { SupabaseService } from '../../core/services/supabase.service';
 import { NotificationListComponent } from '../../shared/components/notification-list/notification-list.component';
 import { CommandPaletteComponent } from '../../shared/components/command-palette/command-palette.component';
+import {
+  LucideAngularModule,
+  LayoutDashboard,
+  GraduationCap,
+  BookOpen,
+  Clock,
+  Briefcase,
+  FileText,
+  CreditCard,
+  Globe,
+  Settings,
+  LogOut,
+  Menu,
+  Bell,
+  User,
+  ChevronDown,
+  ChevronLeft
+} from 'lucide-angular';
 
 interface MenuItem {
   name: string;
   route: string;
+  icon: any;
   active?: boolean;
 }
 
 @Component({
   selector: 'app-dashboard-layout',
   standalone: true,
-  imports: [CommonModule, RouterModule, NotificationListComponent, CommandPaletteComponent],
+  imports: [
+    CommonModule,
+    RouterModule,
+    NotificationListComponent,
+    CommandPaletteComponent,
+    LucideAngularModule
+  ],
   template: `
-    <div class="flex h-screen bg-surface-50">
+    <div class="flex h-screen bg-surface-50 overflow-hidden">
       <!-- Sidebar -->
-      <div class="w-64 bg-surface-700 text-white flex flex-col">
-        <!-- Logo -->
-        <div class="flex items-center justify-center h-[65px] border-b border-surface-600">
-        <h1 class="text-xl font-semibold tracking-tight">Edu</h1><img src="assets/isotipo.png" class="h-10"><h1 class="text-xl font-semibold tracking-tight">estión</h1>
+      <div 
+        class="h-full bg-surface-900/95 backdrop-blur-xl text-white flex flex-col transition-[width] duration-300 ease-in-out shadow-2xl z-40 relative border-r border-white/5"
+        [class.w-20]="!isSidebarExpanded()"
+        [class.w-72]="isSidebarExpanded()"
+        (mouseenter)="onMouseEnter()"
+        (mouseleave)="onMouseLeave()">
+        
+        <!-- Logo Area -->
+        <div class="flex items-center justify-center h-[70px] border-b border-white/5 overflow-hidden relative" style="background-color: #4d8273ff;">
+          <div class="absolute inset-0 transition-opacity duration-300 flex items-center justify-center"
+               [class.opacity-100]="!isSidebarExpanded()"
+               [class.opacity-0]="isSidebarExpanded()">
+            <img src="assets/isotipo.png" class="h-10 w-auto object-contain transition-transform duration-300 hover:scale-105" alt="EduGestion">
+          </div>
+          <div class="absolute inset-0 transition-opacity duration-300 flex items-center justify-center"
+               [class.opacity-0]="!isSidebarExpanded()"
+               [class.opacity-100]="isSidebarExpanded()">
+            <img src="assets/LogoCompleto.png" class="h-8 w-auto object-contain" alt="EduGestion">
+          </div>
         </div>
 
         <!-- Navigation -->
-        <nav class="flex-1 px-3 py-6 space-y-1">
+        <nav class="flex-1 px-3 py-6 space-y-2 overflow-y-auto no-scrollbar">
           @for (item of menuItems; track item.name) {
             <a
               [routerLink]="item.route"
-              routerLinkActive="bg-primary-600 text-white"
-              [routerLinkActiveOptions]="{exact: item.route === '/dashboard'}"
-              class="block px-4 py-3 text-sm font-medium rounded-xl hover:bg-surface-600 transition-all"
-              [class.bg-primary-600]="item.active">
-              {{ item.name }}
+              routerLinkActive="bg-primary-600/20 text-primary-400 after:absolute after:right-0 after:top-1/2 after:-translate-y-1/2 after:w-1 after:h-8 after:bg-primary-500 after:rounded-l-full"
+              [routerLinkActiveOptions]="{exact: item.route === '/dashboard' || item.route === '/dashboard/schedule'}"
+              class="group relative flex items-center px-3 py-3 text-sm font-medium rounded-xl hover:bg-white/5 transition-all duration-200 overflow-hidden whitespace-nowrap"
+              [class.text-surface-300]="!isRouteActive(item.route)"
+              [title]="!isSidebarExpanded() ? item.name : ''">
+              
+              <lucide-icon 
+                [name]="item.icon" 
+                class="w-6 h-6 min-w-[24px] transition-colors duration-200 group-hover:text-primary-400"
+                [class.text-primary-500]="isRouteActive(item.route)">
+              </lucide-icon>
+              
+              <span 
+                class="ml-4 transition-opacity duration-300 delay-75"
+                [class.opacity-0]="!isSidebarExpanded()"
+                [class.opacity-100]="isSidebarExpanded()"
+                [class.hidden]="!isSidebarExpanded() && !isAnimating">
+                {{ item.name }}
+              </span>
+
+              @if (!isSidebarExpanded()) {
+                <!-- Tooltip for collapsed state -->
+                <div class="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 bg-surface-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap border border-white/10 shadow-lg">
+                  {{ item.name }}
+                </div>
+              }
             </a>
           }
         </nav>
 
         <!-- User Menu -->
-        <div class="p-4 border-t border-surface-600">
-          <div class="flex items-center">
-            <div class="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center shadow-lg">
-              <span class="text-sm font-semibold">{{ userInitials() }}</span>
+        <div class="p-3 border-t border-white/10">
+          <div class="flex items-center p-2 rounded-xl hover:bg-white/5 transition-colors cursor-pointer group" (click)="toggleProfileMenu()">
+            <div class="w-10 h-10 min-w-[40px] bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center shadow-lg ring-2 ring-white/10 group-hover:ring-primary-500/50 transition-all">
+              <span class="text-sm font-bold text-white">{{ userInitials() }}</span>
             </div>
-            <div class="ml-3 flex-1 min-w-0">
-              <p class="text-sm font-medium truncate">{{ userName() }}</p>
+            
+            <div class="ml-3 flex-1 min-w-0 transition-opacity duration-300"
+                 [class.opacity-0]="!isSidebarExpanded()"
+                 [class.opacity-100]="isSidebarExpanded()"
+                 [class.hidden]="!isSidebarExpanded() && !isAnimating">
+              <p class="text-sm font-medium truncate text-white">{{ userName() }}</p>
               <p class="text-xs text-surface-400 truncate">{{ userEmail() }}</p>
             </div>
-            <button
-              (click)="logout()"
-              class="ml-2 p-2 rounded-lg hover:bg-surface-600 transition-colors"
-              title="Cerrar sesión">
-              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                <polyline points="16 17 21 12 16 7"></polyline>
-                <line x1="21" y1="12" x2="9" y2="12"></line>
-              </svg>
-            </button>
           </div>
         </div>
       </div>
 
       <!-- Main Content -->
-      <div class="flex-1 flex flex-col overflow-hidden">
+      <div class="flex-1 flex flex-col overflow-hidden relative">
         <!-- Top Bar -->
-        <header class="glass border-b border-surface-100 h-[65px] flex items-center relative z-30">
-          <div class="flex items-center justify-between w-full px-6">
+        <header class="glass border-b border-surface-200/50 h-[70px] flex items-center relative z-30 bg-white/80 backdrop-blur-md">
+          <div class="flex items-center justify-between w-full px-8">
             <div class="flex items-center">
               <button
-                (click)="toggleSidebar()"
-                class="lg:hidden p-2 rounded-xl hover:bg-surface-100">
-                <svg class="w-5 h-5 text-surface-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="3" y1="12" x2="21" y2="12"></line>
-                  <line x1="3" y1="6" x2="21" y2="6"></line>
-                  <line x1="3" y1="18" x2="21" y2="18"></line>
-                </svg>
+                (click)="toggleSidebarMobile()"
+                class="lg:hidden p-2 rounded-xl hover:bg-surface-100 mr-4">
+                <lucide-icon [name]="MenuIcon" class="w-6 h-6 text-surface-700"></lucide-icon>
+              </button>
+              
+              <!-- Breadcrumbs or Page Title could go here -->
+               <h2 class="text-lg font-semibold text-surface-800 tracking-tight">
+                {{ getCurrentPageTitle() }}
+              </h2>
+            </div>
+
+            <!-- Centered Search/Command Palette Trigger -->
+            <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:block">
+              <button 
+                (click)="showCommandPalette.set(true)"
+                class="flex items-center gap-2 px-4 py-2 w-72 md:w-96 lg:w-[500px] justify-between rounded-lg bg-surface-100 hover:bg-surface-200 text-surface-500 hover:text-surface-700 transition-colors border border-surface-200 shadow-sm relative overflow-hidden group">
+                <div class="flex items-center gap-3 w-full">
+                   <lucide-icon name="search" class="w-4 h-4 text-surface-400 group-hover:text-surface-600 transition-colors"></lucide-icon>
+                   <span class="text-sm font-medium truncate transition-all duration-300">{{ searchPlaceholder() }}</span>
+                </div>
+                <kbd class="hidden lg:inline-flex h-5 items-center gap-1 rounded border border-surface-300 bg-surface-50 px-1 font-mono text-[10px] font-medium text-surface-500">
+                  <span class="text-xs">⌘</span>K
+                </kbd>
               </button>
             </div>
 
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-4">
+
               <!-- Notifications -->
               <div class="relative" #notificationsContainer>
                 <button 
                   (click)="toggleNotifications()"
-                  class="p-2.5 rounded-xl hover:bg-surface-100 relative transition-colors"
-                  [class.bg-surface-100]="showNotifications()">
-                  <svg class="w-5 h-5 text-surface-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                  </svg>
+                  class="p-2.5 rounded-xl hover:bg-surface-100 relative transition-all duration-200 hover:text-primary-700 border border-transparent hover:border-surface-200"
+                  style="color: #000000;"
+                  [class.bg-primary-50]="showNotifications()"
+                  [class.text-primary-700]="showNotifications()">
+                  <lucide-icon [name]="BellIcon" class="w-5 h-5"></lucide-icon>
                   @if (unreadCount() > 0) {
-                    <span class="absolute top-1.5 right-1.5 block h-2.5 w-2.5 rounded-full bg-blue-600 ring-2 ring-white z-10"></span>
+                    <span class="absolute top-1.5 right-1.5 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white animate-pulse"></span>
                   }
                 </button>
 
@@ -104,23 +175,35 @@ interface MenuItem {
               <div class="relative">
                 <button
                   (click)="toggleProfileMenu()"
-                  class="flex items-center gap-2 p-2 rounded-xl hover:bg-surface-100 transition-colors">
-                  <div class="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center">
-                    <span class="text-xs font-semibold text-white">{{ userInitials() }}</span>
+                  class="flex items-center gap-2 p-1.5 pl-2 rounded-xl hover:bg-surface-100 transition-colors border border-transparent hover:border-surface-200">
+                  <div class="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-700 rounded-lg flex items-center justify-center text-white shadow-sm">
+                    <span class="text-xs font-bold">{{ userInitials() }}</span>
                   </div>
-                  <svg class="w-4 h-4 text-surface-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                  </svg>
+                  <lucide-icon [name]="ChevronDownIcon" class="w-4 h-4 text-surface-400"></lucide-icon>
                 </button>
 
                 @if (showProfileMenu()) {
-                  <div class="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-premium-lg py-2 z-50 border border-surface-100">
-                    <a routerLink="/dashboard/profile" class="block px-4 py-2.5 text-sm text-surface-700 hover:bg-surface-50 transition-colors">Mi Perfil</a>
-                    <a routerLink="/dashboard/settings" class="block px-4 py-2.5 text-sm text-surface-700 hover:bg-surface-50 transition-colors">Configuración</a>
-                    <div class="border-t border-surface-100 my-1"></div>
+                  <div class="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-premium-xl py-2 z-50 border border-surface-100 ring-1 ring-black/5 transform origin-top-right transition-all">
+                    <div class="px-4 py-3 border-b border-surface-100 mb-2">
+                       <p class="text-sm font-semibold text-surface-900 truncate">{{ userName() }}</p>
+                       <p class="text-xs text-surface-500 truncate">{{ userEmail() }}</p>
+                    </div>
+                    
+                    <a routerLink="/dashboard/profile" class="flex items-center gap-2 px-4 py-2.5 text-sm text-surface-700 hover:bg-surface-50 transition-colors">
+                      <lucide-icon [name]="UserIcon" class="w-4 h-4"></lucide-icon>
+                      Mi Perfil
+                    </a>
+                    <a routerLink="/dashboard/settings" class="flex items-center gap-2 px-4 py-2.5 text-sm text-surface-700 hover:bg-surface-50 transition-colors">
+                      <lucide-icon [name]="SettingsIcon" class="w-4 h-4"></lucide-icon>
+                      Configuración
+                    </a>
+                    
+                    <div class="border-t border-surface-100 my-2"></div>
+                    
                     <button
                       (click)="logout()"
-                      class="block w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors">
+                      class="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors">
+                      <lucide-icon [name]="LogOutIcon" class="w-4 h-4"></lucide-icon>
                       Cerrar Sesión
                     </button>
                   </div>
@@ -131,16 +214,43 @@ interface MenuItem {
         </header>
 
         <!-- Page Content -->
-        <main class="flex-1 overflow-y-auto bg-surface-50">
-          <router-outlet></router-outlet>
+        <main class="flex-1 overflow-y-auto bg-surface-50/50 relative">
+          <div class="relative z-10">
+             <router-outlet></router-outlet>
+          </div>
         </main>
       </div>
     </div>
 
     <!-- Mobile Sidebar Overlay -->
-    @if (sidebarOpen()) {
-      <div class="fixed inset-0 z-40 lg:hidden">
-        <div class="fixed inset-0 bg-surface-900/60 backdrop-blur-sm" (click)="toggleSidebar()"></div>
+    @if (mobileSidebarOpen()) {
+      <div class="fixed inset-0 z-50 lg:hidden">
+        <div class="absolute inset-0 bg-surface-900/60 backdrop-blur-sm transition-opacity" (click)="toggleSidebarMobile()"></div>
+        
+        <div class="absolute left-0 top-0 bottom-0 w-72 bg-surface-900 text-white shadow-2xl flex flex-col">
+           <!-- Mobile Sidebar Header -->
+           <div class="flex items-center justify-between h-[70px] px-6 border-b border-white/10">
+             <img src="assets/LogoCompleto.png" class="h-8 w-auto">
+             <button (click)="toggleSidebarMobile()" class="p-2 -mr-2 text-surface-400 hover:text-white">
+               <lucide-icon [name]="ChevronLeftIcon" class="w-6 h-6"></lucide-icon>
+             </button>
+           </div>
+           
+           <!-- Mobile Navigation -->
+           <nav class="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
+              @for (item of menuItems; track item.name) {
+                <a
+                  [routerLink]="item.route"
+                  (click)="toggleSidebarMobile()"
+                  routerLinkActive="bg-primary-600 text-white"
+                  [routerLinkActiveOptions]="{exact: item.route === '/dashboard'}"
+                  class="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl hover:bg-white/5 transition-all text-surface-300">
+                  <lucide-icon [name]="item.icon" class="w-5 h-5"></lucide-icon>
+                  {{ item.name }}
+                </a>
+              }
+           </nav>
+        </div>
       </div>
     }
 
@@ -150,49 +260,115 @@ interface MenuItem {
     }
   `
 })
-export class DashboardLayoutComponent implements OnInit {
+export class DashboardLayoutComponent implements OnInit, OnDestroy {
   @ViewChild('notificationsContainer') notificationsContainer!: ElementRef;
 
-  sidebarOpen = signal(false);
+  // Sidebar State
+  isSidebarExpanded = signal(false);
+  mobileSidebarOpen = signal(false);
+  isAnimating = false;
+  private expandTimeout: any;
+
+  // Icons used directly in template
+  BellIcon = Bell;
+  MenuIcon = Menu;
+  ChevronDownIcon = ChevronDown;
+  UserIcon = User;
+  SettingsIcon = Settings;
+  LogOutIcon = LogOut;
+  ChevronLeftIcon = ChevronLeft;
+
+  // Other UI State
   showProfileMenu = signal(false);
   showNotifications = signal(false);
   showCommandPalette = signal(false);
 
+  // User Data
   userName = signal('Usuario');
   userEmail = signal('');
   userInitials = signal('U');
   unreadCount = signal(0);
 
   menuItems: MenuItem[] = [
-    { name: 'Dashboard', route: '/dashboard' },
-    { name: 'Alumnos', route: '/dashboard/students' },
-    { name: 'Clases', route: '/dashboard/schedule/calendar' },
-    { name: 'Horarios', route: '/dashboard/schedule' },
-    { name: 'Servicios', route: '/dashboard/services' },
-    { name: 'Planes de Estudio', route: '/dashboard/study-plans' },
-    { name: 'Pagos', route: '/dashboard/payments' },
-    { name: 'Mi Landing Page', route: '/dashboard/landing-editor' },
-    // { name: 'Reportes', route: '/dashboard/reports' }, // Oculto temporalmente
-    { name: 'Configuración', route: '/dashboard/settings' }
+    { name: 'Dashboard', route: '/dashboard', icon: LayoutDashboard },
+    { name: 'Alumnos', route: '/dashboard/students', icon: GraduationCap },
+    { name: 'Clases', route: '/dashboard/schedule/calendar', icon: BookOpen },
+    { name: 'Horarios', route: '/dashboard/schedule', icon: Clock },
+    { name: 'Servicios', route: '/dashboard/services', icon: Briefcase },
+    { name: 'Planes de Estudio', route: '/dashboard/study-plans', icon: FileText },
+    { name: 'Pagos', route: '/dashboard/payments', icon: CreditCard },
+    { name: 'Mi Landing Page', route: '/dashboard/landing-editor', icon: Globe },
+    { name: 'Configuración', route: '/dashboard/settings', icon: Settings }
   ];
+
+  // Search Placeholder State
+  searchPlaceholder = signal('Buscar "Alumnos"...');
+  private placeholderIndex = 0;
+  private placeholderOptions = [
+    'Buscar "Alumnos"...',
+    'Crear "Nuevo Servicio"...',
+    'Buscar "Facturación"...',
+    'Ir a "Configuración"...',
+    'Buscar "Horarios"...',
+    'Presiona ⌘K para comandos...'
+  ];
+  private placeholderInterval: any;
 
   constructor(
     private supabaseService: SupabaseService,
-    private router: Router,
+    public router: Router,
     private elementRef: ElementRef
   ) {
     this.loadUserInfo();
   }
 
   ngOnInit() {
-    // Subscribe to count updates
     this.supabaseService.unreadCount$.subscribe(count => {
       this.unreadCount.set(count);
     });
+
+    // Start cycling placeholders
+    this.placeholderInterval = setInterval(() => {
+      this.placeholderIndex = (this.placeholderIndex + 1) % this.placeholderOptions.length;
+      this.searchPlaceholder.set(this.placeholderOptions[this.placeholderIndex]);
+    }, 4000); // Change every 4 seconds
   }
 
-  toggleSidebar() {
-    this.sidebarOpen.set(!this.sidebarOpen());
+  ngOnDestroy() {
+    if (this.placeholderInterval) {
+      clearInterval(this.placeholderInterval);
+    }
+  }
+
+  // Sidebar Hover Logic
+  onMouseEnter() {
+    // Clear any pending timeout to close (if any)
+    if (this.expandTimeout) {
+      clearTimeout(this.expandTimeout);
+    }
+
+    // Set delay to expand
+    this.expandTimeout = setTimeout(() => {
+      this.isAnimating = true;
+      this.isSidebarExpanded.set(true);
+      // Stop animation flag after transition
+      setTimeout(() => this.isAnimating = false, 300);
+    }, 300); // 300ms delay
+  }
+
+  onMouseLeave() {
+    // Clear pending expansion if mouse leaves quickly
+    if (this.expandTimeout) {
+      clearTimeout(this.expandTimeout);
+    }
+
+    this.isAnimating = true;
+    this.isSidebarExpanded.set(false);
+    setTimeout(() => this.isAnimating = false, 300);
+  }
+
+  toggleSidebarMobile() {
+    this.mobileSidebarOpen.set(!this.mobileSidebarOpen());
   }
 
   toggleProfileMenu() {
@@ -203,17 +379,26 @@ export class DashboardLayoutComponent implements OnInit {
     this.showNotifications.set(!this.showNotifications());
   }
 
+  getCurrentPageTitle(): string {
+    const activeRoute = this.router.url;
+    const item = this.menuItems.find(i =>
+      activeRoute === i.route || (i.route !== '/dashboard' && activeRoute.startsWith(i.route))
+    );
+    return item ? item.name : 'Dashboard';
+  }
+
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
-    // If notifications are open and click is outside the notification container
     if (this.showNotifications() && this.notificationsContainer && !this.notificationsContainer.nativeElement.contains(event.target)) {
       this.showNotifications.set(false);
     }
+
+    // Also close profile menu if clicking outside
+    // Add logic similar to notifications if needed, or rely on button toggle
   }
 
   @HostListener('document:keydown', ['$event'])
   onKeydown(event: KeyboardEvent) {
-    // Cmd+K (Mac) or Ctrl+K (Windows/Linux)
     if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
       event.preventDefault();
       this.showCommandPalette.set(true);
@@ -224,8 +409,6 @@ export class DashboardLayoutComponent implements OnInit {
     const user = await this.supabaseService.getCurrentUser();
     if (user) {
       this.userEmail.set(user.email || '');
-
-      // Initialize real-time notifications
       this.supabaseService.initializeNotificationSubscription(user.id);
 
       const profile = await this.supabaseService.getProfile(user.id);
@@ -233,7 +416,6 @@ export class DashboardLayoutComponent implements OnInit {
         const fullName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
         this.userName.set(fullName || user.email || 'Usuario');
 
-        // Generate initials
         const initials = fullName
           ? fullName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
           : (user.email?.[0] || 'U').toUpperCase();
@@ -242,12 +424,16 @@ export class DashboardLayoutComponent implements OnInit {
     }
   }
 
-  async loadUnreadCount() {
-    // Deprecated in favor of subscription, but method kept if needed or called elsewhere
-    const user = await this.supabaseService.getCurrentUser();
-    if (user) {
-      await this.supabaseService.getAppUnreadCount(user.id);
-    }
+  isRouteActive(route: string): boolean {
+    // Both Dashboard and Horarios need exact matching to prevent overlap
+    // with sub-routes like /dashboard/schedule/calendar
+    const isExactMatch = route === '/dashboard' || route === '/dashboard/schedule';
+    return this.router.isActive(route, {
+      paths: isExactMatch ? 'exact' : 'subset',
+      queryParams: 'ignored',
+      fragment: 'ignored',
+      matrixParams: 'ignored'
+    });
   }
 
   async logout() {

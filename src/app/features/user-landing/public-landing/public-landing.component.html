@@ -41,12 +41,6 @@
         <h2 class="text-3xl font-bold text-gray-900 mb-4">Mis Servicios</h2>
         <p class="text-lg text-gray-600 mb-8">Elige el servicio que mejor se adapte a tus necesidades</p>
 
-        <!-- Botón Asesoría Personalizada con Chatbot -->
-        <button (click)="openChatbot()"
-          class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
-          <span class="mr-2">✨</span>
-          ¿Buscas un plan personalizado? Inicia una Asesoría con IA
-        </button>
       </div>
 
       @if (services().length === 0) {
@@ -227,6 +221,23 @@
       </p>
     </div>
   </footer>
+
+  <!-- Floating Chatbot FAB -->
+  <div class="fixed bottom-6 right-6 z-40 group">
+    <button (click)="openChatbot()"
+      class="relative w-28 h-28 rounded-full bg-white shadow-lg hover:shadow-2xl border-2 border-gray-100 hover:border-gray-200 transition-all duration-300 transform hover:scale-110 flex items-center justify-center group">
+      <img src="assets/isotipo.png" alt="Asesoría IA" class="w-20 h-20 object-contain">
+      <!-- Subtle pulse ring -->
+      <span class="absolute inset-0 rounded-full border-2 border-red-400/30 animate-ping"
+        style="animation-duration: 3s;"></span>
+    </button>
+    <!-- Tooltip -->
+    <div
+      class="absolute bottom-full right-0 mb-3 px-3 py-2 bg-gray-900 text-white text-xs font-medium rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap shadow-lg">
+      ✨ Asesoría personalizada con IA
+      <div class="absolute top-full right-6 w-2 h-2 bg-gray-900 rotate-45 -mt-1"></div>
+    </div>
+  </div>
 
   <!-- Chatbot Modal -->
   @if (showChatbot()) {

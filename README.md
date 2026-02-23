@@ -124,7 +124,7 @@ El proyecto estará disponible en `http://localhost:5500`
 - [x] Landing page promocional
 - [x] Sistema de registro y login
 - [x] Selección de planes de suscripción
-- [x] Checkout simulado con Stripe
+- [x] Checkout simulado con Paypal
 - [x] Onboarding wizard con modales
 - [x] Dashboard gamificado
 - [x] Editor de landing page personalizada
@@ -134,7 +134,7 @@ El proyecto estará disponible en `http://localhost:5500`
 ### 🚧 En Desarrollo
 - [ ] Gestión completa de alumnos
 - [ ] Sistema de citas y calendario
-- [ ] Integración real con Stripe
+- [ ] Integración real con PayPal
 - [ ] Reportes y estadísticas
 - [ ] Notificaciones push
 - [ ] Sistema de mensajería
