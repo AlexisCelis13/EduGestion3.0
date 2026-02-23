@@ -114,7 +114,8 @@ interface QuickReply {
           @for (reply of quickReplies(); track reply.value) {
             <button 
               (click)="selectQuickReply(reply)"
-              class="px-4 py-2 text-sm bg-primary-50 text-primary-700 rounded-full hover:bg-primary-100 transition-colors border border-primary-200 font-medium">
+              [disabled]="isTyping()"
+              class="px-4 py-2 text-sm bg-primary-50 text-primary-700 rounded-full hover:bg-primary-100 transition-colors border border-primary-200 font-medium disabled:opacity-40 disabled:cursor-not-allowed">
               {{ reply.text }}
             </button>
           }
@@ -269,6 +270,7 @@ export class ConsultationChatbotComponent implements OnInit {
     isRefining = signal(false);
     isSubmitting = signal(false);
     generatedPlan = signal<GeneratedStudyPlan | null>(null);
+    extractedData = signal<any>(null);
     showCloseConfirm = signal(false);
 
     currentMessage = '';
@@ -355,7 +357,7 @@ export class ConsultationChatbotComponent implements OnInit {
         } catch (error) {
             console.error('Error in chat:', error);
             this.isTyping.set(false);
-            this.addBotMessage('Lo siento, hubo un problema. ¿Puedes repetir tu mensaje?');
+            this.addBotMessage('El servicio de IA está ocupado en este momento. Espera unos segundos e intenta de nuevo 🙏');
         }
     }
 
@@ -370,6 +372,16 @@ export class ConsultationChatbotComponent implements OnInit {
         try {
             // Extraer datos del chat
             const extractedData = await this.geminiService.extractDataFromChat(this.messages());
+            this.extractedData.set(extractedData);
+
+            // Combinar contexto para el generador: mensajes + datos extraídos
+            const chatContext = this.messages().map(m => `${m.role}: ${m.content}`).join('\n');
+
+            // Si el usuario no especificó materias, intentar inferir del chat context
+            if (!extractedData.subjects || extractedData.subjects.length === 0) {
+                 // Aquí podríamos intentar re-procesar o simplemente confiar en que el generador final lo infiera
+                 // Pero lo pasamos tal cual
+            }
 
             // Generar plan
             const plan = await this.geminiService.generateStudyPlan({
@@ -379,7 +391,7 @@ export class ConsultationChatbotComponent implements OnInit {
                 specificTopics: extractedData.specificTopics,
                 currentStruggles: extractedData.currentStruggles,
                 learningGoals: extractedData.learningGoals
-            }, this.pricePerHour, this.messages().map(m => `${m.role}: ${m.content}`).join('\n'));
+            }, this.pricePerHour, chatContext);
 
             this.generatedPlan.set(plan);
             this.step.set('plan_ready');
@@ -429,7 +441,7 @@ export class ConsultationChatbotComponent implements OnInit {
         this.isSubmitting.set(true);
 
         // Extraer datos para pasar al siguiente paso
-        const extractedData = await this.geminiService.extractDataFromChat(this.messages());
+        const extractedData = this.extractedData() || await this.geminiService.extractDataFromChat(this.messages());
 
         this.planAccepted.emit({
             plan: this.generatedPlan()!,
