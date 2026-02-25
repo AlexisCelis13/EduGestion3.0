@@ -208,16 +208,39 @@ import { SupabaseService, ConsultationRequest } from '../../core/services/supaba
                 <p class="text-xs text-surface-400 mb-1">Nivel Académico</p>
                 <p class="font-medium text-surface-700">{{ selectedConsultation()!.academic_level || 'No especificado' }}</p>
               </div>
-              <div class="p-3 bg-surface-50 rounded-lg">
-                <p class="text-xs text-surface-400 mb-1">Email</p>
-                <p class="font-medium text-surface-700">{{ selectedConsultation()!.student_email || selectedConsultation()!.parent_email || 'No especificado' }}</p>
-              </div>
-              <div class="p-3 bg-surface-50 rounded-lg">
-                <p class="text-xs text-surface-400 mb-1">Teléfono</p>
-                <p class="font-medium text-surface-700">{{ selectedConsultation()!.student_phone || selectedConsultation()!.parent_phone || 'No especificado' }}</p>
-              </div>
+              @if (selectedConsultation()!.booking_for === 'me') {
+                <div class="p-3 bg-surface-50 rounded-lg">
+                  <p class="text-xs text-surface-400 mb-1">Email</p>
+                  <p class="font-medium text-surface-700">{{ selectedConsultation()!.student_email || 'No especificado' }}</p>
+                </div>
+                <div class="p-3 bg-surface-50 rounded-lg">
+                  <p class="text-xs text-surface-400 mb-1">Teléfono</p>
+                  <p class="font-medium text-surface-700">{{ selectedConsultation()!.student_phone || 'No especificado' }}</p>
+                </div>
+              }
             </div>
           </div>
+
+          <!-- Info del Tutor/Padre (si aplica) -->
+          @if (selectedConsultation()!.booking_for === 'other') {
+            <div>
+              <h4 class="font-semibold text-surface-600 text-sm uppercase tracking-wider mb-3">Información del Tutor/Padre</h4>
+              <div class="grid grid-cols-2 gap-4">
+                <div class="p-3 bg-surface-50 rounded-lg">
+                  <p class="text-xs text-surface-400 mb-1">Nombre</p>
+                  <p class="font-medium text-surface-700">{{ selectedConsultation()!.parent_name || 'No especificado' }}</p>
+                </div>
+                <div class="p-3 bg-surface-50 rounded-lg">
+                  <p class="text-xs text-surface-400 mb-1">Email</p>
+                  <p class="font-medium text-surface-700">{{ selectedConsultation()!.parent_email || selectedConsultation()!.student_email || 'No especificado' }}</p>
+                </div>
+                <div class="p-3 bg-surface-50 rounded-lg">
+                  <p class="text-xs text-surface-400 mb-1">Teléfono</p>
+                  <p class="font-medium text-surface-700">{{ selectedConsultation()!.parent_phone || selectedConsultation()!.student_phone || 'No especificado' }}</p>
+                </div>
+              </div>
+            </div>
+          }
 
           <!-- Necesidades -->
           <div>

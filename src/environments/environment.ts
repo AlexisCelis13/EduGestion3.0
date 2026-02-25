@@ -4,7 +4,7 @@ export const environment = {
   production: false,
   supabaseUrl: 'https://ngqcsposkknbmzgnalba.supabase.co',
   supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ncWNzcG9za2tuYm16Z25hbGJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwMTI4MTYsImV4cCI6MjA4NDU4ODgxNn0.14VFmURKH0VBoi5--7UFWQj5wmHkXoveXdIVkkQEQFE',
-  geminiApiKey: 'AIzaSyCwilzf3Qx3nze-hjY9xWZAx6LVZAMSB5k',
+  geminiApiKey: 'AIzaSyCFWgF8yfvTLOZjlx6ncTVZVcjVj2skpl0',
   paypalClientId: 'AezLcprAi-_J_q1OwQWWbMIPJ_xJexjWCqqb3E_BfgGKxObceJmaXukwY3kVrIpRkqhe-vOvgE759J3E',
   paypalCurrency: 'MXN'
 };

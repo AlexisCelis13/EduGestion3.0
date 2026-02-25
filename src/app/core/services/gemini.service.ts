@@ -309,9 +309,9 @@ ${JSON.stringify(currentPlan, null, 2)}
 INFORMACIÓN A RECOPILAR (en este orden estricto):
 1. Para quién es la asesoría (para el mismo usuario o para su hijo/a)
 2. Nombre completo del estudiante
-3. Correo electrónico de contacto
-4. Número de WhatsApp o teléfono
-5. (Solo si es para otra persona) Nombre del padre o tutor responsable
+3. (Solo si es para otra persona) Nombre del padre o tutor responsable
+4. Correo electrónico de contacto (del estudiante, o del tutor si es para otra persona)
+5. Número de WhatsApp o teléfono (del estudiante, o del tutor si es para otra persona)
 6. Nivel académico: primaria, secundaria, preparatoria o universidad
 7. Materia o materias que necesita reforzar
 8. Temas específicos que se le dificultan
@@ -427,7 +427,8 @@ ${chatHistory.map(m => `${m.role === 'user' ? 'Cliente' : 'Asistente'}: ${m.cont
 }
 
 Reglas:
-- "bookingFor" debe ser "me" o "other".
+- "bookingFor" debe ser "other" si la asesoría es para un hijo, hija, familiar o alguien más. Debe ser "me" si es para el mismo usuario que escribe.
+- Si "bookingFor" es "other", extrae el nombre del padre/tutor en "parentName". Asigna el correo y teléfono de contacto a "parentEmail" y "parentPhone", y deja "studentEmail" y "studentPhone" como null o vacíos si no se especifican por separado.
 - "academicLevel" debe ser "primaria", "secundaria", "preparatoria" o "universidad".
 - Si un dato no se menciona, usa null o un string vacío "".
 `;
