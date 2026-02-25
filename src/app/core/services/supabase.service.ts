@@ -13,7 +13,7 @@ export interface Profile {
   estimated_monthly_income?: number | null;
   onboarding_completed: boolean;
   subscription_status: 'trial' | 'active' | 'cancelled' | 'expired';
-  subscription_plan?: 'freelance' | 'academia' | 'enterprise';
+  subscription_plan?: 'freelance' | 'academia';
 }
 
 export interface TenantSettings {

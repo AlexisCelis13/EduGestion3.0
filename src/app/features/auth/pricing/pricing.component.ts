@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { SupabaseService } from '../../../core/services/supabase.service';
 
 interface PricingPlan {
-  id: 'freelance' | 'academia' | 'enterprise';
+  id: 'freelance' | 'academia';
   name: string;
   price: number;
   period: string;
@@ -31,7 +31,7 @@ interface PricingPlan {
         </div>
 
         <!-- Pricing Cards -->
-        <div class="mt-12 space-y-4 sm:mt-16 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-6 lg:max-w-4xl lg:mx-auto xl:max-w-none xl:mx-0">
+        <div class="mt-12 space-y-4 sm:mt-16 sm:space-y-0 sm:grid sm:grid-cols-2 sm:gap-6 lg:max-w-3xl lg:mx-auto">
           @for (plan of plans; track plan.id) {
             <div class="border border-gray-200 rounded-lg shadow-sm divide-y divide-gray-200 bg-white"
                  [class.ring-2]="plan.popular"
@@ -51,7 +51,7 @@ interface PricingPlan {
                   {{ plan.description }}
                 </p>
                 <p class="mt-8">
-                  <span class="text-4xl font-extrabold text-gray-900">€{{ plan.price }}</span>
+                  <span class="text-4xl font-extrabold text-gray-900">\${{ plan.price }}</span>
                   <span class="text-base font-medium text-gray-500">/{{ plan.period }}</span>
                 </p>
                 <button
@@ -120,7 +120,7 @@ export class PricingComponent {
     {
       id: 'freelance',
       name: 'Freelance',
-      price: 399,
+      price: 199,
       period: 'mes',
       description: 'Perfecto para tutores independientes',
       features: [
@@ -134,7 +134,7 @@ export class PricingComponent {
     {
       id: 'academia',
       name: 'Academia',
-      price: 999,
+      price: 299,
       period: 'mes',
       description: 'Ideal para academias pequeñas y medianas',
       features: [
@@ -147,22 +147,6 @@ export class PricingComponent {
         'Soporte prioritario'
       ],
       popular: true
-    },
-    {
-      id: 'enterprise',
-      name: 'Enterprise',
-      price: 1999,
-      period: 'mes',
-      description: 'Para grandes academias e instituciones',
-      features: [
-        'Alumnos ilimitados',
-        'Profesores ilimitados',
-        'Landing pages múltiples',
-        'API personalizada',
-        'Integraciones avanzadas',
-        'Soporte dedicado',
-        'Onboarding personalizado'
-      ]
     }
   ];
 

@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 
 interface PricingPlan {
-  id: 'freelance' | 'academia' | 'enterprise';
+  id: 'freelance' | 'academia';
   name: string;
   price: number;
   period: string;
@@ -102,7 +102,7 @@ interface Particle {
           </div>
 
           <!-- Pricing Cards -->
-          <div class="grid lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <div class="grid lg:grid-cols-2 gap-8 max-w-3xl mx-auto">
             @for (plan of plans; track plan.id) {
               <div class="card-premium p-8 hover-lift"
                    [class.card-featured]="plan.popular"
@@ -309,7 +309,7 @@ export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
     {
       id: 'freelance',
       name: 'Freelance',
-      price: 399,
+      price: 199,
       period: 'mes',
       description: 'Perfecto para tutores independientes',
       features: [
@@ -323,7 +323,7 @@ export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
     {
       id: 'academia',
       name: 'Academia',
-      price: 999,
+      price: 299,
       period: 'mes',
       description: 'Ideal para academias pequeñas y medianas',
       features: [
@@ -336,22 +336,6 @@ export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
         'Soporte prioritario'
       ],
       popular: true
-    },
-    {
-      id: 'enterprise',
-      name: 'Enterprise',
-      price: 1999,
-      period: 'mes',
-      description: 'Para grandes academias e instituciones',
-      features: [
-        'Alumnos ilimitados',
-        'Profesores ilimitados',
-        'Landing pages múltiples',
-        'API personalizada',
-        'Integraciones avanzadas',
-        'Soporte dedicado',
-        'Onboarding personalizado'
-      ]
     }
   ];
 
