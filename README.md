@@ -21,9 +21,8 @@ Sistema de gestión integral para academias y tutores independientes desarrollad
 
 ## 💰 Planes de Suscripción (MXN)
 
-- **Freelance**: $399/mes - Hasta 50 alumnos
-- **Academia**: $999/mes - Hasta 200 alumnos, múltiples profesores
-- **Enterprise**: $1,999/mes - Alumnos ilimitados, API personalizada
+- **Freelance**: $199/mes - Hasta 50 alumnos
+- **Academia**: $299/mes - Hasta 200 alumnos, múltiples profesores
 
 ## 🎯 Flujo de Usuario
 
