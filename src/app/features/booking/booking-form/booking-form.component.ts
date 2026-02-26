@@ -362,19 +362,33 @@ export class BookingFormComponent implements OnInit {
     const parentEmailControl = this.bookingForm.get('parentEmail');
     const parentPhoneControl = this.bookingForm.get('parentPhone');
 
+    const studentEmailControl = this.bookingForm.get('studentEmail');
+    const studentPhoneControl = this.bookingForm.get('studentPhone');
+
     if (isOther) {
+      // Parent is booking for child: parent contact info required, student contact info optional
       parentNameControl?.setValidators([Validators.required, Validators.minLength(2)]);
       parentEmailControl?.setValidators([Validators.required, Validators.email]);
       parentPhoneControl?.setValidators([Validators.required, Validators.minLength(10)]);
+
+      studentEmailControl?.clearValidators();
+      studentPhoneControl?.clearValidators();
     } else {
+      // Student is booking for themselves: parent info optional, student contact info required
       parentNameControl?.clearValidators();
       parentEmailControl?.clearValidators();
       parentPhoneControl?.clearValidators();
+
+      studentEmailControl?.setValidators([Validators.required, Validators.email]);
+      studentPhoneControl?.setValidators([Validators.required, Validators.minLength(10)]);
     }
 
     parentNameControl?.updateValueAndValidity();
     parentEmailControl?.updateValueAndValidity();
     parentPhoneControl?.updateValueAndValidity();
+
+    studentEmailControl?.updateValueAndValidity();
+    studentPhoneControl?.updateValueAndValidity();
   }
 
   async checkEmail(type: 'student' | 'parent') {

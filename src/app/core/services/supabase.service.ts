@@ -779,6 +779,71 @@ export class SupabaseService {
     return { data, error };
   }
 
+  // Check recurring availability (RPC)
+  async checkRecurringAvailability(tutorId: string, slots: { date: string, start_time: string, end_time: string }[]) {
+    const { data, error } = await this.supabase.rpc('check_recurring_availability', {
+      p_tutor_id: tutorId,
+      p_slots: slots
+    });
+
+    return { data, error }; // Returns array of conflicting slots, or empty if ok
+  }
+
+  // Create recurring bookings
+  async createRecurringBookings(appointment: {
+    tutor_id: string;
+    student_name: string;
+    student_last_name?: string;
+    student_email: string;
+    student_phone?: string;
+    student_dob?: string;
+    slots: { date: string, start_time: string, end_time: string }[];
+    service_id?: string;
+    notes?: string;
+    parent_name?: string;
+    parent_email?: string;
+    parent_phone?: string;
+    payment_status?: 'pending' | 'free' | 'paid';
+    amount_paid?: number;
+  }) {
+    if (!appointment.tutor_id || !appointment.slots || appointment.slots.length === 0 || !appointment.student_email) {
+      return { data: null, error: { message: 'Faltan campos obligatorios' } };
+    }
+
+    const { data, error } = await this.supabase.rpc('create_recurring_bookings', {
+      p_tutor_id: appointment.tutor_id,
+      p_student_name: appointment.student_name,
+      p_student_last_name: appointment.student_last_name || '',
+      p_student_email: appointment.student_email,
+      p_student_phone: appointment.student_phone || null,
+      p_student_dob: appointment.student_dob || null,
+      p_slots: appointment.slots,
+      p_service_id: appointment.service_id || null,
+      p_notes: appointment.notes || '',
+      p_parent_name: appointment.parent_name || null,
+      p_parent_email: appointment.parent_email || null,
+      p_parent_phone: appointment.parent_phone || null,
+      p_payment_status: appointment.payment_status || 'pending',
+      p_amount_paid: appointment.amount_paid || 0
+    });
+
+    if (data && !error) {
+      // Notify the Tutor
+      await this.createAppNotification({
+        user_id: appointment.tutor_id,
+        type: 'booking_new',
+        title: '¡Nueva Reserva Recurrente!',
+        message: `Has recibido una reserva de ${appointment.slots.length} clases de ${appointment.student_name}.`,
+        data: {
+          appointment_ids: data.appointment_ids,
+          student_id: data.student_id
+        }
+      });
+      return { data, error: null };
+    }
+    return { data, error };
+  }
+
   // Updated to work for both Auth and Public users
   async getAvailableSlotsForDate(tutorId: string, date: string, durationMinutes?: number) {
     // Get tutor's availability settings
