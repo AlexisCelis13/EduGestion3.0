@@ -60,17 +60,20 @@ import { LucideAngularModule, DollarSign, CreditCard, Building, ArrowUpRight, Hi
                      [class.bg-accent-green]="hasPayoutMethod()"
                      [class.bg-opacity-10]="hasPayoutMethod()"
                      [class.bg-amber-50]="!hasPayoutMethod()">
-                  <i-lucide name="building" class="w-6 h-6" 
+                  <i-lucide [name]="payoutSettings()?.payout_type === 'paypal' ? 'credit-card' : 'building'" class="w-6 h-6" 
                             [class.text-accent-green]="hasPayoutMethod()"
                             [class.text-amber-600]="!hasPayoutMethod()"></i-lucide>
                 </div>
                 <div class="ml-4">
                   <p class="text-sm font-medium text-surface-400">Cuenta Vinculada</p>
-                  <p class="text-lg font-semibold text-surface-700" *ngIf="hasPayoutMethod()">
+                  <p class="text-lg font-semibold text-surface-700" *ngIf="hasPayoutMethod() && payoutSettings()?.payout_type === 'paypal'">
+                    PayPal · {{ maskEmail(payoutSettings()?.paypal_email) }}
+                  </p>
+                  <p class="text-lg font-semibold text-surface-700" *ngIf="hasPayoutMethod() && payoutSettings()?.payout_type !== 'paypal'">
                     **** {{ getLast4(payoutSettings()?.account_number || '') }}
                   </p>
                   <p class="text-sm font-medium text-amber-600" *ngIf="!hasPayoutMethod()">
-                    Vincular cuenta bancaria
+                    Vincular cuenta
                   </p>
                 </div>
               </div>
@@ -143,13 +146,32 @@ import { LucideAngularModule, DollarSign, CreditCard, Building, ArrowUpRight, Hi
               <div class="w-16 h-16 bg-surface-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <i-lucide name="building" class="w-8 h-8 text-surface-400"></i-lucide>
               </div>
-              <p class="text-surface-500 mb-4 text-sm">Vincula tu cuenta bancaria para recibir tus pagos automáticamente.</p>
+              <p class="text-surface-500 mb-4 text-sm">Vincula tu cuenta bancaria o PayPal para recibir tus pagos.</p>
               <button (click)="showLinkModal.set(true)" class="w-full px-4 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-all font-medium hover-lift">
                 Vincular Cuenta
               </button>
             </div>
 
-            <div *ngIf="hasPayoutMethod()" class="space-y-4">
+            <!-- PayPal Details -->
+            <div *ngIf="hasPayoutMethod() && payoutSettings()?.payout_type === 'paypal'" class="space-y-4">
+              <div class="p-4 bg-blue-50 rounded-xl border border-blue-100">
+                <p class="text-xs font-medium text-blue-500 uppercase mb-1">Método</p>
+                <p class="font-medium text-surface-700 flex items-center gap-2">
+                  <span class="text-lg">🅿️</span> PayPal
+                </p>
+              </div>
+              <div class="p-4 bg-surface-50 rounded-xl border border-surface-100">
+                <p class="text-xs font-medium text-surface-400 uppercase mb-1">Email de PayPal</p>
+                <p class="font-medium text-surface-700">{{ payoutSettings()?.paypal_email }}</p>
+              </div>
+              
+              <button (click)="showLinkModal.set(true)" class="w-full mt-4 px-4 py-3 border border-primary-200 text-primary-600 rounded-xl hover:bg-primary-50 transition-all text-sm font-medium">
+                Actualizar Datos
+              </button>
+            </div>
+
+            <!-- Bank Details -->
+            <div *ngIf="hasPayoutMethod() && payoutSettings()?.payout_type !== 'paypal'" class="space-y-4">
               <div class="p-4 bg-surface-50 rounded-xl border border-surface-100">
                 <p class="text-xs font-medium text-surface-400 uppercase mb-1">Banco</p>
                 <p class="font-medium text-surface-700">{{ payoutSettings()?.bank_name }}</p>
@@ -178,13 +200,34 @@ import { LucideAngularModule, DollarSign, CreditCard, Building, ArrowUpRight, Hi
     <div *ngIf="showLinkModal()" class="fixed inset-0 bg-surface-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
       <div class="card-premium w-full max-w-md overflow-hidden animate-scale-in">
         <div class="p-6 border-b border-surface-100 flex justify-between items-center">
-          <h3 class="text-lg font-semibold text-surface-700">Datos Bancarios</h3>
+          <h3 class="text-lg font-semibold text-surface-700">Método de Cobro</h3>
           <button (click)="showLinkModal.set(false)" class="w-8 h-8 rounded-lg hover:bg-surface-100 flex items-center justify-center text-surface-400 hover:text-surface-600 transition-colors">
             ✕
           </button>
         </div>
+
+        <!-- Tabs Banco / PayPal -->
+        <div class="flex border-b border-surface-100">
+          <button (click)="modalTab.set('bank')" 
+                  class="flex-1 py-3 text-sm font-medium text-center transition-all border-b-2"
+                  [class.border-primary-600]="modalTab() === 'bank'"
+                  [class.text-primary-600]="modalTab() === 'bank'"
+                  [class.border-transparent]="modalTab() !== 'bank'"
+                  [class.text-surface-400]="modalTab() !== 'bank'">
+            🏦 Cuenta Bancaria
+          </button>
+          <button (click)="modalTab.set('paypal')" 
+                  class="flex-1 py-3 text-sm font-medium text-center transition-all border-b-2"
+                  [class.border-blue-600]="modalTab() === 'paypal'"
+                  [class.text-blue-600]="modalTab() === 'paypal'"
+                  [class.border-transparent]="modalTab() !== 'paypal'"
+                  [class.text-surface-400]="modalTab() !== 'paypal'">
+            🅿️ PayPal
+          </button>
+        </div>
         
-        <form [formGroup]="bankForm" (ngSubmit)="saveBankDetails()" class="p-6 space-y-4">
+        <!-- Bank Form -->
+        <form *ngIf="modalTab() === 'bank'" [formGroup]="bankForm" (ngSubmit)="saveBankDetails()" class="p-6 space-y-4">
           <div>
             <label class="block text-sm font-medium text-surface-700 mb-2">Banco</label>
             <select formControlName="bank_name" class="w-full px-4 py-3 border border-surface-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all bg-white text-surface-700">
@@ -214,7 +257,34 @@ import { LucideAngularModule, DollarSign, CreditCard, Building, ArrowUpRight, Hi
                Cancelar
              </button>
              <button type="submit" [disabled]="bankForm.invalid || isSaving()" class="flex-1 px-4 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium flex justify-center items-center gap-2">
-               {{ isSaving() ? 'Guardando...' : 'Guardar Cuenta' }}
+               {{ isSaving() ? 'Guardando...' : 'Guardar' }}
+             </button>
+          </div>
+        </form>
+
+        <!-- PayPal Form -->
+        <form *ngIf="modalTab() === 'paypal'" [formGroup]="paypalForm" (ngSubmit)="savePaypalDetails()" class="p-6 space-y-4">
+          <div class="p-4 bg-blue-50 rounded-xl border border-blue-100 mb-2">
+            <p class="text-sm text-blue-700">Ingresa el correo asociado a tu cuenta de PayPal para recibir pagos.</p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-surface-700 mb-2">Email de PayPal</label>
+            <input type="email" formControlName="paypal_email" class="w-full px-4 py-3 border border-surface-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" placeholder="tu-email@ejemplo.com">
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-surface-700 mb-2">Confirmar Email</label>
+            <input type="email" formControlName="paypal_email_confirm" class="w-full px-4 py-3 border border-surface-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" placeholder="Repite tu email de PayPal">
+            <p *ngIf="paypalForm.hasError('emailMismatch')" class="text-xs text-red-500 mt-2">Los correos no coinciden.</p>
+          </div>
+
+          <div class="pt-4 flex gap-3">
+             <button type="button" (click)="showLinkModal.set(false)" class="flex-1 px-4 py-3 border border-surface-200 text-surface-600 rounded-xl hover:bg-surface-50 transition-all font-medium">
+               Cancelar
+             </button>
+             <button type="submit" [disabled]="paypalForm.invalid || isSaving()" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium flex justify-center items-center gap-2">
+               {{ isSaving() ? 'Guardando...' : 'Vincular PayPal' }}
              </button>
           </div>
         </form>
@@ -246,7 +316,9 @@ export class PaymentsComponent implements OnInit {
   showLinkModal = signal(false);
   isSaving = signal(false);
   hasPayoutMethod = signal(false);
+  modalTab = signal<'bank' | 'paypal'>('bank');
   bankForm: FormGroup;
+  paypalForm: FormGroup;
   userId: string | undefined;
 
   constructor(
@@ -258,6 +330,20 @@ export class PaymentsComponent implements OnInit {
       account_holder: ['', Validators.required],
       account_number: ['', [Validators.required, Validators.minLength(18), Validators.maxLength(18), Validators.pattern('^[0-9]+$')]]
     });
+
+    this.paypalForm = this.fb.group({
+      paypal_email: ['', [Validators.required, Validators.email]],
+      paypal_email_confirm: ['', [Validators.required, Validators.email]]
+    }, { validators: this.emailMatchValidator });
+  }
+
+  emailMatchValidator(group: FormGroup): { [key: string]: boolean } | null {
+    const email = group.get('paypal_email')?.value;
+    const confirm = group.get('paypal_email_confirm')?.value;
+    if (email && confirm && email !== confirm) {
+      return { emailMismatch: true };
+    }
+    return null;
   }
 
   async ngOnInit() {
@@ -279,11 +365,20 @@ export class PaymentsComponent implements OnInit {
     if (settings) {
       this.payoutSettings.set(settings);
       this.hasPayoutMethod.set(true);
-      this.bankForm.patchValue({
-        bank_name: settings.bank_name,
-        account_holder: settings.account_holder,
-        account_number: settings.account_number
-      });
+      if (settings.payout_type === 'paypal') {
+        this.modalTab.set('paypal');
+        this.paypalForm.patchValue({
+          paypal_email: settings.paypal_email,
+          paypal_email_confirm: settings.paypal_email
+        });
+      } else {
+        this.modalTab.set('bank');
+        this.bankForm.patchValue({
+          bank_name: settings.bank_name,
+          account_holder: settings.account_holder,
+          account_number: settings.account_number
+        });
+      }
     }
 
     this.transactions.set(txs || []);
@@ -298,10 +393,28 @@ export class PaymentsComponent implements OnInit {
     const formValue = this.bankForm.value;
     const { error } = await this.supabaseService.upsertPayoutSettings({
       user_id: this.userId,
+      payout_type: 'bank',
       ...formValue
     });
     if (!error) {
-      // Sync onboarding progress
+      await this.supabaseService.updateOnboardingStep(this.userId, 'bank-account', true);
+      this.showLinkModal.set(false);
+      this.loadData();
+    } else {
+      alert('Error al guardar datos. Intenta de nuevo.');
+    }
+    this.isSaving.set(false);
+  }
+
+  async savePaypalDetails() {
+    if (this.paypalForm.invalid || !this.userId) return;
+    this.isSaving.set(true);
+    const { error } = await this.supabaseService.upsertPayoutSettings({
+      user_id: this.userId,
+      payout_type: 'paypal',
+      paypal_email: this.paypalForm.value.paypal_email
+    });
+    if (!error) {
       await this.supabaseService.updateOnboardingStep(this.userId, 'bank-account', true);
       this.showLinkModal.set(false);
       this.loadData();
@@ -330,5 +443,13 @@ export class PaymentsComponent implements OnInit {
 
   getLast4(number: string): string {
     return number.slice(-4);
+  }
+
+  maskEmail(email: string | undefined): string {
+    if (!email) return '***';
+    const [user, domain] = email.split('@');
+    if (!domain) return '***';
+    const masked = user.length > 2 ? user[0] + '•••' + user[user.length - 1] : '•••';
+    return masked + '@' + domain;
   }
 }

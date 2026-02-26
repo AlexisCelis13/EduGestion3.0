@@ -242,17 +242,24 @@ function pastDateValidator(control: AbstractControl): ValidationErrors | null {
           </div>
         }
 
-        <!-- Servicio (Opcional) -->
+        <!-- Servicio -->
         <div *ngIf="services.length > 0">
           <label class="block text-sm font-medium text-gray-700 mb-1">Servicio de Interés</label>
-          <select 
-            formControlName="serviceId"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white">
-            <option [ngValue]="null">Asesoría General</option>
-            <option *ngFor="let service of services" [value]="service.id">
-              {{ service.name }} ({{ formatPrice(service.price) }})
-            </option>
-          </select>
+          @if (preSelectedServiceId) {
+            <!-- Servicio pre-seleccionado: solo lectura -->
+            <div class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-700">
+              {{ getSelectedServiceName() }}
+            </div>
+          } @else {
+            <select 
+              formControlName="serviceId"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white">
+              <option [ngValue]="null">Asesoría General</option>
+              <option *ngFor="let service of services" [value]="service.id">
+                {{ service.name }} ({{ formatPrice(service.price) }})
+              </option>
+            </select>
+          }
         </div>
 
         <!-- Notas -->
@@ -299,9 +306,9 @@ export class BookingFormComponent implements OnInit {
 
   bookingForm: FormGroup;
   showParentFields = signal(false);
-  
+
   // Existing student check for reactivation
-  existingStudent = signal<{exists: boolean; is_active: boolean; name: string} | null>(null);
+  existingStudent = signal<{ exists: boolean; is_active: boolean; name: string } | null>(null);
 
   // Max date for date of birth (today)
   today = new Date().toISOString().split('T')[0];
@@ -339,7 +346,7 @@ export class BookingFormComponent implements OnInit {
     if (this.preSelectedServiceId) {
       this.bookingForm.patchValue({ serviceId: this.preSelectedServiceId });
     }
-    
+
     // Initial validator setup
     this.updateValidators('me');
   }
@@ -347,7 +354,7 @@ export class BookingFormComponent implements OnInit {
   updateValidators(bookingFor: string) {
     const isOther = bookingFor === 'other';
     this.showParentFields.set(isOther);
-    
+
     const parentNameControl = this.bookingForm.get('parentName');
     const parentEmailControl = this.bookingForm.get('parentEmail');
     const parentPhoneControl = this.bookingForm.get('parentPhone');
@@ -369,35 +376,40 @@ export class BookingFormComponent implements OnInit {
 
   async checkEmail(type: 'student' | 'parent') {
     if (!this.tutorId) return;
-    
+
     // Check if we should check based on mode
     const isOther = this.showParentFields();
-    if (type === 'student' && isOther) return; 
+    if (type === 'student' && isOther) return;
     if (type === 'parent' && !isOther) return;
 
-    const email = type === 'student' 
-        ? this.bookingForm.get('studentEmail')?.value 
-        : this.bookingForm.get('parentEmail')?.value;
-        
+    const email = type === 'student'
+      ? this.bookingForm.get('studentEmail')?.value
+      : this.bookingForm.get('parentEmail')?.value;
+
     if (!email || !email.includes('@') || email.length < 5) {
-        this.existingStudent.set(null);
-        return;
+      this.existingStudent.set(null);
+      return;
     }
 
     try {
-        const { data } = await this.supabaseService.checkStudentStatus(this.tutorId, email);
-        if (data && data.exists) {
-            this.existingStudent.set({
-                exists: true,
-                is_active: data.is_active,
-                name: `${data.first_name} ${data.last_name}`
-            });
-        } else {
-            this.existingStudent.set(null);
-        }
+      const { data } = await this.supabaseService.checkStudentStatus(this.tutorId, email);
+      if (data && data.exists) {
+        this.existingStudent.set({
+          exists: true,
+          is_active: data.is_active,
+          name: `${data.first_name} ${data.last_name}`
+        });
+      } else {
+        this.existingStudent.set(null);
+      }
     } catch (e) {
-        console.error(e);
+      console.error(e);
     }
+  }
+
+  getSelectedServiceName(): string {
+    const service = this.services.find(s => s.id === this.preSelectedServiceId);
+    return service ? `${service.name} (${this.formatPrice(service.price)})` : 'Servicio seleccionado';
   }
 
   formatPrice(price: number): string {

@@ -81,7 +81,8 @@
                 }
                 <div>
                     <h1 class="text-lg font-bold text-gray-900 leading-tight">
-                        {{ data()!.student.company_name || ('Tutor: ' + data()!.student.tutor_name) }}
+                        {{ data()!.student.company_name || (data()!.student.tutor_name ? 'Tutor: ' +
+                        data()!.student.tutor_name : 'EduGestión') }}
                     </h1>
                     <p class="text-xs text-gray-500">Portal del Estudiante</p>
                 </div>
@@ -370,21 +371,24 @@
                             </div>
                         </div>
 
+                        @if (data()!.student.tutor_name || data()!.student.company_name) {
                         <div>
                             <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">Tutor
                                 Asignado</h3>
                             <div class="bg-primary-50 p-4 rounded-xl flex items-center gap-4">
                                 <div
                                     class="h-10 w-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 font-bold">
-                                    {{ data()!.student.company_name ? data()!.student.company_name[0] : 'T' }}
+                                    {{ data()!.student.company_name ? data()!.student.company_name[0] :
+                                    (data()!.student.tutor_name ? data()!.student.tutor_name[0] : 'T') }}
                                 </div>
                                 <div>
                                     <p class="font-medium text-gray-900">{{ data()!.student.company_name ||
-                                        ('Tutor: ' + data()!.student.tutor_name) }}</p>
+                                        data()!.student.tutor_name }}</p>
                                     <p class="text-xs text-primary-600">Tu instructor principal</p>
                                 </div>
                             </div>
                         </div>
+                        }
 
                         <div class="pt-2">
                             <button (click)="showProfileModal.set(false)"

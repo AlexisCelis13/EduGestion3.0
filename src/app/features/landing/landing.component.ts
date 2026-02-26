@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, AfterViewInit, ElementRef, ViewChild, HostListener, NgZone } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit, ElementRef, ViewChild, HostListener, NgZone, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 
@@ -60,17 +60,20 @@ interface Particle {
       </header>
 
       <!-- Hero Section -->
-      <section class="pt-32 pb-24 lg:pt-40 lg:pb-32 relative">
+      <section class="hero-fullscreen relative">
         <div class="max-w-6xl mx-auto px-6 lg:px-8 text-center relative z-10">
-          <h1 class="text-hero text-surface-700 mb-6 animate-fade-in-up">
-            Gestiona tu Academia
-            <span class="text-gradient block">de Forma Inteligente</span>
+          <h1 class="text-hero text-surface-700 mb-6">
+            <span>{{ typedLine1() }}</span>
+            <span class="text-gradient block">{{ typedLine2() }}</span>
+            <span class="typewriter-cursor" [class.typing]="!typingDone()">|</span>
           </h1>
-          <p class="text-subtitle text-surface-400 mb-10 max-w-2xl mx-auto animate-fade-in-up delay-100">
+          <p class="text-subtitle text-surface-400 mb-10 max-w-2xl mx-auto hero-reveal"
+             [class.revealed]="typingDone()">
             La plataforma todo-en-uno para academias y tutores independientes. 
             Gestiona alumnos, programa clases, recibe pagos y crea tu landing page profesional.
           </p>
-          <div class="flex flex-col sm:flex-row justify-center gap-4 animate-fade-in-up delay-200">
+          <div class="flex flex-col sm:flex-row justify-center gap-4 hero-reveal hero-reveal-delay"
+               [class.revealed]="typingDone()">
             <a routerLink="/auth/register" class="btn-premium text-lg !py-4 !px-8">
               Comenzar Prueba Gratis
             </a>
@@ -86,13 +89,13 @@ interface Particle {
         <div class="max-w-6xl mx-auto px-6 lg:px-8">
           <!-- Header -->
           <div class="text-center mb-16">
-            <h2 class="text-title text-surface-700 mb-4">
+            <h2 class="text-title text-surface-700 mb-4 scroll-reveal reveal-up">
               Elige el plan perfecto para ti
             </h2>
-            <p class="text-subtitle text-surface-400 mb-4">
+            <p class="text-subtitle text-surface-400 mb-4 scroll-reveal reveal-up" style="transition-delay:0.1s">
               Comienza con 14 días gratis. Cancela cuando quieras.
             </p>
-            <div class="flex items-center justify-center gap-2 text-sm text-surface-500 bg-surface-50 inline-flex px-4 py-2 rounded-full border border-surface-200">
+            <div class="flex items-center justify-center gap-2 text-sm text-surface-500 bg-surface-50 inline-flex px-4 py-2 rounded-full border border-surface-200 scroll-reveal reveal-up" style="transition-delay:0.2s">
                <svg class="w-5 h-5 text-[#003087]" viewBox="0 0 24 24" fill="currentColor">
                  <path d="M20.067 8.284c.642 4.606-2.583 8.358-8.24 8.358h-2.14l-1.026 6.551a.602.602 0 01-.595.507H4.558a.5.5 0 01-.497-.577l2.843-18.006a.8.8 0 01.789-.675h5.45c4.086 0 7.378 1.487 6.924 3.843z"/>
                  <path d="M7.076 21.337l.732-4.634h2.695c4.221 0 7.716-2.029 8.281-6.623.364-2.964-1.343-4.832-3.832-5.753-1.638-.606-3.805-.487-3.805-.487l-.46 2.87s1.396-.062 2.456.326c1.556.57 2.213 1.764 1.959 3.827-.406 3.328-3.085 4.098-5.368 4.098h-1.61L7.076 21.337z" fill="#009cde"/>
@@ -103,11 +106,14 @@ interface Particle {
 
           <!-- Pricing Cards -->
           <div class="grid lg:grid-cols-2 gap-8 max-w-3xl mx-auto">
-            @for (plan of plans; track plan.id) {
-              <div class="card-premium p-8 hover-lift"
+            @for (plan of plans; track plan.id; let idx = $index) {
+              <div class="card-premium p-8 hover-lift scroll-reveal"
+                   [class.reveal-left]="idx === 0"
+                   [class.reveal-right]="idx === 1"
                    [class.card-featured]="plan.popular"
                    [class.ring-2]="plan.popular"
-                   [class.ring-primary-500]="plan.popular">
+                   [class.ring-primary-500]="plan.popular"
+                   [style.transition-delay]="idx * 0.15 + 's'">
                 @if (plan.popular) {
                   <div class="flex justify-center -mt-4 mb-4">
                     <span class="badge-premium">
@@ -152,7 +158,7 @@ interface Particle {
           </div>
 
           <!-- Trust Indicators -->
-          <div class="mt-16 flex flex-wrap justify-center gap-8 text-sm text-surface-400">
+          <div class="mt-16 flex flex-wrap justify-center gap-8 text-sm text-surface-400 scroll-reveal reveal-up" style="transition-delay:0.3s">
             <div class="flex items-center gap-2">
               <svg class="w-5 h-5 text-surface-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
@@ -181,17 +187,17 @@ interface Particle {
       <section class="py-24 lg:py-32 bg-white relative z-10">
         <div class="max-w-6xl mx-auto px-6 lg:px-8">
           <div class="text-center mb-16">
-            <h2 class="text-title text-surface-700 mb-4">
+            <h2 class="text-title text-surface-700 mb-4 scroll-reveal reveal-up">
               Todo lo que necesitas para hacer crecer tu academia
             </h2>
-            <p class="text-subtitle text-surface-400 max-w-2xl mx-auto">
+            <p class="text-subtitle text-surface-400 max-w-2xl mx-auto scroll-reveal reveal-up" style="transition-delay:0.1s">
               Herramientas profesionales diseñadas específicamente para educadores
             </p>
           </div>
 
           <div class="grid md:grid-cols-3 gap-8 lg:gap-12">
             <!-- Feature 1 -->
-            <div class="card-premium p-8 text-center hover-lift">
+            <div class="card-premium p-8 text-center hover-lift scroll-reveal reveal-left">
               <div class="w-16 h-16 bg-primary-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
                 <svg class="w-8 h-8 text-primary-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
@@ -207,7 +213,7 @@ interface Particle {
             </div>
 
             <!-- Feature 2 -->
-            <div class="card-premium p-8 text-center hover-lift">
+            <div class="card-premium p-8 text-center hover-lift scroll-reveal reveal-up" style="transition-delay:0.15s">
               <div class="w-16 h-16 bg-accent-green/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
                 <svg class="w-8 h-8 text-accent-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="10"></circle>
@@ -222,7 +228,7 @@ interface Particle {
             </div>
 
             <!-- Feature 3 -->
-            <div class="card-premium p-8 text-center hover-lift">
+            <div class="card-premium p-8 text-center hover-lift scroll-reveal reveal-right" style="transition-delay:0.3s">
               <div class="w-16 h-16 bg-accent-indigo/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
                 <svg class="w-8 h-8 text-accent-indigo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="10"></circle>
@@ -242,14 +248,14 @@ interface Particle {
       <!-- CTA Section -->
       <section class="py-24 lg:py-32 bg-gradient-to-br from-primary-600 to-primary-700 relative z-10">
         <div class="max-w-4xl mx-auto text-center px-6 lg:px-8">
-          <h2 class="text-display text-white mb-6">
+          <h2 class="text-display text-white mb-6 scroll-reveal reveal-up">
             ¿Listo para transformar tu academia?
           </h2>
-          <p class="text-xl text-white/80 mb-10 max-w-2xl mx-auto">
+          <p class="text-xl text-white/80 mb-10 max-w-2xl mx-auto scroll-reveal reveal-up" style="transition-delay:0.1s">
             Únete a cientos de educadores que ya confían en EduGestión
           </p>
           <a routerLink="/auth/register" 
-             class="inline-block bg-white text-primary-600 px-10 py-4 rounded-full text-lg font-semibold hover:bg-surface-100 hover:scale-105 transition-all shadow-lg">
+             class="inline-block bg-white text-primary-600 px-10 py-4 rounded-full text-lg font-semibold hover:bg-surface-100 hover:scale-105 transition-all shadow-lg scroll-reveal reveal-up" style="transition-delay:0.2s">
             Comenzar Prueba Gratis — 14 días
           </a>
         </div>
@@ -258,7 +264,7 @@ interface Particle {
       <!-- Footer -->
       <footer class="bg-surface-700 text-white py-16 relative z-10">
         <div class="max-w-6xl mx-auto px-6 lg:px-8">
-          <div class="text-center">
+          <div class="text-center scroll-reveal reveal-up">
             <h3 class="text-2xl font-semibold mb-4">EduGestión</h3>
             <p class="text-surface-300 text-sm">
               © 2024 EduGestión. Todos los derechos reservados.
@@ -278,6 +284,65 @@ interface Particle {
       pointer-events: none;
       z-index: 1;
     }
+    .hero-fullscreen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-top: 4rem;
+      padding-bottom: 4rem;
+    }
+    .typewriter-cursor {
+      display: inline-block;
+      font-weight: 300;
+      color: #10b981;
+      animation: none;
+      margin-left: 2px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .typewriter-cursor.typing {
+      opacity: 1;
+      animation: blink 0.6s step-end infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    .hero-reveal {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .hero-reveal.revealed {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .hero-reveal-delay {
+      transition-delay: 0.2s;
+    }
+    /* Scroll Reveal System */
+    .scroll-reveal {
+      opacity: 0;
+      transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: opacity, transform;
+    }
+    .scroll-reveal.reveal-up {
+      transform: translateY(40px);
+    }
+    .scroll-reveal.reveal-left {
+      transform: translateX(-40px);
+    }
+    .scroll-reveal.reveal-right {
+      transform: translateX(40px);
+    }
+    .scroll-reveal:not(.reveal-up):not(.reveal-left):not(.reveal-right) {
+      transform: translateY(30px);
+    }
+    .scroll-reveal.revealed {
+      opacity: 1 !important;
+      transform: translate(0, 0) !important;
+    }
   `]
 })
 export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
@@ -292,6 +357,7 @@ export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly PARTICLE_COUNT = 300;
   private readonly MOUSE_RADIUS = 120;
   private readonly RETURN_SPEED = 0.03;
+  private scrollObserver!: IntersectionObserver;
 
   // Color palette - tonos verdes que combinan con EduGestion
   private colors = [
@@ -339,6 +405,12 @@ export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   ];
 
+  // Typewriter animation
+  typedLine1 = signal('');
+  typedLine2 = signal('');
+  typingDone = signal(false);
+  private typewriterTimeout: any;
+
   constructor(private router: Router, private ngZone: NgZone) { }
 
   ngOnInit(): void { }
@@ -347,10 +419,64 @@ export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
     this.initCanvas();
     this.createParticles();
     this.startAnimation();
+    this.startTypewriter();
+    this.initScrollReveal();
   }
 
   ngOnDestroy(): void {
     this.stopAnimation();
+    if (this.typewriterTimeout) clearTimeout(this.typewriterTimeout);
+    if (this.scrollObserver) this.scrollObserver.disconnect();
+  }
+
+  private initScrollReveal(): void {
+    this.scrollObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('revealed');
+        } else {
+          entry.target.classList.remove('revealed');
+        }
+      });
+    }, { threshold: 0.15 });
+
+    // Observe after a tick so Angular has rendered the DOM
+    setTimeout(() => {
+      const elements = document.querySelectorAll('.scroll-reveal');
+      elements.forEach(el => this.scrollObserver.observe(el));
+    });
+  }
+
+  private startTypewriter(): void {
+    const line1 = 'Gestiona tu Academia';
+    const line2 = 'de Forma Inteligente';
+    const speed = 50; // ms per character
+    let i = 0;
+    let j = 0;
+
+    const typeLine1 = () => {
+      if (i <= line1.length) {
+        this.typedLine1.set(line1.substring(0, i));
+        i++;
+        this.typewriterTimeout = setTimeout(typeLine1, speed);
+      } else {
+        typeLine2Step();
+      }
+    };
+
+    const typeLine2Step = () => {
+      if (j <= line2.length) {
+        this.typedLine2.set(line2.substring(0, j));
+        j++;
+        this.typewriterTimeout = setTimeout(typeLine2Step, speed);
+      } else {
+        // Typing complete — reveal subtitle and buttons
+        setTimeout(() => this.typingDone.set(true), 200);
+      }
+    };
+
+    // Small initial delay before typing starts
+    this.typewriterTimeout = setTimeout(typeLine1, 400);
   }
 
   @HostListener('window:resize')

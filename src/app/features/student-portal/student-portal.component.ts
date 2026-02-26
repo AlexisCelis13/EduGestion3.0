@@ -40,10 +40,24 @@ export class StudentPortalComponent implements OnInit {
 
       // Si falla, intenta como Token Permanente (acceso directo antiguo)
       if (error || !data) {
-        // console.log('Magic link failed, trying legacy token:', error);
         const legacyResult = await this.supabaseService.getStudentPortalData(token);
         data = legacyResult.data;
         error = legacyResult.error;
+      } else if (data && data.student && !data.student.company_name) {
+        // Magic link respondió pero sin datos del tutor (edge function vieja)
+        // Complementar con RPC si el alumno tiene access_token
+        try {
+          const rpcResult = await this.supabaseService.getStudentPortalData(data.student.access_token || token);
+          if (rpcResult.data?.student) {
+            data.student.company_name = rpcResult.data.student.company_name || '';
+            data.student.tutor_name = rpcResult.data.student.tutor_name || '';
+            data.student.logo_url = rpcResult.data.student.logo_url || '';
+            data.student.primary_color = rpcResult.data.student.primary_color || '#3B82F6';
+            data.student.secondary_color = rpcResult.data.student.secondary_color || '#1E40AF';
+          }
+        } catch (e) {
+          console.log('Could not supplement magic link data with RPC:', e);
+        }
       }
 
       if (error) {

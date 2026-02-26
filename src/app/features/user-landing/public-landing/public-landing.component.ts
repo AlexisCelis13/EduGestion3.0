@@ -25,6 +25,9 @@ export class PublicLandingComponent implements OnInit {
   // Chatbot
   showChatbot = signal(false);
 
+  // Booking section visibility
+  showBooking = signal(false);
+
   // Helper para formatear precios en pesos mexicanos
   formatPrice(price: number): string {
     return price.toLocaleString('es-MX');
@@ -34,10 +37,14 @@ export class PublicLandingComponent implements OnInit {
     if (serviceId) {
       this.selectedServiceId.set(serviceId);
     }
-    const element = document.getElementById('reservar');
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
+    this.showBooking.set(true);
+    // Wait for DOM to render the section before scrolling
+    setTimeout(() => {
+      const element = document.getElementById('reservar');
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    });
   }
 
   scrollToTop() {

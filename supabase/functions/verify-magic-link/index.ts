@@ -81,7 +81,20 @@ serve(async (req: Request) => {
             });
         }
 
-        // 3. Fetch additional data (Feedback & Materials)
+        // 3. Fetch tutor profile & tenant settings for branding
+        const { data: profile } = await supabase
+            .from("profiles")
+            .select("first_name, last_name, company_name")
+            .eq("id", student.user_id)
+            .single();
+
+        const { data: tenantSettings } = await supabase
+            .from("tenant_settings")
+            .select("logo_url, primary_color, secondary_color")
+            .eq("user_id", student.user_id)
+            .single();
+
+        // 4. Fetch additional data (Feedback & Materials)
         const { data: feedback } = await supabase
             .from("student_feedback")
             .select("*")
@@ -94,9 +107,26 @@ serve(async (req: Request) => {
             .eq("student_id", student.id)
             .order("created_at", { ascending: false });
 
+        // 5. Build response matching get_student_portal_data RPC shape
+        const tutorName = profile
+            ? `${profile.first_name || ""} ${profile.last_name || ""}`.trim()
+            : "";
+
         return new Response(
             JSON.stringify({
-                student,
+                student: {
+                    id: student.id,
+                    first_name: student.first_name,
+                    last_name: student.last_name,
+                    email: student.email,
+                    phone: student.phone || "",
+                    academic_level: "",
+                    tutor_name: tutorName,
+                    company_name: profile?.company_name || "",
+                    logo_url: tenantSettings?.logo_url || "",
+                    primary_color: tenantSettings?.primary_color || "#3B82F6",
+                    secondary_color: tenantSettings?.secondary_color || "#1E40AF",
+                },
                 feedback: feedback || [],
                 materials: materials || [],
             }),

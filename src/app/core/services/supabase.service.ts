@@ -1381,16 +1381,21 @@ export class SupabaseService {
       result = await this.supabase
         .from('payout_settings')
         .update({
-          bank_name: settings.bank_name,
-          account_number: settings.account_number,
-          account_holder: settings.account_holder,
+          payout_type: settings.payout_type || 'bank',
+          bank_name: settings.bank_name || null,
+          account_number: settings.account_number || null,
+          account_holder: settings.account_holder || null,
+          paypal_email: settings.paypal_email || null,
           updated_at: new Date()
         })
         .eq('user_id', settings.user_id);
     } else {
       result = await this.supabase
         .from('payout_settings')
-        .insert(settings);
+        .insert({
+          ...settings,
+          payout_type: settings.payout_type || 'bank'
+        });
     }
 
     return result;

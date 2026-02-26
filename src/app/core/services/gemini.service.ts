@@ -29,7 +29,7 @@ export interface ChatMessage {
 })
 export class GeminiService {
     private apiKey = environment.geminiApiKey;
-    private apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+    private apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
     constructor() { }
 
@@ -106,7 +106,13 @@ export class GeminiService {
                 }
 
                 if (!response.ok) {
-                    throw new Error(`Gemini API error: ${response.status}`);
+                    const errorBody = await response.json().catch(() => null);
+                    console.error('Gemini API error details:', {
+                        status: response.status,
+                        statusText: response.statusText,
+                        body: errorBody
+                    });
+                    throw new Error(`Gemini API error: ${response.status} - ${JSON.stringify(errorBody)}`);
                 }
 
                 const data = await response.json();
@@ -132,7 +138,7 @@ export class GeminiService {
         // Encontrar el primer { y el último }
         const start = clean.indexOf('{');
         const end = clean.lastIndexOf('}');
-        
+
         if (start !== -1 && end !== -1) {
             return clean.substring(start, end + 1);
         }
@@ -208,18 +214,18 @@ ${chatContext}
         try {
             const messages = [{ role: 'user', parts: [{ text: prompt }] }];
             const textResponse = await this.callGeminiWithRetry(messages, 3, 15000, true);
-            
+
             // Limpiar y parsear JSON
             const jsonStr = this.cleanJson(textResponse);
-            
+
             try {
                 const plan = JSON.parse(jsonStr) as GeneratedStudyPlan;
-                
+
                 // Validaciones post-generación
                 if (!plan.estimatedPrice || plan.estimatedPrice === 0) {
                     plan.estimatedPrice = (plan.totalHours || plan.recommendedSessions) * pricePerHour;
                 }
-                
+
                 return plan;
             } catch (e) {
                 console.error('Error parsing JSON from Gemini:', e);
