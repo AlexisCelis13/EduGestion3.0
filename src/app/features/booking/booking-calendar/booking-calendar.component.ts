@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
+import { Component, EventEmitter, Input, Output, signal, OnInit, ChangeDetectorRef, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LucideAngularModule, ChevronLeft, ChevronRight } from 'lucide-angular';
 
@@ -6,7 +6,6 @@ import { LucideAngularModule, ChevronLeft, ChevronRight } from 'lucide-angular';
   selector: 'app-booking-calendar',
   standalone: true,
   imports: [CommonModule, LucideAngularModule],
-  providers: [{ provide: 'LUCIDE_ICONS', useValue: { ChevronLeft, ChevronRight } }],
   template: `
     <div class="calendar-container bg-white rounded-lg shadow-sm border border-gray-200">
       <!-- Header del calendario -->
@@ -17,12 +16,12 @@ import { LucideAngularModule, ChevronLeft, ChevronRight } from 'lucide-angular';
             (click)="previousMonth()" 
             class="p-1 hover:bg-gray-100 rounded-full transition-colors"
             [disabled]="isPreviousMonthDisabled()">
-            <i-lucide name="chevron-left" class="w-5 h-5 text-gray-600"></i-lucide>
+            <i-lucide [img]="ChevronLeft" class="w-5 h-5 text-gray-600"></i-lucide>
           </button>
           <button 
             (click)="nextMonth()" 
             class="p-1 hover:bg-gray-100 rounded-full transition-colors">
-            <i-lucide name="chevron-right" class="w-5 h-5 text-gray-600"></i-lucide>
+            <i-lucide [img]="ChevronRight" class="w-5 h-5 text-gray-600"></i-lucide>
           </button>
         </div>
       </div>
@@ -65,7 +64,7 @@ import { LucideAngularModule, ChevronLeft, ChevronRight } from 'lucide-angular';
   `,
   styles: []
 })
-export class BookingCalendarComponent {
+export class BookingCalendarComponent implements OnInit, AfterViewInit {
   readonly ChevronLeft = ChevronLeft;
   readonly ChevronRight = ChevronRight;
 
@@ -81,8 +80,16 @@ export class BookingCalendarComponent {
   // Mes que se está visualizando
   viewDate = new Date();
 
+  constructor(private cdr: ChangeDetectorRef) { }
+
   ngOnInit() {
     this.generateCalendar();
+  }
+
+  ngAfterViewInit() {
+    // Force change detection after the view is initialized
+    // This ensures the calendar grid renders on first load
+    this.cdr.detectChanges();
   }
 
   get currentMonthName(): string {

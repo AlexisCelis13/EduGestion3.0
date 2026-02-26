@@ -6,13 +6,12 @@ import { LucideAngularModule, Loader2 } from 'lucide-angular';
   selector: 'app-booking-slots',
   standalone: true,
   imports: [CommonModule, LucideAngularModule],
-  providers: [{ provide: 'LUCIDE_ICONS', useValue: { Loader2 } }],
   template: `
     <div class="slots-container">
       <h3 class="text-sm font-medium text-gray-700 mb-3">Horarios disponibles</h3>
       
       <div *ngIf="loading" class="flex justify-center p-4">
-        <i-lucide name="loader-2" class="w-6 h-6 animate-spin text-blue-600"></i-lucide>
+        <i-lucide [img]="Loader2" class="w-6 h-6 animate-spin text-blue-600"></i-lucide>
       </div>
 
       <div *ngIf="!loading && slots.length === 0" class="text-center p-4 bg-gray-50 rounded-lg text-gray-500 text-sm">
@@ -31,6 +30,7 @@ import { LucideAngularModule, Loader2 } from 'lucide-angular';
   `
 })
 export class BookingSlotsComponent {
+  readonly Loader2 = Loader2;
   @Input() slots: { startTime: string; endTime: string }[] = [];
   @Input() loading: boolean = false;
   @Output() slotSelected = new EventEmitter<{ startTime: string; endTime: string }>();

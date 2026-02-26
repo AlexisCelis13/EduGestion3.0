@@ -8,7 +8,6 @@ import { LucideAngularModule, DollarSign, CreditCard, Building, ArrowUpRight, Hi
   selector: 'app-payments',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, LucideAngularModule],
-  providers: [{ provide: 'LUCIDE_ICONS', useValue: { DollarSign, CreditCard, Building, ArrowUpRight, History, Wallet, TrendingUp, CheckCircle } }],
   template: `
     <div class="min-h-screen">
       <!-- Header -->
@@ -30,7 +29,7 @@ import { LucideAngularModule, DollarSign, CreditCard, Building, ArrowUpRight, Hi
           <div class="card-premium p-6 hover-lift">
             <div class="flex items-center">
               <div class="w-12 h-12 bg-accent-green/10 rounded-2xl flex items-center justify-center">
-                <i-lucide name="trending-up" class="w-6 h-6 text-accent-green"></i-lucide>
+                <i-lucide [img]="TrendingUp" class="w-6 h-6 text-accent-green"></i-lucide>
               </div>
               <div class="ml-4">
                 <p class="text-sm font-medium text-surface-400">Ingresos Totales</p>
@@ -43,7 +42,7 @@ import { LucideAngularModule, DollarSign, CreditCard, Building, ArrowUpRight, Hi
           <div class="card-premium p-6 hover-lift">
             <div class="flex items-center">
               <div class="w-12 h-12 bg-primary-50 rounded-2xl flex items-center justify-center">
-                <i-lucide name="wallet" class="w-6 h-6 text-primary-600"></i-lucide>
+                <i-lucide [img]="Wallet" class="w-6 h-6 text-primary-600"></i-lucide>
               </div>
               <div class="ml-4">
                 <p class="text-sm font-medium text-surface-400">Disponible para Retiro</p>
@@ -60,7 +59,7 @@ import { LucideAngularModule, DollarSign, CreditCard, Building, ArrowUpRight, Hi
                      [class.bg-accent-green]="hasPayoutMethod()"
                      [class.bg-opacity-10]="hasPayoutMethod()"
                      [class.bg-amber-50]="!hasPayoutMethod()">
-                  <i-lucide [name]="payoutSettings()?.payout_type === 'paypal' ? 'credit-card' : 'building'" class="w-6 h-6" 
+                  <i-lucide [img]="payoutSettings()?.payout_type === 'paypal' ? CreditCard : Building" class="w-6 h-6" 
                             [class.text-accent-green]="hasPayoutMethod()"
                             [class.text-amber-600]="!hasPayoutMethod()"></i-lucide>
                 </div>
@@ -77,7 +76,7 @@ import { LucideAngularModule, DollarSign, CreditCard, Building, ArrowUpRight, Hi
                   </p>
                 </div>
               </div>
-              <i-lucide name="arrow-up-right" class="w-5 h-5 text-surface-300"></i-lucide>
+              <i-lucide [img]="ArrowUpRight" class="w-5 h-5 text-surface-300"></i-lucide>
             </div>
           </div>
         </div>
@@ -87,7 +86,7 @@ import { LucideAngularModule, DollarSign, CreditCard, Building, ArrowUpRight, Hi
           <div class="lg:col-span-2 card-premium overflow-hidden flex flex-col" style="max-height: 500px;">
             <div class="p-6 border-b border-surface-100 flex justify-between items-center">
               <h3 class="font-semibold text-surface-700 flex items-center gap-2">
-                <i-lucide name="history" class="w-5 h-5 text-surface-400"></i-lucide>
+                <i-lucide [img]="History" class="w-5 h-5 text-surface-400"></i-lucide>
                 Historial de Ingresos
               </h3>
             </div>
@@ -117,7 +116,7 @@ import { LucideAngularModule, DollarSign, CreditCard, Building, ArrowUpRight, Hi
                     </td>
                     <td class="px-6 py-4 text-center">
                       <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-accent-green/10 text-accent-green">
-                        <i-lucide name="check-circle" class="w-3 h-3"></i-lucide>
+                        <i-lucide [img]="CheckCircle" class="w-3 h-3"></i-lucide>
                         Completado
                       </span>
                     </td>
@@ -126,7 +125,7 @@ import { LucideAngularModule, DollarSign, CreditCard, Building, ArrowUpRight, Hi
                     <td colspan="5" class="px-6 py-12 text-center text-surface-400">
                       <div class="flex flex-col items-center">
                         <div class="w-16 h-16 bg-surface-100 rounded-full flex items-center justify-center mb-4">
-                          <i-lucide name="dollar-sign" class="w-8 h-8 text-surface-300"></i-lucide>
+                          <i-lucide [img]="DollarSign" class="w-8 h-8 text-surface-300"></i-lucide>
                         </div>
                         <p>No hay ingresos registrados aún.</p>
                         <p class="text-sm mt-1">Los pagos recibidos aparecerán aquí.</p>
@@ -144,7 +143,7 @@ import { LucideAngularModule, DollarSign, CreditCard, Building, ArrowUpRight, Hi
             
             <div *ngIf="!hasPayoutMethod()" class="text-center py-8">
               <div class="w-16 h-16 bg-surface-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <i-lucide name="building" class="w-8 h-8 text-surface-400"></i-lucide>
+                <i-lucide [img]="Building" class="w-8 h-8 text-surface-400"></i-lucide>
               </div>
               <p class="text-surface-500 mb-4 text-sm">Vincula tu cuenta bancaria o PayPal para recibir tus pagos.</p>
               <button (click)="showLinkModal.set(true)" class="w-full px-4 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-all font-medium hover-lift">
@@ -309,6 +308,14 @@ import { LucideAngularModule, DollarSign, CreditCard, Building, ArrowUpRight, Hi
   `]
 })
 export class PaymentsComponent implements OnInit {
+  readonly TrendingUp = TrendingUp;
+  readonly Wallet = Wallet;
+  readonly CreditCard = CreditCard;
+  readonly Building = Building;
+  readonly ArrowUpRight = ArrowUpRight;
+  readonly History = History;
+  readonly CheckCircle = CheckCircle;
+  readonly DollarSign = DollarSign;
   transactions = signal<any[]>([]);
   payoutSettings = signal<any>(null);
   totalRevenue = signal(0);

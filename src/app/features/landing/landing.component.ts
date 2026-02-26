@@ -21,13 +21,19 @@ interface Particle {
   alpha: number;
   baseAlpha: number;
   color: string;
-  // Flotación
-  floatSpeedX: number;
-  floatSpeedY: number;
-  floatPhase: number;
-  // Parpadeo
+  // Noise-based drift
+  noiseOffsetX: number;
+  noiseOffsetY: number;
+  noiseSpeed: number;
+  // Damped velocity for mouse interaction
+  vx: number;
+  vy: number;
+  // Twinkle
   twinkleSpeed: number;
   twinklePhase: number;
+  // Color cycling phase
+  colorPhase: number;
+  colorSpeed: number;
 }
 
 @Component({
@@ -354,22 +360,124 @@ export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
   private mouseX = -1000;
   private mouseY = -1000;
   private isAnimating = false;
-  private readonly PARTICLE_COUNT = 300;
-  private readonly MOUSE_RADIUS = 120;
-  private readonly RETURN_SPEED = 0.03;
+  private readonly PARTICLE_COUNT = 180;
+  private readonly MOUSE_RADIUS = 100;
+  private readonly MOUSE_ATTRACT_RADIUS = 200;
+  private readonly RETURN_SPEED = 0.02;
+  private readonly DAMPING = 0.92;
   private scrollObserver!: IntersectionObserver;
+  private time = 0;
 
-  // Color palette - tonos verdes que combinan con EduGestion
-  private colors = [
-    '#10b981', // emerald-500
-    '#34d399', // emerald-400
-    '#6ee7b7', // emerald-300
-    '#059669', // emerald-600
-    '#047857', // emerald-700
-    '#22c55e', // green-500
-    '#4ade80', // green-400
-    '#86efac', // green-300
+  // Easter egg: apple contour
+  private mouseStillTimer: any = null;
+  private lastMouseX = -1000;
+  private lastMouseY = -1000;
+  private easterEggActive = false;
+  private easterEggCenter = { x: 0, y: 0 };
+  private readonly STILL_THRESHOLD = 5; // px movement tolerance
+  private readonly STILL_DURATION = 10000; // 10 seconds
+  private readonly APPLE_SIZE = 110; // px radius of the apple shape
+
+  // Apple contour precisely traced from isotipo geometric description:
+  // - Bilobed body, V-notch top, max width at 60% from base
+  // - Stem at 105° (tilts slightly LEFT), 3:1 aspect
+  // - Lanceolate leaf at 45° upper-right, anchored 1/3 up stem
+  private appleContour: { x: number; y: number }[] = [
+    // ═══ STEM (105° from horizontal → tilts slightly left) ═══
+    { x: 0.00, y: -0.48 },  // base of notch
+    { x: -0.02, y: -0.55 },
+    { x: -0.04, y: -0.62 },
+    { x: -0.06, y: -0.69 },
+    { x: -0.08, y: -0.76 },
+    { x: -0.09, y: -0.80 },  // rounded cap
+
+    // ═══ LEAF (lanceolate, 45° into upper-right, at 1/3 up stem) ═══
+    { x: -0.03, y: -0.64 },  // narrow insertion
+    { x: 0.02, y: -0.68 },
+    { x: 0.08, y: -0.74 },   // upper edge (higher tension)
+    { x: 0.15, y: -0.80 },
+    { x: 0.22, y: -0.85 },
+    { x: 0.28, y: -0.88 },   // approach tip
+    { x: 0.32, y: -0.89 },   // tip (rounded vertex)
+    { x: 0.28, y: -0.84 },   // lower edge (more open radius)
+    { x: 0.20, y: -0.78 },
+    { x: 0.12, y: -0.72 },
+    { x: 0.04, y: -0.66 },
+    { x: -0.01, y: -0.63 },  // back to insertion
+
+    // ═══ APPLE BODY ═══
+    // — Top V-notch (inverted V with Bézier-smooth transition) —
+    { x: -0.04, y: -0.42 },  // center of notch (lowest)
+    { x: 0.00, y: -0.40 },   // deepest point
+    { x: 0.04, y: -0.42 },
+
+    // — Right shoulder (lobe rising, peaks at 1/4 width from axis) —
+    { x: 0.10, y: -0.45 },
+    { x: 0.18, y: -0.48 },
+    { x: 0.25, y: -0.50 },   // shoulder peak (1/4 width)
+    { x: 0.34, y: -0.49 },
+    { x: 0.44, y: -0.46 },
+
+    // — Right flank (large-radius convex, widening) —
+    { x: 0.55, y: -0.40 },
+    { x: 0.66, y: -0.30 },
+    { x: 0.76, y: -0.18 },
+    { x: 0.84, y: -0.05 },
+
+    // — Right max width (at ~60% from base, y ≈ -0.05) —
+    { x: 0.88, y: 0.00 },
+    { x: 0.90, y: 0.06 },    // widest point
+    { x: 0.88, y: 0.14 },
+
+    // — Right lower curve —
+    { x: 0.84, y: 0.24 },
+    { x: 0.76, y: 0.34 },
+    { x: 0.66, y: 0.42 },
+    { x: 0.54, y: 0.48 },
+
+    // — Bottom-right, approaching base support —
+    { x: 0.40, y: 0.53 },
+    { x: 0.28, y: 0.56 },
+    { x: 0.18, y: 0.55 },    // right "support"
+
+    // — Base (concave center, two supports) —
+    { x: 0.10, y: 0.52 },
+    { x: 0.05, y: 0.48 },    // concave dip approaching center
+    { x: 0.00, y: 0.46 },    // center (slightly concave/flat)
+    { x: -0.05, y: 0.48 },
+    { x: -0.10, y: 0.52 },
+
+    // — Bottom-left support —
+    { x: -0.18, y: 0.55 },   // left "support"
+    { x: -0.28, y: 0.56 },
+    { x: -0.40, y: 0.53 },
+
+    // — Left lower curve —
+    { x: -0.54, y: 0.48 },
+    { x: -0.66, y: 0.42 },
+    { x: -0.76, y: 0.34 },
+    { x: -0.84, y: 0.24 },
+
+    // — Left max width (mirror) —
+    { x: -0.88, y: 0.14 },
+    { x: -0.90, y: 0.06 },   // widest point
+    { x: -0.88, y: 0.00 },
+
+    // — Left flank —
+    { x: -0.84, y: -0.05 },
+    { x: -0.76, y: -0.18 },
+    { x: -0.66, y: -0.30 },
+    { x: -0.55, y: -0.40 },
+
+    // — Left shoulder —
+    { x: -0.44, y: -0.46 },
+    { x: -0.34, y: -0.49 },
+    { x: -0.25, y: -0.50 },  // shoulder peak
+    { x: -0.18, y: -0.48 },
+    { x: -0.10, y: -0.45 },
   ];
+
+  // Colors are dynamically generated via red↔green cycling
 
   plans: PricingPlan[] = [
     {
@@ -426,6 +534,7 @@ export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
   ngOnDestroy(): void {
     this.stopAnimation();
     if (this.typewriterTimeout) clearTimeout(this.typewriterTimeout);
+    if (this.mouseStillTimer) clearTimeout(this.mouseStillTimer);
     if (this.scrollObserver) this.scrollObserver.disconnect();
   }
 
@@ -487,14 +596,85 @@ export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
 
   @HostListener('document:mousemove', ['$event'])
   onMouseMove(event: MouseEvent): void {
-    this.mouseX = event.clientX;
-    this.mouseY = event.clientY;
+    const newX = event.clientX;
+    const newY = event.clientY;
+    const moved = Math.abs(newX - this.lastMouseX) + Math.abs(newY - this.lastMouseY);
+
+    this.mouseX = newX;
+    this.mouseY = newY;
+
+    if (moved > this.STILL_THRESHOLD) {
+      // Mouse moved significantly — reset stillness timer
+      this.lastMouseX = newX;
+      this.lastMouseY = newY;
+      this.resetStillTimer();
+
+      if (this.easterEggActive) {
+        this.deactivateEasterEgg();
+      }
+    }
   }
 
   @HostListener('document:mouseleave')
   onMouseLeave(): void {
     this.mouseX = -1000;
     this.mouseY = -1000;
+    this.resetStillTimer();
+    if (this.easterEggActive) {
+      this.deactivateEasterEgg();
+    }
+  }
+
+  private resetStillTimer(): void {
+    if (this.mouseStillTimer) {
+      clearTimeout(this.mouseStillTimer);
+      this.mouseStillTimer = null;
+    }
+    // Start new timer
+    if (this.mouseX > 0 && this.mouseY > 0) {
+      this.mouseStillTimer = setTimeout(() => {
+        this.activateEasterEgg();
+      }, this.STILL_DURATION);
+    }
+  }
+
+  private activateEasterEgg(): void {
+    this.easterEggActive = true;
+    this.easterEggCenter = { x: this.mouseX, y: this.mouseY };
+
+    // Assign contour target to the closest particles
+    const contourTargets = this.appleContour.map(p => ({
+      x: this.easterEggCenter.x + p.x * this.APPLE_SIZE,
+      y: this.easterEggCenter.y + p.y * this.APPLE_SIZE
+    }));
+
+    // For each contour point, find the nearest available particle
+    const used = new Set<number>();
+    for (const target of contourTargets) {
+      let bestIdx = -1;
+      let bestDist = Infinity;
+      for (let i = 0; i < this.particles.length; i++) {
+        if (used.has(i)) continue;
+        const dx = this.particles[i].x - target.x;
+        const dy = this.particles[i].y - target.y;
+        const d = dx * dx + dy * dy;
+        if (d < bestDist) {
+          bestDist = d;
+          bestIdx = i;
+        }
+      }
+      if (bestIdx >= 0) {
+        (this.particles[bestIdx] as any).easterTarget = target;
+        used.add(bestIdx);
+      }
+    }
+  }
+
+  private deactivateEasterEgg(): void {
+    this.easterEggActive = false;
+    for (const p of this.particles) {
+      delete (p as any).easterTarget;
+    }
   }
 
   private initCanvas(): void {
@@ -512,31 +692,66 @@ export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
   private createParticles(): void {
     this.particles = [];
     const canvas = this.canvasRef.nativeElement;
+    const cols = Math.ceil(Math.sqrt(this.PARTICLE_COUNT * (canvas.width / canvas.height)));
+    const rows = Math.ceil(this.PARTICLE_COUNT / cols);
+    const cellW = canvas.width / cols;
+    const cellH = canvas.height / rows;
 
-    for (let i = 0; i < this.PARTICLE_COUNT; i++) {
-      const x = Math.random() * canvas.width;
-      const y = Math.random() * canvas.height;
-      const size = Math.random() * 3 + 1;
-      const baseAlpha = Math.random() * 0.5 + 0.3;
+    let count = 0;
+    for (let row = 0; row < rows && count < this.PARTICLE_COUNT; row++) {
+      for (let col = 0; col < cols && count < this.PARTICLE_COUNT; col++) {
+        // Grid position with jitter
+        const jitterX = (Math.random() - 0.5) * cellW * 0.7;
+        const jitterY = (Math.random() - 0.5) * cellH * 0.7;
+        const x = cellW * (col + 0.5) + jitterX;
+        const y = cellH * (row + 0.5) + jitterY;
+        const size = Math.random() * 2 + 1.5; // 1.5 - 3.5px
+        const baseAlpha = Math.random() * 0.4 + 0.5; // 0.5 - 0.9
 
-      this.particles.push({
-        x,
-        y,
-        originX: x,
-        originY: y,
-        size,
-        color: this.colors[Math.floor(Math.random() * this.colors.length)],
-        alpha: baseAlpha,
-        baseAlpha,
-        // Velocidad de flotación aleatoria
-        floatSpeedX: (Math.random() - 0.5) * 1.5,
-        floatSpeedY: (Math.random() - 0.5) * 1.5,
-        floatPhase: Math.random() * Math.PI * 2,
-        // Velocidad de parpadeo aleatoria
-        twinkleSpeed: Math.random() * 0.08 + 0.04,
-        twinklePhase: Math.random() * Math.PI * 2
-      });
+        this.particles.push({
+          x, y,
+          originX: x,
+          originY: y,
+          size,
+          color: '',
+          alpha: baseAlpha,
+          baseAlpha,
+          noiseOffsetX: Math.random() * 1000,
+          noiseOffsetY: Math.random() * 1000,
+          noiseSpeed: Math.random() * 0.003 + 0.001,
+          vx: 0,
+          vy: 0,
+          twinkleSpeed: Math.random() * 0.025 + 0.01,
+          twinklePhase: Math.random() * Math.PI * 2,
+          colorPhase: Math.random() * Math.PI * 2,
+          colorSpeed: Math.random() * 0.008 + 0.004
+        });
+        count++;
+      }
     }
+  }
+
+  // Simple pseudo-noise function (smooth randomness)
+  private noise(x: number, y: number): number {
+    const n = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
+    return (n - Math.floor(n)) * 2 - 1;
+  }
+
+  private smoothNoise(x: number, y: number): number {
+    const ix = Math.floor(x);
+    const iy = Math.floor(y);
+    const fx = x - ix;
+    const fy = y - iy;
+    // Smoothstep
+    const sx = fx * fx * (3 - 2 * fx);
+    const sy = fy * fy * (3 - 2 * fy);
+    const n00 = this.noise(ix, iy);
+    const n10 = this.noise(ix + 1, iy);
+    const n01 = this.noise(ix, iy + 1);
+    const n11 = this.noise(ix + 1, iy + 1);
+    const nx0 = n00 + sx * (n10 - n00);
+    const nx1 = n01 + sx * (n11 - n01);
+    return nx0 + sy * (nx1 - nx0);
   }
 
   private startAnimation(): void {
@@ -544,50 +759,79 @@ export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
     this.isAnimating = true;
 
     this.ngZone.runOutsideAngular(() => {
-      let time = 0;
-
       const animate = () => {
         if (!this.isAnimating) return;
-        time += 0.016; // Aproximadamente 60fps
+        this.time += 0.016;
 
-        this.ctx.clearRect(0, 0, this.canvasRef.nativeElement.width, this.canvasRef.nativeElement.height);
+        const canvas = this.canvasRef.nativeElement;
+        this.ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         for (const p of this.particles) {
-          // Efecto de parpadeo (twinkle)
+          // Color cycling: red ↔ green
+          p.colorPhase += p.colorSpeed;
+          const t = (Math.sin(p.colorPhase) + 1) / 2; // 0..1
+          // Interpolate hue: 0 (red) → 145 (green)
+          const hue = Math.round(t * 145);
+          const saturation = 70 + Math.round((1 - t) * 15); // slightly more saturated on red
+          const lightness = 50 + Math.round(t * 10); // slightly lighter on green
+          p.color = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+
+          // Twinkle
           p.twinklePhase += p.twinkleSpeed;
-          p.alpha = p.baseAlpha + Math.sin(p.twinklePhase) * 0.2;
-          p.alpha = Math.max(0.1, Math.min(1, p.alpha));
+          p.alpha = p.baseAlpha + Math.sin(p.twinklePhase) * 0.15;
+          p.alpha = Math.max(0.3, Math.min(0.95, p.alpha));
 
-          // Calcular posición flotante base
-          p.floatPhase += 0.04;
-          const floatOffsetX = Math.sin(p.floatPhase + p.floatSpeedX * 10) * 6;
-          const floatOffsetY = Math.cos(p.floatPhase + p.floatSpeedY * 10) * 6;
-          const targetX = p.originX + floatOffsetX;
-          const targetY = p.originY + floatOffsetY;
+          // Noise-based drift (organic perlin-like movement)
+          const noiseX = this.smoothNoise(p.noiseOffsetX + this.time * 0.3, p.noiseOffsetY);
+          const noiseY = this.smoothNoise(p.noiseOffsetX, p.noiseOffsetY + this.time * 0.3);
+          const driftX = noiseX * 4; // max 4px drift
+          const driftY = noiseY * 4;
+          const targetX = p.originX + driftX;
+          const targetY = p.originY + driftY;
 
-          // Calcular distancia al mouse
+          // Mouse interaction (damped)
           const dx = this.mouseX - p.x;
           const dy = this.mouseY - p.y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
+          const dist = Math.sqrt(dx * dx + dy * dy);
 
-          // Si el mouse está cerca, alejar la partícula
-          if (distance < this.MOUSE_RADIUS) {
-            const force = (this.MOUSE_RADIUS - distance) / this.MOUSE_RADIUS;
+          if (dist < this.MOUSE_RADIUS && dist > 0) {
+            // Gentle repulsion
+            const force = (1 - dist / this.MOUSE_RADIUS) * 1.5;
             const angle = Math.atan2(dy, dx);
-            const moveX = Math.cos(angle) * force * 15;
-            const moveY = Math.sin(angle) * force * 15;
-            p.x -= moveX;
-            p.y -= moveY;
-          } else {
-            // Retornar suavemente a la posición flotante
-            p.x += (targetX - p.x) * this.RETURN_SPEED;
-            p.y += (targetY - p.y) * this.RETURN_SPEED;
+            p.vx -= Math.cos(angle) * force;
+            p.vy -= Math.sin(angle) * force;
+          } else if (dist < this.MOUSE_ATTRACT_RADIUS && dist > 0) {
+            // Very subtle attraction
+            const force = (1 - dist / this.MOUSE_ATTRACT_RADIUS) * 0.15;
+            const angle = Math.atan2(dy, dx);
+            p.vx += Math.cos(angle) * force;
+            p.vy += Math.sin(angle) * force;
           }
 
-          // Dibujar la partícula
+          // Apply damping to velocity
+          p.vx *= this.DAMPING;
+          p.vy *= this.DAMPING;
+
+          // Easter egg: override target if this particle has a contour assignment
+          const eTarget = (p as any).easterTarget;
+          if (eTarget) {
+            // Smoothly move toward the apple contour point
+            p.x += (eTarget.x - p.x) * 0.06;
+            p.y += (eTarget.y - p.y) * 0.06;
+            p.vx *= 0.5; // heavy damping during formation
+            p.vy *= 0.5;
+          } else {
+            // Normal: move towards noise target + velocity
+            p.x += (targetX - p.x) * this.RETURN_SPEED + p.vx;
+            p.y += (targetY - p.y) * this.RETURN_SPEED + p.vy;
+          }
+
+          // Draw
           this.ctx.beginPath();
           this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-          this.ctx.fillStyle = this.hexToRgba(p.color, p.alpha);
+          // color is already HSL string, apply alpha
+          const [h, s, l] = p.color.match(/\d+/g)!.map(Number);
+          this.ctx.fillStyle = `hsla(${h}, ${s}%, ${l}%, ${p.alpha})`;
           this.ctx.fill();
         }
 

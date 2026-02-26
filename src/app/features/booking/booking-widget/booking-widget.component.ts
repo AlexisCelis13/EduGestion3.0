@@ -5,6 +5,7 @@ import { BookingSlotsComponent } from '../booking-slots/booking-slots.component'
 import { BookingFormComponent } from '../booking-form/booking-form.component';
 import { PaymentFormComponent } from '../payment-form/payment-form.component'; // Importar
 import { SupabaseService } from '../../../core/services/supabase.service';
+import { SubscriptionService } from '../../../core/services/subscription.service';
 import { LucideAngularModule, ArrowLeft, Check, Calendar, Clock, Loader2, CreditCard } from 'lucide-angular';
 
 type BookingStep = 'calendar' | 'slots' | 'form' | 'payment' | 'success';
@@ -20,7 +21,7 @@ type BookingStep = 'calendar' | 'slots' | 'form' | 'payment' | 'success';
     PaymentFormComponent, // Agregar
     LucideAngularModule
   ],
-  providers: [{ provide: 'LUCIDE_ICONS', useValue: { ArrowLeft, Check, Calendar, Clock, Loader2, CreditCard } }],
+  providers: [],
   template: `
     <div class="booking-widget bg-white rounded-xl shadow-lg border border-gray-100 overflow-visible">
       <!-- Headers de pasos (solo móvil o si se desea mostrar progreso) -->
@@ -39,7 +40,7 @@ type BookingStep = 'calendar' | 'slots' | 'form' | 'payment' | 'success';
         <div *ngIf="currentStep() === 'slots'">
           <div class="flex items-center gap-2 mb-4">
             <button (click)="goBack()" class="p-1 hover:bg-gray-100 rounded-full transition-colors text-gray-500">
-              <i-lucide name="arrow-left" class="w-5 h-5"></i-lucide>
+              <i-lucide [img]="ArrowLeft" class="w-5 h-5"></i-lucide>
             </button>
             <h2 class="text-xl font-bold text-gray-900">
               Horarios para {{ formatDate(selectedDate) }}
@@ -83,7 +84,7 @@ type BookingStep = 'calendar' | 'slots' | 'form' | 'payment' | 'success';
         <!-- Paso 5: Éxito -->
         <div *ngIf="currentStep() === 'success'" class="text-center py-8">
           <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <i-lucide name="check" class="w-8 h-8 text-green-600"></i-lucide>
+            <i-lucide [img]="Check" class="w-8 h-8 text-green-600"></i-lucide>
           </div>
           <h2 class="text-2xl font-bold text-gray-900 mb-2">¡Reserva Confirmada!</h2>
           <p class="text-gray-600 mb-6 max-w-sm mx-auto">
@@ -115,6 +116,8 @@ type BookingStep = 'calendar' | 'slots' | 'form' | 'payment' | 'success';
   `]
 })
 export class BookingWidgetComponent implements OnInit {
+  readonly ArrowLeft = ArrowLeft;
+  readonly Check = Check;
   @Input() tutorId: string = '';
   @Input() services: any[] = [];
   @Input() preSelectedServiceId: string | undefined;
@@ -134,7 +137,7 @@ export class BookingWidgetComponent implements OnInit {
   pendingFormData: any = null;
   pendingPaymentAmount: number = 0;
 
-  constructor(private supabaseService: SupabaseService) { }
+  constructor(private supabaseService: SupabaseService, private subscriptionService: SubscriptionService) { }
 
   ngOnInit() {
   }
@@ -206,6 +209,20 @@ export class BookingWidgetComponent implements OnInit {
     this.submitting.set(true);
 
     try {
+      // Check if this is a new student (not returning) and if at the limit
+      const studentEmail = formData.studentEmail || formData.parentEmail;
+      const { data: studentStatus } = await this.supabaseService.checkStudentStatus(this.tutorId, studentEmail);
+      const isNewStudent = !studentStatus || studentStatus.status === 'not_found';
+
+      if (isNewStudent) {
+        const limitCheck = await this.subscriptionService.canAddStudent(this.tutorId);
+        if (!limitCheck.allowed) {
+          alert(`El tutor ha alcanzado su límite de ${limitCheck.limit} alumnos. No se pueden registrar nuevos alumnos en este momento.`);
+          this.submitting.set(false);
+          return;
+        }
+      }
+
       const appointment = {
         tutor_id: this.tutorId,
         student_name: formData.studentName,

@@ -93,6 +93,20 @@ import { PaymentService } from '../../core/services/payment.service';
                     Próxima facturación: <span class="font-medium text-surface-700">{{ formatDate(subscription()?.current_period_end) }}</span>
                   </p>
                 }
+
+                @if (getCreditBalance() > 0) {
+                  <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-4">
+                    <div class="flex items-center gap-3">
+                      <div class="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
+                        <span class="text-lg">💰</span>
+                      </div>
+                      <div>
+                        <p class="font-semibold text-emerald-800">Crédito disponible: \${{ formatPrice(getCreditBalance()) }}</p>
+                        <p class="text-sm text-emerald-600">Se aplicará automáticamente en tu próximo cambio de plan</p>
+                      </div>
+                    </div>
+                  </div>
+                }
               </div>
 
               <!-- Actions -->
@@ -226,39 +240,53 @@ import { PaymentService } from '../../core/services/payment.service';
         <!-- Subscription History -->
         @if (history().length > 0) {
           <div class="card-premium">
-            <div class="p-6 border-b border-surface-100">
-              <h2 class="text-lg font-semibold text-surface-700">Historial de Suscripción</h2>
-            </div>
-            <div class="divide-y divide-surface-100">
-              @for (event of history(); track event.id) {
-                <div class="p-4 flex items-center justify-between">
-                  <div class="flex items-center gap-3">
-                    <div [class]="getEventIconClass(event.event_type)">
-                      @switch (event.event_type) {
-                        @case ('created') { <span>🎉</span> }
-                        @case ('upgraded') { <span>⬆️</span> }
-                        @case ('downgraded') { <span>⬇️</span> }
-                        @case ('cancelled') { <span>❌</span> }
-                        @case ('reactivated') { <span>✅</span> }
-                        @case ('payment_success') { <span>💳</span> }
-                        @case ('trial_started') { <span>🎁</span> }
-                        @default { <span>📋</span> }
+            <button (click)="showHistory.set(!showHistory())" class="w-full p-4 flex items-center justify-between hover:bg-surface-50 transition-colors rounded-t-xl">
+              <div class="flex items-center gap-2">
+                <span class="text-surface-400 text-sm transition-transform" [class.rotate-90]="showHistory()">▶</span>
+                <h2 class="text-sm font-semibold text-surface-500 uppercase tracking-wider">Historial de Suscripción</h2>
+                <span class="px-2 py-0.5 text-xs font-medium bg-surface-100 text-surface-500 rounded-full">{{ history().length }}</span>
+              </div>
+            </button>
+            @if (showHistory()) {
+              <div class="divide-y divide-surface-100 border-t border-surface-100">
+                @for (event of getVisibleHistory(); track event.id) {
+                  <div class="px-4 py-3 flex items-center justify-between gap-4">
+                    <div class="flex items-center gap-3 min-w-0">
+                      <span class="text-base flex-shrink-0">
+                        @switch (event.event_type) {
+                          @case ('created') { 🎉 }
+                          @case ('upgraded') { ⬆️ }
+                          @case ('downgraded') { ⬇️ }
+                          @case ('cancelled') { ❌ }
+                          @case ('reactivated') { ✅ }
+                          @case ('payment_success') { 💳 }
+                          @case ('trial_started') { 🎁 }
+                          @case ('credit_applied') { 💰 }
+                          @default { 📋 }
+                        }
+                      </span>
+                      <div class="min-w-0">
+                        <p class="text-sm font-medium text-surface-700 truncate">{{ getEventLabel(event.event_type) }}</p>
+                        @if (event.notes) {
+                          <p class="text-xs text-surface-400 truncate">{{ event.notes }}</p>
+                        }
+                      </div>
+                    </div>
+                    <div class="text-right flex-shrink-0">
+                      @if (event.amount !== null && event.amount !== undefined) {
+                        <p class="text-sm font-semibold text-surface-700">\${{ formatPrice(event.amount) }}</p>
                       }
-                    </div>
-                    <div>
-                      <p class="font-medium text-surface-700">{{ getEventLabel(event.event_type) }}</p>
-                      <p class="text-sm text-surface-500">{{ event.notes || '' }}</p>
+                      <p class="text-xs text-surface-400">{{ formatDate(event.created_at) }}</p>
                     </div>
                   </div>
-                  <div class="text-right">
-                    @if (event.amount !== null && event.amount !== undefined) {
-                      <p class="font-semibold text-surface-700">\${{ formatPrice(event.amount) }}</p>
-                    }
-                    <p class="text-sm text-surface-400">{{ formatDate(event.created_at) }}</p>
-                  </div>
-                </div>
+                }
+              </div>
+              @if (history().length > 3) {
+                <button (click)="showAllHistory.set(!showAllHistory())" class="w-full p-3 text-center text-sm font-medium text-primary-600 hover:bg-primary-50 transition-colors border-t border-surface-100">
+                  {{ showAllHistory() ? 'Mostrar menos' : 'Ver todo (' + history().length + ' eventos)' }}
+                </button>
               }
-            </div>
+            }
           </div>
         }
       }
@@ -279,7 +307,7 @@ import { PaymentService } from '../../core/services/payment.service';
                     [class.border-primary-500]="selectedNewPlan() === plan.id"
                     [class.bg-primary-50]="selectedNewPlan() === plan.id"
                     [class.border-surface-200]="selectedNewPlan() !== plan.id"
-                    [class.opacity-50]="plan.id === subscription()?.plan_id"
+                    [class.opacity-50]="plan.id === subscription()?.plan_id && subscription()?.status !== 'cancelled'"
                     (click)="selectPlan(plan.id)"
                   >
                     <div class="flex items-center justify-between">
@@ -309,17 +337,41 @@ import { PaymentService } from '../../core/services/payment.service';
               @if (selectedNewPlan() && selectedNewPlan() !== subscription()?.plan_id) {
                 <div class="mt-6 p-4 bg-surface-50 rounded-xl">
                   @if (isUpgrade()) {
-                     <p class="text-sm text-surface-600 mb-3">
-                      Estás actualizando a un plan superior. Tu próximo pago será promediado.
+                    <p class="text-sm text-surface-600 mb-3">
+                      Estás actualizando a un plan superior.
                     </p>
-                    <div class="font-semibold text-surface-700 mb-4">
-                      Pago requerido: \${{ formatPrice(getSelectedPlanPrice()) }} <span class="text-sm font-normal text-surface-500">(/mes)</span>
-                    </div>
+                    @if (getCreditBalance() > 0) {
+                      <div class="bg-emerald-50 border border-emerald-100 rounded-lg p-3 mb-3 text-sm">
+                        <div class="flex justify-between text-surface-600">
+                          <span>Precio del plan</span>
+                          <span>\${{ formatPrice(getFullPlanPrice()) }}</span>
+                        </div>
+                        <div class="flex justify-between text-emerald-700 font-medium">
+                          <span>Crédito aplicado</span>
+                          <span>-\${{ formatPrice(getCreditBalance()) }}</span>
+                        </div>
+                        <div class="border-t border-emerald-200 mt-2 pt-2 flex justify-between font-bold text-surface-800">
+                          <span>Total a pagar</span>
+                          <span>\${{ formatPrice(getSelectedPlanPrice()) }}</span>
+                        </div>
+                      </div>
+                    } @else {
+                      <div class="font-semibold text-surface-700 mb-4">
+                        Pago requerido: \${{ formatPrice(getSelectedPlanPrice()) }} <span class="text-sm font-normal text-surface-500">(/mes)</span>
+                      </div>
+                    }
 
-                    <!-- Paypal Container -->
-                    <div id="paypal-button-container" #paypalContainer class="w-full"></div>
+                    @if (getSelectedPlanPrice() > 0) {
+                      <!-- Paypal Container -->
+                      <div id="paypal-button-container" #paypalContainer class="w-full"></div>
+                    } @else {
+                      <!-- Credit covers the full price -->
+                      <button (click)="handleUpgradeWithCredit()" [disabled]="processing()" class="btn-premium w-full">
+                        @if (processing()) { Procesando... } @else { Confirmar Upgrade (cubierto por crédito) }
+                      </button>
+                    }
                   } @else {
-                     <p class="text-sm text-surface-600">
+                    <p class="text-sm text-surface-600">
                       El cambio se aplicará al final del ciclo actual. Tu crédito restante se usará en futuras facturas.
                     </p>
                   }
@@ -346,17 +398,14 @@ import { PaymentService } from '../../core/services/payment.service';
 
       <!-- Cancel Subscription Modal -->
       @if (showCancelModal()) {
-        <!-- ...existing code... -->
-           <div class="fixed inset-0 bg-surface-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-           <!-- ... -->
-              <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full" (click)="$event.stopPropagation()">
+        <div class="fixed inset-0 bg-surface-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
             <div class="p-6 border-b border-surface-100">
               <h2 class="text-xl font-semibold text-surface-800">¿Cancelar suscripción?</h2>
             </div>
             <div class="p-6">
               <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
-                <!-- ... -->
-                   <div class="flex items-start gap-3">
+                <div class="flex items-start gap-3">
                   <svg class="w-5 h-5 text-amber-600 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"></circle>
                     <line x1="12" y1="8" x2="12" y2="12"></line>
@@ -392,7 +441,7 @@ import { PaymentService } from '../../core/services/payment.service';
               </button>
             </div>
           </div>
-         </div>
+        </div>
       }
     </div>
   `
@@ -410,6 +459,10 @@ export class SettingsComponent implements OnInit {
   showCancelModal = signal(false);
   selectedNewPlan = signal<string | null>(null);
   cancelReason = '';
+
+  // History toggle states
+  showHistory = signal(false);
+  showAllHistory = signal(false);
 
   // Profile edit states
   editingProfile = signal(false);
@@ -469,8 +522,13 @@ export class SettingsComponent implements OnInit {
     return this.subscriptionService.getTrialDaysRemaining(this.subscription());
   }
 
+  getVisibleHistory(): SubscriptionHistory[] {
+    const all = this.history();
+    return this.showAllHistory() ? all : all.slice(0, 3);
+  }
+
   getStatusLabel(): string {
-     // ...same code same code...
+    // ...same code same code...
     const status = this.subscription()?.status || this.profile()?.subscription_status;
     const labels: Record<string, string> = {
       'trial': 'Período de Prueba',
@@ -593,7 +651,8 @@ export class SettingsComponent implements OnInit {
       'payment_failed': 'Pago fallido',
       'trial_started': 'Prueba iniciada',
       'trial_ended': 'Prueba finalizada',
-      'grace_period_started': 'Período de gracia iniciado'
+      'grace_period_started': 'Período de gracia iniciado',
+      'credit_applied': 'Crédito aplicado'
     };
     return labels[eventType] || eventType;
   }
@@ -613,13 +672,14 @@ export class SettingsComponent implements OnInit {
   }
 
   selectPlan(planId: string) {
-    if (planId !== this.subscription()?.plan_id) {
+    const isCancelled = this.subscription()?.status === 'cancelled';
+    if (planId !== this.subscription()?.plan_id || isCancelled) {
       this.selectedNewPlan.set(planId);
-      
+
       // If it's an upgrade, initialize PayPal
       if (this.isUpgrade()) {
         setTimeout(() => {
-           this.initUpgradePayPal();
+          this.initUpgradePayPal();
         }, 100);
       }
     }
@@ -632,34 +692,45 @@ export class SettingsComponent implements OnInit {
     return newPlan.price_monthly > currentPlan.price_monthly;
   }
 
-  getSelectedPlanPrice(): number {
+  getFullPlanPrice(): number {
     const newPlan = this.plans().find(p => p.id === this.selectedNewPlan());
     return newPlan?.price_monthly || 0;
   }
 
-  async initUpgradePayPal() {
-     const price = this.getSelectedPlanPrice();
-     if (price > 0) {
-        // Clear previous buttons
-        const container = document.getElementById('paypal-button-container');
-        if (container) container.innerHTML = '';
+  getSelectedPlanPrice(): number {
+    const fullPrice = this.getFullPlanPrice();
+    const credit = this.getCreditBalance();
+    return Math.max(0, fullPrice - credit);
+  }
 
-        await this.paymentService.initPayPalButton(
-          '#paypal-button-container',
-          price,
-          (details) => this.handleUpgradePaymentSuccess(details)
-        );
-     }
+  getCreditBalance(): number {
+    return this.subscription()?.credit_balance || 0;
+  }
+
+  async initUpgradePayPal() {
+    const price = this.getSelectedPlanPrice();
+    if (price > 0) {
+      // Clear previous buttons
+      const container = document.getElementById('paypal-button-container');
+      if (container) container.innerHTML = '';
+
+      await this.paymentService.initPayPalButton(
+        '#paypal-button-container',
+        price,
+        (details) => this.handleUpgradePaymentSuccess(details)
+      );
+    }
   }
 
   async handleUpgradePaymentSuccess(details: any) {
     this.processing.set(true);
     try {
       console.log('Upgrade success, PayPal:', details);
-      // Pass the PayPal ID or details if needed by backend, 
-      // currently upgradePlan just updates the record
       await this.subscriptionService.upgradePlan(this.subscription()!.id, this.selectedNewPlan()!);
-      
+
+      // Reset credit_balance after successful upgrade
+      await this.subscriptionService.resetCreditBalance(this.subscription()!.id);
+
       await this.loadData();
       this.closeChangePlanModal();
       alert('¡Plan actualizado exitosamente!');
@@ -668,7 +739,25 @@ export class SettingsComponent implements OnInit {
       console.error('Error upgrading plan:', error);
       alert('Error actualizando el plan. Por favor contacta a soporte.');
     } finally {
-       this.processing.set(false);
+      this.processing.set(false);
+    }
+  }
+
+  /** Handle upgrade when credit covers the full price (no PayPal needed) */
+  async handleUpgradeWithCredit() {
+    this.processing.set(true);
+    try {
+      await this.subscriptionService.upgradePlan(this.subscription()!.id, this.selectedNewPlan()!);
+      await this.subscriptionService.resetCreditBalance(this.subscription()!.id);
+
+      await this.loadData();
+      this.closeChangePlanModal();
+      alert('¡Plan actualizado con tu crédito disponible!');
+    } catch (error) {
+      console.error('Error upgrading plan:', error);
+      alert('Error actualizando el plan. Por favor contacta a soporte.');
+    } finally {
+      this.processing.set(false);
     }
   }
 
@@ -682,6 +771,15 @@ export class SettingsComponent implements OnInit {
         // Should not be reached via button click if we hid it
         await this.subscriptionService.upgradePlan(this.subscription()!.id, this.selectedNewPlan()!);
       } else {
+        const user = await this.supabaseService.getCurrentUser();
+        if (user) {
+          const check = await this.subscriptionService.canDowngradeToPlan(user.id, this.selectedNewPlan()!);
+          if (!check.allowed) {
+            alert(`No puedes cambiar al plan ${check.planName} porque tienes ${check.currentStudents} alumnos activos y el plan permite máximo ${check.newLimit}. Desactiva alumnos antes de cambiar.`);
+            this.processing.set(false);
+            return;
+          }
+        }
         await this.subscriptionService.downgradePlan(this.subscription()!.id, this.selectedNewPlan()!);
       }
 

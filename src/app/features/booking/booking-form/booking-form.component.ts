@@ -21,7 +21,6 @@ function pastDateValidator(control: AbstractControl): ValidationErrors | null {
   selector: 'app-booking-form',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, LucideAngularModule, PhoneInputComponent],
-  providers: [{ provide: 'LUCIDE_ICONS', useValue: { Calendar, Clock, Loader2, Info, AlertCircle } }],
   template: `
     <div class="form-container">
       
@@ -33,7 +32,7 @@ function pastDateValidator(control: AbstractControl): ValidationErrors | null {
             [class.bg-amber-50]="!existingStudent()?.is_active"
             [class.border-amber-200]="!existingStudent()?.is_active">
           <div class="mt-0.5">
-             <i-lucide [name]="existingStudent()?.is_active ? 'info' : 'alert-circle'" 
+             <i-lucide [img]="existingStudent()?.is_active ? Info : AlertCircle" 
                 class="w-5 h-5" 
                 [class.text-green-600]="existingStudent()?.is_active"
                 [class.text-amber-600]="!existingStudent()?.is_active"></i-lucide>
@@ -51,7 +50,7 @@ function pastDateValidator(control: AbstractControl): ValidationErrors | null {
       }
 
       <div class="bg-blue-50 p-4 rounded-lg mb-6 flex items-start gap-3">
-        <i-lucide name="calendar" class="w-5 h-5 text-blue-600 mt-0.5"></i-lucide>
+        <i-lucide [img]="Calendar" class="w-5 h-5 text-blue-600 mt-0.5"></i-lucide>
         <div>
           <h3 class="font-medium text-blue-900">Resumen de la Cita</h3>
           <p class="text-sm text-blue-700 mt-1">
@@ -284,7 +283,7 @@ function pastDateValidator(control: AbstractControl): ValidationErrors | null {
             type="submit" 
             [disabled]="bookingForm.invalid || isSubmitting"
             class="flex-1 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-            <i-lucide *ngIf="isSubmitting" name="loader-2" class="w-4 h-4 animate-spin"></i-lucide>
+            <i-lucide *ngIf="isSubmitting" [img]="Loader2" class="w-4 h-4 animate-spin"></i-lucide>
             {{ isSubmitting ? 'Confirmando...' : 'Confirmar Reserva' }}
           </button>
         </div>
@@ -293,6 +292,10 @@ function pastDateValidator(control: AbstractControl): ValidationErrors | null {
   `
 })
 export class BookingFormComponent implements OnInit {
+  readonly Calendar = Calendar;
+  readonly Loader2 = Loader2;
+  readonly Info = Info;
+  readonly AlertCircle = AlertCircle;
   @Input() tutorId!: string;
   @Input() date: string = '';
   @Input() startTime: string = '';

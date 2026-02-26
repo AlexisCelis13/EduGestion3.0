@@ -365,6 +365,41 @@ export class SubscriptionService {
         return { credit, amountToPay, daysRemaining };
     }
 
+    /**
+     * Reset credit balance to 0 after it has been applied to an upgrade payment.
+     * Logs the credit consumption in subscription history.
+     */
+    async resetCreditBalance(subscriptionId: string): Promise<void> {
+        // Get current credit balance before resetting
+        const { data: current } = await this.supabase
+            .from('subscriptions')
+            .select('credit_balance')
+            .eq('id', subscriptionId)
+            .single();
+
+        const creditUsed = current?.credit_balance || 0;
+        if (creditUsed <= 0) return;
+
+        const { error } = await this.supabase
+            .from('subscriptions')
+            .update({
+                credit_balance: 0,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', subscriptionId);
+
+        if (error) throw error;
+
+        await this.addHistoryEvent(
+            subscriptionId,
+            'credit_applied',
+            null,
+            null,
+            creditUsed,
+            `Crédito de $${creditUsed} aplicado al upgrade`
+        );
+    }
+
     // =====================================================
     // SUBSCRIPTION HISTORY
     // =====================================================
@@ -465,5 +500,66 @@ export class SubscriptionService {
         const now = new Date();
         const trialEnd = new Date(subscription.trial_end);
         return Math.max(0, Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+    }
+
+    // ============================================
+    // STUDENT LIMIT ENFORCEMENT
+    // ============================================
+
+    async getActiveStudentCount(userId: string): Promise<number> {
+        const { count, error } = await this.supabase
+            .from('students')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', userId)
+            .eq('is_active', true);
+
+        if (error) throw error;
+        return count || 0;
+    }
+
+    async canAddStudent(userId: string): Promise<{ allowed: boolean; current: number; limit: number | null }> {
+        // Get the user's subscription with plan
+        const { data: sub } = await this.supabase
+            .from('subscriptions')
+            .select('*, plan:plans(*)')
+            .eq('user_id', userId)
+            .in('status', ['active', 'trial'])
+            .single();
+
+        const limit = sub?.plan?.max_students ?? null;
+        const current = await this.getActiveStudentCount(userId);
+
+        // null limit means unlimited
+        if (limit === null) {
+            return { allowed: true, current, limit };
+        }
+
+        return { allowed: current < limit, current, limit };
+    }
+
+    async canDowngradeToPlan(userId: string, newPlanId: string): Promise<{ allowed: boolean; currentStudents: number; newLimit: number | null; planName: string }> {
+        // Get the target plan
+        const { data: newPlan } = await this.supabase
+            .from('plans')
+            .select('*')
+            .eq('id', newPlanId)
+            .single();
+
+        if (!newPlan) throw new Error('Plan not found');
+
+        const currentStudents = await this.getActiveStudentCount(userId);
+        const newLimit = newPlan.max_students ?? null;
+
+        // null limit means unlimited
+        if (newLimit === null) {
+            return { allowed: true, currentStudents, newLimit, planName: newPlan.name };
+        }
+
+        return {
+            allowed: currentStudents <= newLimit,
+            currentStudents,
+            newLimit,
+            planName: newPlan.name
+        };
     }
 }

@@ -38,13 +38,13 @@ export class PublicLandingComponent implements OnInit {
       this.selectedServiceId.set(serviceId);
     }
     this.showBooking.set(true);
-    // Wait for DOM to render the section before scrolling
+    // Wait for Angular to render the booking section + calendar before scrolling
     setTimeout(() => {
       const element = document.getElementById('reservar');
       if (element) {
         element.scrollIntoView({ behavior: 'smooth' });
       }
-    });
+    }, 150);
   }
 
   scrollToTop() {

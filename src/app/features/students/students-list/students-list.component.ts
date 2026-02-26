@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { SupabaseService, Student, StudentFeedback, StudentMaterial } from '../../../core/services/supabase.service';
+import { SubscriptionService } from '../../../core/services/subscription.service';
 import { PhoneInputComponent } from '../../../shared/components/phone-input/phone-input.component';
 
 // Custom validator for past dates only
@@ -61,7 +62,7 @@ export class StudentsListComponent implements OnInit {
     // Tags management
     currentTag = signal('');
     studentTags = signal<string[]>([]);
-    
+
     // Portal Link
     portalLinkCopied = signal<string | null>(null);
 
@@ -71,6 +72,7 @@ export class StudentsListComponent implements OnInit {
     constructor(
         private fb: FormBuilder,
         private supabaseService: SupabaseService,
+        private subscriptionService: SubscriptionService,
         private route: ActivatedRoute
     ) {
         this.studentForm = this.fb.group({
@@ -114,7 +116,7 @@ export class StudentsListComponent implements OnInit {
         if (!student.access_token) return;
         const origin = window.location.origin;
         const link = `${origin}/student-portal/${student.access_token}`;
-        
+
         try {
             await navigator.clipboard.writeText(link);
             this.portalLinkCopied.set(student.id);
@@ -215,6 +217,15 @@ export class StudentsListComponent implements OnInit {
                 const user = await this.supabaseService.getCurrentUser();
                 if (!user) {
                     this.errorMessage.set('Error de autenticación');
+                    return;
+                }
+
+                // Check student limit
+                const limitCheck = await this.subscriptionService.canAddStudent(user.id);
+                if (!limitCheck.allowed) {
+                    this.errorMessage.set(
+                        `Has alcanzado el límite de ${limitCheck.limit} alumnos de tu plan actual (${limitCheck.current}/${limitCheck.limit}). Actualiza tu plan para agregar más.`
+                    );
                     return;
                 }
 
