@@ -27,6 +27,19 @@ export class PublicLandingComponent implements OnInit {
 
   // Booking section visibility
   showBooking = signal(false);
+  bookingSuccessState = signal(false);
+
+  onBookingSuccess() {
+    this.bookingSuccessState.set(true);
+    this.scrollToTop();
+  }
+
+  onBookingReset() {
+    this.bookingSuccessState.set(false);
+    this.showBooking.set(false);
+    this.selectedServiceId.set(undefined);
+    this.scrollToTop();
+  }
 
   // Helper para formatear precios en pesos mexicanos
   formatPrice(price: number): string {

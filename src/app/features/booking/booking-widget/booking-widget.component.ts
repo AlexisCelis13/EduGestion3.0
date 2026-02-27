@@ -1,4 +1,4 @@
-import { Component, computed, inject, Input, signal } from '@angular/core';
+import { Component, computed, inject, Input, Output, EventEmitter, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BookingCalendarComponent } from '../booking-calendar/booking-calendar.component';
@@ -65,6 +65,7 @@ interface SelectedSlot {
               
               <app-booking-slots 
                 [slots]="availableSlots" 
+                [selectedDate]="selectedDate"
                 [loading]="loadingSlots()"
                 (slotSelected)="onSlotSelected($event)">
               </app-booking-slots>
@@ -263,6 +264,9 @@ export class BookingWidgetComponent {
   @Input() tutorId!: string;
   @Input() services: any[] = [];
   @Input() preSelectedServiceId?: string;
+
+  @Output() bookingSuccess = new EventEmitter<void>();
+  @Output() bookingReset = new EventEmitter<void>();
 
   private supabase = inject(SupabaseService);
 
@@ -486,6 +490,7 @@ export class BookingWidgetComponent {
 
       this.confirmedEmail = this.bookingFormData.studentEmail;
       this.currentStep.set('success');
+      this.bookingSuccess.emit();
     } catch (error: any) {
       console.error('Error in finalizeBooking', error);
       alert('Error guardando la reserva: ' + (error.message || error));
@@ -502,5 +507,6 @@ export class BookingWidgetComponent {
     this.bookingFormData = null;
     this.pendingPaymentAmount = 0;
     this.currentStep.set('calendar');
+    this.bookingReset.emit();
   }
 }

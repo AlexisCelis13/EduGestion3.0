@@ -126,7 +126,7 @@ function pastDateValidator(control: AbstractControl): ValidationErrors | null {
              </div>
 
              <!-- Teléfono -->
-             <div>
+             <div class="md:col-span-2">
                <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono / WhatsApp *</label>
                <app-phone-input formControlName="studentPhone"></app-phone-input>
                <div *ngIf="bookingForm.get('studentPhone')?.touched && bookingForm.get('studentPhone')?.invalid" class="text-red-500 text-xs mt-1">
@@ -135,7 +135,7 @@ function pastDateValidator(control: AbstractControl): ValidationErrors | null {
              </div>
 
              <!-- Fecha de Nacimiento -->
-             <div>
+             <div class="md:col-span-2">
                <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de Nacimiento</label>
                <input 
                  type="date" 

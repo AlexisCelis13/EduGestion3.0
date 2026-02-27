@@ -35,6 +35,7 @@
   </div>
 
   <!-- Services Section -->
+  @if (!bookingSuccessState()) {
   <div class="py-16">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="text-center mb-12">
@@ -171,18 +172,22 @@
       }
     </div>
   </div>
+  }
 
   <!-- Booking Section -->
   @if (showBooking()) {
   <div id="reservar" class="bg-gray-50 py-16 border-t border-gray-200">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      @if (!bookingSuccessState()) {
       <div class="text-center mb-10">
         <h2 class="text-3xl font-bold text-gray-900 mb-4">Agenda tu Asesoría</h2>
         <p class="text-lg text-gray-600">Selecciona una fecha y hora disponible para tu sesión</p>
       </div>
+      }
 
       <app-booking-widget [tutorId]="settings()?.user_id || ''" [services]="services()"
-        [preSelectedServiceId]="selectedServiceId()">
+        [preSelectedServiceId]="selectedServiceId()" (bookingSuccess)="onBookingSuccess()"
+        (bookingReset)="onBookingReset()">
       </app-booking-widget>
     </div>
   </div>
