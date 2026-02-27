@@ -3,10 +3,12 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { SupabaseService, StudentPortalData, StudentFeedback, StudentMaterial } from '../../core/services/supabase.service';
 
+import { BookingWidgetComponent } from '../booking/booking-widget/booking-widget.component';
+
 @Component({
   selector: 'app-student-portal',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, BookingWidgetComponent],
   templateUrl: './student-portal.component.html'
 })
 export class StudentPortalComponent implements OnInit {
@@ -18,6 +20,15 @@ export class StudentPortalComponent implements OnInit {
   activeTab = signal<'feedback' | 'materials'>('feedback');
   showProfileMenu = signal(false);
   showProfileModal = signal(false);
+
+  // Extension Flow
+  showExtensionBooking = signal(false);
+  activeExtensionProposal = signal<any>(null);
+  activeExtensionTutorId = signal<string>('');
+  activeExtensionServiceId = signal<string>('');
+  activeExtensionServices = signal<any[]>([]);
+  activeExtensionStudentEmail = signal<string>('');
+  activeExtensionRecentAppointments = signal<any[]>([]);
 
   constructor(
     private route: ActivatedRoute,
@@ -110,5 +121,87 @@ export class StudentPortalComponent implements OnInit {
     this.data.set(null);
     this.showProfileMenu.set(false);
     this.router.navigate(['/student-portal/login']);
+  }
+
+  // Session Extension Methods
+  acceptExtension(proposal: any, tutorId: string, studentEmail: string) {
+    this.activeExtensionProposal.set(proposal);
+    this.activeExtensionTutorId.set(tutorId);
+    this.activeExtensionServiceId.set(proposal.service_id);
+    this.activeExtensionStudentEmail.set(studentEmail);
+
+    // Inject the recent appointments from current data to auto-fill calendar if available
+    const portalData = this.data();
+    if (portalData && portalData.recent_appointments) {
+      this.activeExtensionRecentAppointments.set(portalData.recent_appointments);
+    } else {
+      this.activeExtensionRecentAppointments.set([]);
+    }
+
+    // Fetch services for this tutor so we can calculate pricing correctly
+    this.supabaseService.getServices(tutorId).then(res => {
+      if (res.data) {
+        this.activeExtensionServices.set(res.data);
+      }
+    });
+
+    this.showExtensionBooking.set(true);
+    // Scroll to booking widget
+    setTimeout(() => {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }, 100);
+  }
+
+  cancelExtensionBooking() {
+    this.showExtensionBooking.set(false);
+    this.activeExtensionProposal.set(null);
+    this.activeExtensionRecentAppointments.set([]);
+  }
+
+  async rejectExtension(feedbackId: string) {
+    if (!confirm('¿Estás seguro de que quieres descartar esta sugerencia?')) {
+      return;
+    }
+
+    const token = this.route.snapshot.paramMap.get('token');
+    if (!token) return;
+
+    try {
+      const { error } = await this.supabaseService.rejectExtension(feedbackId, token);
+      if (error) {
+        console.error('Error al rechazar sugerencia:', error);
+        alert('Hubo un error al rechazar la sugerencia. Por favor intenta de nuevo.');
+        return;
+      }
+
+      // Update local state to remove the proposal
+      const currentData = this.data();
+      if (currentData) {
+        const updatedFeedback = currentData.feedback.map(f => {
+          if (f.id === feedbackId) {
+            return { ...f, extension_proposal: null };
+          }
+          return f;
+        });
+        this.data.set({ ...currentData, feedback: updatedFeedback });
+      }
+
+      if (this.showExtensionBooking()) {
+        this.cancelExtensionBooking();
+      }
+
+    } catch (err) {
+      console.error('Excepción al rechazar sugerencia:', err);
+    }
+  }
+
+  onBookingSuccess() {
+    // Reload data to potentially clear/update feedback status if needed
+    // Currently, it just closes the widget and scrolls up
+    setTimeout(() => {
+      this.cancelExtensionBooking();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      this.ngOnInit(); // Reload data
+    }, 3000);
   }
 }

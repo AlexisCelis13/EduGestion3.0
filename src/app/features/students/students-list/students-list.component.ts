@@ -5,6 +5,7 @@ import { ActivatedRoute } from '@angular/router';
 import { SupabaseService, Student, StudentFeedback, StudentMaterial } from '../../../core/services/supabase.service';
 import { SubscriptionService } from '../../../core/services/subscription.service';
 import { PhoneInputComponent } from '../../../shared/components/phone-input/phone-input.component';
+import { Service } from '../../../core/services/supabase.service';
 
 // Custom validator for past dates only
 function pastDateValidator(control: AbstractControl): ValidationErrors | null {
@@ -42,6 +43,7 @@ export class StudentsListComponent implements OnInit {
     feedbackForm: FormGroup;
     studentFeedback = signal<StudentFeedback[]>([]);
     loadingFeedback = signal(false);
+    tutorServices = signal<Service[]>([]);
 
     // Material modal
     showMaterialModal = signal(false);
@@ -88,7 +90,10 @@ export class StudentsListComponent implements OnInit {
         });
 
         this.feedbackForm = this.fb.group({
-            message: ['', Validators.required]
+            message: ['', Validators.required],
+            recommend_extensions: [false],
+            extension_count: [3],
+            service_id: ['']
         });
 
         this.materialForm = this.fb.group({
@@ -155,6 +160,12 @@ export class StudentsListComponent implements OnInit {
                 this.students.set(data);
                 // Load stats for each student in background
                 this.loadStudentStats(data);
+            }
+
+            // Load services for recommendations
+            const { data: services } = await this.supabaseService.getServices(user.id);
+            if (services) {
+                this.tutorServices.set(services);
             }
         }
     }
@@ -436,10 +447,22 @@ export class StudentsListComponent implements OnInit {
                 const studentId = this.selectedStudentForFeedback()!.id;
                 const shouldReloadDetail = this.selectedStudent()?.id === studentId;
 
+                // Build extension proposal if active
+                const formData = this.feedbackForm.value;
+                let extensionProposal = null;
+
+                if (formData.recommend_extensions && formData.service_id) {
+                    extensionProposal = {
+                        count: formData.extension_count,
+                        service_id: formData.service_id
+                    };
+                }
+
                 const { error } = await this.supabaseService.createFeedback({
                     user_id: user.id,
                     student_id: studentId,
-                    message: this.feedbackForm.value.message
+                    message: formData.message,
+                    extension_proposal: extensionProposal
                 });
 
                 if (error) {

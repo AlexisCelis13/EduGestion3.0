@@ -1,4 +1,4 @@
-import { Component, computed, inject, Input, Output, EventEmitter, signal } from '@angular/core';
+import { Component, computed, inject, Input, Output, EventEmitter, signal, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BookingCalendarComponent } from '../booking-calendar/booking-calendar.component';
@@ -66,6 +66,7 @@ interface SelectedSlot {
               <app-booking-slots 
                 [slots]="availableSlots" 
                 [selectedDate]="selectedDate"
+                [selectedSlots]="selectedSlots"
                 [loading]="loadingSlots()"
                 (slotSelected)="onSlotSelected($event)">
               </app-booking-slots>
@@ -84,6 +85,8 @@ interface SelectedSlot {
                 [endTime]="selectedSlots[0]?.endTime || ''"
                 [services]="services"
                 [preSelectedServiceId]="preSelectedServiceId"
+                [prefilledEmail]="prefilledEmail"
+                [existingStudentData]="existingStudentData"
                 [isSubmitting]="checkingAvailability" 
                 (submitForm)="onFormSubmit($event)" 
                 (cancel)="goBack()">
@@ -264,6 +267,10 @@ export class BookingWidgetComponent {
   @Input() tutorId!: string;
   @Input() services: any[] = [];
   @Input() preSelectedServiceId?: string;
+  @Input() prefilledEmail?: string;
+  @Input() existingStudentData?: any;
+  @Input() autoSelectSessions?: number;
+  @Input() recentAppointments?: any[];
 
   @Output() bookingSuccess = new EventEmitter<void>();
   @Output() bookingReset = new EventEmitter<void>();
@@ -293,6 +300,146 @@ export class BookingWidgetComponent {
 
   get showSlotsAside() {
     return true;
+  }
+
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['recentAppointments'] || changes['autoSelectSessions']) {
+      if (this.autoSelectSessions && this.recentAppointments && this.recentAppointments.length > 0 && this.selectedSlots.length === 0) {
+        this.attemptAutoSchedule();
+      }
+    }
+  }
+
+  async attemptAutoSchedule() {
+    if (!this.recentAppointments || this.recentAppointments.length === 0 || !this.autoSelectSessions) return;
+
+    // 1. Build a weekly template from recent appointments.
+    let templateMap = new Map<number, string[]>(); // Map DayOfWeek (0-6) -> Array of times (HH:MM:00)
+    for (let appt of this.recentAppointments) {
+      if (!appt || !appt.appointment_date) continue;
+      const d = new Date(appt.appointment_date);
+      const dow = d.getDay();
+      const timeStr = `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}:00`;
+
+      let times = templateMap.get(dow) || [];
+      if (!times.includes(timeStr)) {
+        times.push(timeStr);
+        times.sort();
+        templateMap.set(dow, times);
+      }
+    }
+
+    if (templateMap.size === 0) return;
+
+    this.currentStep.set('slots');
+    this.loadingSlots.set(true);
+
+    try {
+      let slotsToSchedule = this.autoSelectSessions;
+      let missedSessions = 0;
+
+      // Start searching from tomorrow
+      let cursorDate = new Date();
+      cursorDate.setDate(cursorDate.getDate() + 1);
+
+      let dayLimit = 21; // Prevent infinite loops
+      let firstBookedDateStr = '';
+
+      while (slotsToSchedule > 0 && dayLimit > 0) {
+        const cursorDow = cursorDate.getDay();
+        const cursorDateStr = this.getLocalString(cursorDate);
+        let fetchedSlots: any[] = [];
+
+        let needsToCheckThisDay = false;
+        let expectedTimes: string[] = [];
+
+        if (templateMap.has(cursorDow)) {
+          needsToCheckThisDay = true;
+          expectedTimes = templateMap.get(cursorDow)!;
+        } else if (missedSessions > 0) {
+          needsToCheckThisDay = true;
+          expectedTimes = []; // Any time is fine
+        }
+
+        if (needsToCheckThisDay) {
+          fetchedSlots = await this.supabase.getAvailableSlotsForDate(this.tutorId, cursorDateStr);
+          let dayFullyBlocked = fetchedSlots.length === 0;
+
+          if (!dayFullyBlocked) {
+            if (expectedTimes.length > 0) {
+              for (let t of expectedTimes) {
+                if (slotsToSchedule <= 0) break;
+                const match = fetchedSlots.find(s => (s.startTime || s.start_time) === t);
+                if (match) {
+                  this.bookSlot(cursorDateStr, match);
+                  slotsToSchedule--;
+                  if (!firstBookedDateStr) firstBookedDateStr = cursorDateStr;
+                } else {
+                  const fallbackMatch = fetchedSlots.find(s => !this.isAlreadySelected(cursorDateStr, s));
+                  if (fallbackMatch) {
+                    this.bookSlot(cursorDateStr, fallbackMatch);
+                    slotsToSchedule--;
+                    if (!firstBookedDateStr) firstBookedDateStr = cursorDateStr;
+                  } else {
+                    missedSessions++;
+                  }
+                }
+              }
+            } else {
+              const fallbackMatch = fetchedSlots.find(s => !this.isAlreadySelected(cursorDateStr, s));
+              if (fallbackMatch) {
+                this.bookSlot(cursorDateStr, fallbackMatch);
+                slotsToSchedule--;
+                missedSessions--;
+                if (!firstBookedDateStr) firstBookedDateStr = cursorDateStr;
+              }
+            }
+          } else {
+            if (templateMap.has(cursorDow)) {
+              missedSessions += expectedTimes.length;
+            }
+          }
+        }
+        cursorDate.setDate(cursorDate.getDate() + 1);
+        dayLimit--;
+      }
+
+      if (firstBookedDateStr) {
+        this.selectedDate = firstBookedDateStr;
+        this.availableSlots = await this.supabase.getAvailableSlotsForDate(this.tutorId, firstBookedDateStr);
+      } else {
+        let tw = new Date();
+        tw.setDate(tw.getDate() + 1);
+        this.selectedDate = this.getLocalString(tw);
+        this.availableSlots = await this.supabase.getAvailableSlotsForDate(this.tutorId, this.selectedDate);
+      }
+
+      this.calculateTotalSessions();
+    } catch (e) {
+      console.error('Error auto-scheduling pattern:', e);
+    } finally {
+      this.loadingSlots.set(false);
+    }
+  }
+
+  bookSlot(dateStr: string, slot: any) {
+    this.selectedSlots.push({
+      date: dateStr,
+      startTime: slot.startTime || slot.start_time,
+      endTime: slot.endTime || slot.end_time
+    });
+  }
+
+  isAlreadySelected(dateStr: string, slot: any): boolean {
+    const st = slot.startTime || slot.start_time;
+    return !!this.selectedSlots.find(s => s.date === dateStr && s.startTime === st);
+  }
+
+  getLocalString(d: Date): string {
+    const year = d.getFullYear();
+    const month = (d.getMonth() + 1).toString().padStart(2, '0');
+    const day = d.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   formatDate(dateString: string): string {

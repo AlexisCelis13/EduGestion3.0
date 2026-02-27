@@ -24,7 +24,11 @@ import { LucideAngularModule, Loader2 } from 'lucide-angular';
           [disabled]="isPastSlot(slot)"
           (click)="selectSlot(slot)"
           class="flex items-center justify-center px-4 py-2 border border-gray-200 rounded-lg text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:opacity-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
-          [ngClass]="{'hover:border-blue-500 hover:bg-blue-50 text-gray-700': !isPastSlot(slot), 'text-gray-400': isPastSlot(slot)}">
+          [ngClass]="{
+            'hover:border-blue-500 hover:bg-blue-50 text-gray-700': !isPastSlot(slot) && !isSelectedSlot(slot), 
+            'text-gray-400': isPastSlot(slot),
+            'border-blue-500 bg-blue-50 text-blue-700 font-medium': isSelectedSlot(slot)
+          }">
           {{ formatTime(slot.startTime || slot.start_time) }}
         </button>
       </div>
@@ -36,7 +40,14 @@ export class BookingSlotsComponent {
   @Input() slots: any[] = [];
   @Input() loading: boolean = false;
   @Input() selectedDate: string = '';
+  @Input() selectedSlots: any[] = [];
   @Output() slotSelected = new EventEmitter<any>();
+
+  isSelectedSlot(slot: any): boolean {
+    if (!this.selectedDate) return false;
+    const st = slot.startTime || slot.start_time;
+    return !!this.selectedSlots.find(s => s.date === this.selectedDate && s.startTime === st);
+  }
 
   isPastSlot(slot: any): boolean {
     if (!this.selectedDate) return false;

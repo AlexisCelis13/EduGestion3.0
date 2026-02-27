@@ -103,28 +103,30 @@
                 <div>
                     <label class="block text-sm font-medium text-surface-700 mb-2">Etiquetas</label>
                     <div class="flex gap-2 mb-2">
-                        <input type="text" [value]="currentTag()" (input)="currentTag.set($any($event.target).value)" 
-                            (keydown.enter)="addTag($event)"
-                            class="input-premium flex-1" placeholder="Ej: TDAH, Presencial, Pago pendiente" />
-                        <button type="button" (click)="addTag()" 
+                        <input type="text" [value]="currentTag()" (input)="currentTag.set($any($event.target).value)"
+                            (keydown.enter)="addTag($event)" class="input-premium flex-1"
+                            placeholder="Ej: TDAH, Presencial, Pago pendiente" />
+                        <button type="button" (click)="addTag()"
                             class="bg-surface-100 text-surface-600 px-4 rounded-xl hover:bg-surface-200 transition-colors">
                             Agregar
                         </button>
                     </div>
                     @if (studentTags().length > 0) {
-                        <div class="flex flex-wrap gap-2">
-                            @for (tag of studentTags(); track tag) {
-                                <span class="px-2 py-1 bg-primary-50 text-primary-700 text-sm rounded-lg flex items-center gap-1">
-                                    {{ tag }}
-                                    <button type="button" (click)="removeTag(tag)" class="hover:text-primary-900">
-                                        <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                                        </svg>
-                                    </button>
-                                </span>
-                            }
-                        </div>
+                    <div class="flex flex-wrap gap-2">
+                        @for (tag of studentTags(); track tag) {
+                        <span
+                            class="px-2 py-1 bg-primary-50 text-primary-700 text-sm rounded-lg flex items-center gap-1">
+                            {{ tag }}
+                            <button type="button" (click)="removeTag(tag)" class="hover:text-primary-900">
+                                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        </span>
+                        }
+                    </div>
                     }
                 </div>
 
@@ -197,12 +199,13 @@
                             </span>
                             }
                         </div>
-                        
+
                         <!-- Tags List -->
                         @if (student.tags && student.tags.length > 0) {
                         <div class="flex flex-wrap gap-1 mb-1">
                             @for (tag of student.tags; track tag) {
-                            <span class="px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-[10px] font-medium border border-gray-200">
+                            <span
+                                class="px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-[10px] font-medium border border-gray-200">
                                 {{ tag }}
                             </span>
                             }
@@ -230,14 +233,15 @@
                     <button (click)="copyPortalLink(student)" title="Copiar enlace al portal del alumno"
                         class="bg-surface-100 text-surface-600 px-3 py-2 rounded-xl text-sm font-medium hover:bg-surface-200 transition-colors flex items-center justify-center">
                         @if (portalLinkCopied() === student.id) {
-                            <svg class="w-4 h-4 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
+                        <svg class="w-4 h-4 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
                         } @else {
-                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-                            </svg>
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                        </svg>
                         }
                     </button>
                     <button (click)="openMaterialModal(student)"
@@ -287,6 +291,45 @@
                 <label class="block text-sm font-medium text-surface-700 mb-2">Mensaje *</label>
                 <textarea formControlName="message" rows="5" class="input-premium resize-none"
                     placeholder="Escribe tu feedback para el alumno..."></textarea>
+            </div>
+
+            <div class="mb-5 border-t border-surface-100 pt-4">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h4 class="text-sm font-medium text-surface-700">Sugerir clases adicionales</h4>
+                        <p class="text-xs text-surface-400">Recomienda al alumno reservar más sesiones</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" formControlName="recommend_extensions" class="sr-only peer">
+                        <div
+                            class="w-11 h-6 bg-surface-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-surface-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600">
+                        </div>
+                    </label>
+                </div>
+
+                @if (feedbackForm.get('recommend_extensions')?.value) {
+                <div class="grid grid-cols-2 gap-4 animate-fade-in bg-surface-50 p-4 rounded-xl">
+                    <div>
+                        <label class="block text-xs font-medium text-surface-700 mb-1">Cantidad de clases</label>
+                        <select formControlName="extension_count" class="input-premium py-2">
+                            <option [value]="1">1 clase</option>
+                            <option [value]="2">2 clases</option>
+                            <option [value]="3">3 clases</option>
+                            <option [value]="4">4 clases</option>
+                            <option [value]="5">5 clases</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-surface-700 mb-1">Servicio *</label>
+                        <select formControlName="service_id" class="input-premium py-2">
+                            <option value="">Selecciona un servicio</option>
+                            @for (service of tutorServices(); track service.id) {
+                            <option [value]="service.id">{{ service.name }}</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                }
             </div>
             <div class="flex gap-3 justify-end">
                 <button type="button" (click)="closeFeedbackModal()" class="btn-secondary">Cancelar</button>

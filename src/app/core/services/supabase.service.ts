@@ -64,6 +64,7 @@ export interface StudentPortalData {
   };
   feedback: StudentFeedback[];
   materials: StudentMaterial[];
+  recent_appointments?: any[];
 }
 
 export interface StudentFeedback {
@@ -71,6 +72,7 @@ export interface StudentFeedback {
   user_id: string;
   student_id: string;
   message: string;
+  extension_proposal?: any;
   created_at: string;
 }
 
@@ -1253,7 +1255,7 @@ export class SupabaseService {
     return { data, error };
   }
 
-  async createFeedback(feedback: { user_id: string; student_id: string; message: string }) {
+  async createFeedback(feedback: { user_id: string; student_id: string; message: string; extension_proposal?: any }) {
     const { data, error } = await this.supabase
       .from('student_feedback')
       .insert(feedback)
@@ -1268,6 +1270,16 @@ export class SupabaseService {
       .from('student_feedback')
       .delete()
       .eq('id', feedbackId);
+
+    return { error };
+  }
+
+  async rejectExtension(feedbackId: string, accessToken: string) {
+    const { data, error } = await this.supabase
+      .rpc('reject_extension_proposal', {
+        p_feedback_id: feedbackId,
+        p_access_token: accessToken
+      });
 
     return { error };
   }

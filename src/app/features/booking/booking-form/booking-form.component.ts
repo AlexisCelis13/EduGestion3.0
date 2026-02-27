@@ -302,6 +302,8 @@ export class BookingFormComponent implements OnInit {
   @Input() endTime: string = '';
   @Input() services: any[] = [];
   @Input() preSelectedServiceId: string | undefined;
+  @Input() prefilledEmail?: string;
+  @Input() existingStudentData?: any;
   @Input() isSubmitting: boolean = false;
 
   @Output() submitForm = new EventEmitter<any>();
@@ -342,6 +344,7 @@ export class BookingFormComponent implements OnInit {
     // Escuchar cambios en el selector de para quién es la cita
     this.bookingForm.get('bookingFor')?.valueChanges.subscribe(value => {
       this.updateValidators(value);
+      this.applyPrefilledEmail(value);
     });
   }
 
@@ -350,8 +353,66 @@ export class BookingFormComponent implements OnInit {
       this.bookingForm.patchValue({ serviceId: this.preSelectedServiceId });
     }
 
+    if (this.existingStudentData) {
+      const student = this.existingStudentData;
+
+      // Determine bookingFor based on existence of guardian info
+      const isOther = !!(student.guardian_name || student.guardian_phone);
+      this.bookingForm.patchValue({ bookingFor: isOther ? 'other' : 'me' });
+      this.bookingForm.get('bookingFor')?.disable();
+
+      if (isOther) {
+        this.bookingForm.patchValue({
+          studentName: student.first_name || '',
+          studentLastName: student.last_name || '',
+          studentDob: student.date_of_birth || '',
+          parentName: student.guardian_name || '',
+          parentEmail: student.email || '',
+          parentPhone: student.guardian_phone || student.phone || ''
+        });
+
+        this.bookingForm.get('studentName')?.disable();
+        this.bookingForm.get('studentLastName')?.disable();
+        this.bookingForm.get('studentDob')?.disable();
+        this.bookingForm.get('parentName')?.disable();
+        this.bookingForm.get('parentEmail')?.disable();
+        this.bookingForm.get('parentPhone')?.disable();
+      } else {
+        this.bookingForm.patchValue({
+          studentName: student.first_name || '',
+          studentLastName: student.last_name || '',
+          studentEmail: student.email || '',
+          studentPhone: student.phone || '',
+          studentDob: student.date_of_birth || ''
+        });
+
+        this.bookingForm.get('studentName')?.disable();
+        this.bookingForm.get('studentLastName')?.disable();
+        this.bookingForm.get('studentEmail')?.disable();
+        this.bookingForm.get('studentPhone')?.disable();
+        this.bookingForm.get('studentDob')?.disable();
+      }
+    }
+
     // Initial validator setup
-    this.updateValidators('me');
+    this.updateValidators(this.bookingForm.getRawValue().bookingFor);
+    this.applyPrefilledEmail(this.bookingForm.getRawValue().bookingFor);
+  }
+
+  applyPrefilledEmail(bookingFor: string) {
+    if (!this.prefilledEmail) return;
+
+    if (bookingFor === 'me') {
+      if (!this.bookingForm.get('studentEmail')?.value) {
+        this.bookingForm.patchValue({ studentEmail: this.prefilledEmail });
+        this.checkEmail('student');
+      }
+    } else {
+      if (!this.bookingForm.get('parentEmail')?.value) {
+        this.bookingForm.patchValue({ parentEmail: this.prefilledEmail });
+        this.checkEmail('parent');
+      }
+    }
   }
 
   updateValidators(bookingFor: string) {
@@ -438,7 +499,8 @@ export class BookingFormComponent implements OnInit {
 
   onSubmit() {
     if (this.bookingForm.valid) {
-      this.submitForm.emit(this.bookingForm.value);
+      // Use getRawValue to include disabled fields
+      this.submitForm.emit(this.bookingForm.getRawValue());
     } else {
       this.bookingForm.markAllAsTouched();
     }
