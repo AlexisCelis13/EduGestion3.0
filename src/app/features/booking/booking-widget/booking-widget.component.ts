@@ -336,14 +336,16 @@ export class BookingWidgetComponent {
   }
 
   onSlotSelected(slot: any) {
+    const startTime = slot.startTime || slot.start_time;
+    const endTime = slot.endTime || slot.end_time;
     const existing = this.selectedSlots.find(
-      (s) => s.date === this.selectedDate && s.startTime === slot.start_time
+      (s) => s.date === this.selectedDate && s.startTime === startTime
     );
     if (!existing) {
       this.selectedSlots.push({
         date: this.selectedDate,
-        startTime: slot.start_time,
-        endTime: slot.end_time
+        startTime: startTime,
+        endTime: endTime
       });
       this.calculateTotalSessions();
     }

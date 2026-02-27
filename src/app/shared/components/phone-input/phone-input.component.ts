@@ -28,18 +28,18 @@ interface Country {
     template: `
     <div class="flex gap-2">
       <!-- Country Code Selector -->
-      <div class="relative" style="min-width: 120px;">
+      <div class="relative flex-shrink-0" style="min-width: 105px;">
         <button
           type="button"
           (click)="toggleDropdown()"
-          class="input-premium w-full flex items-center gap-2 justify-between cursor-pointer"
+          class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg flex items-center gap-1.5 justify-between cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
           [class.ring-2]="dropdownOpen()"
-          [class.ring-primary-500]="dropdownOpen()">
-          <span class="flex items-center gap-1.5">
+          [class.ring-blue-500]="dropdownOpen()">
+          <span class="flex items-center gap-1">
             <span class="text-base">{{ selectedCountry().flag }}</span>
-            <span class="text-surface-700">+{{ selectedCountry().dialCode }}</span>
+            <span class="text-gray-700 text-sm">+{{ selectedCountry().dialCode }}</span>
           </span>
-          <svg class="w-4 h-4 text-surface-400 transition-transform" 
+          <svg class="w-3.5 h-3.5 text-gray-400 transition-transform" 
                [class.rotate-180]="dropdownOpen()"
                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="6 9 12 15 18 9"></polyline>
@@ -93,7 +93,7 @@ interface Country {
         (paste)="onPaste($event)"
         (blur)="handleBlur()"
         [placeholder]="placeholder"
-        class="input-premium flex-1"
+        class="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
         [class.border-red-300]="showError()"
         [class.focus:ring-red-100]="showError()"
         [class.focus:border-red-400]="showError()"
