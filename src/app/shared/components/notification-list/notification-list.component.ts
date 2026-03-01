@@ -1,4 +1,4 @@
-import { Component, OnInit, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SupabaseService, AppNotification } from '../../../core/services/supabase.service';
 import { formatDistanceToNow } from 'date-fns';
@@ -63,8 +63,8 @@ import { es } from 'date-fns/locale';
         }
       </div>
       
-      <div class="p-2 border-t border-surface-100 bg-surface-50 rounded-b-2xl">
-        <button class="w-full text-center text-xs font-medium text-surface-600 hover:text-surface-900 py-1">
+      <div class="p-2 border-t border-surface-100 bg-surface-50 rounded-b-2xl flex justify-center">
+        <button class="text-xs font-medium text-surface-600 hover:text-surface-900 py-1">
           Ver todas las notificaciones
         </button>
       </div>
@@ -72,13 +72,23 @@ import { es } from 'date-fns/locale';
   `
 })
 export class NotificationListComponent implements OnInit {
+  @Input() notifications: AppNotification[] = [];
+  @Input() autoFetch: boolean = true;
   @Output() close = new EventEmitter<void>();
-  notifications: AppNotification[] = [];
+
   loading = true;
 
   constructor(private supabaseService: SupabaseService) { }
 
   async ngOnInit() {
+    if (this.notifications && this.notifications.length > 0) {
+      this.loading = false;
+      return;
+    }
+    if (!this.autoFetch) {
+      this.loading = false;
+      return;
+    }
     await this.loadNotifications();
   }
 

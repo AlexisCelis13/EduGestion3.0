@@ -64,7 +64,7 @@ export interface StudentPortalData {
   };
   feedback: StudentFeedback[];
   materials: StudentMaterial[];
-  recent_appointments?: any[];
+  appointments?: any[];
 }
 
 export interface StudentFeedback {

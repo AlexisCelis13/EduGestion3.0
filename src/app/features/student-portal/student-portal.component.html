@@ -52,7 +52,6 @@
             }
         </div>
     </main>
-
     } @else if (error()) {
     <div class="min-h-screen flex flex-col items-center justify-center p-4">
         <div class="card-premium p-8 max-w-md w-full text-center animate-fade-in-up">
@@ -73,35 +72,71 @@
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
             <div class="flex items-center gap-4">
                 @if (data()!.student.logo_url) {
-                <img [src]="data()!.student.logo_url" alt="Logo" class="h-10 w-auto object-contain">
+                <img [src]="data()!.student.logo_url" alt="Logo" class="h-10 w-auto object-contain" />
                 } @else {
                 <div class="h-10 w-10 bg-primary-600 rounded-lg flex items-center justify-center text-white font-bold">
-                    {{ data()!.student.company_name ? data()!.student.company_name[0] : 'E' }}
+                    {{
+                    data()!.student.company_name
+                    ? data()!.student.company_name[0]
+                    : "E"
+                    }}
                 </div>
                 }
                 <div>
                     <h1 class="text-lg font-bold text-gray-900 leading-tight">
-                        {{ data()!.student.company_name || (data()!.student.tutor_name ? 'Tutor: ' +
-                        data()!.student.tutor_name : 'EduGestión') }}
+                        {{
+                        data()!.student.company_name ||
+                        (data()!.student.tutor_name
+                        ? "Tutor: " + data()!.student.tutor_name
+                        : "EduGestión")
+                        }}
                     </h1>
                     <p class="text-xs text-gray-500">Portal del Estudiante</p>
                 </div>
             </div>
 
             <div class="flex items-center gap-3">
+                <!-- Notifications Dropdown -->
+                <div class="relative" #notificationsContainer>
+                    <button (click)="toggleNotifications()"
+                        class="relative p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-500 hover:text-gray-900 border border-transparent">
+                        <lucide-icon [img]="Bell" class="w-5 h-5"></lucide-icon>
+                        @if (unreadNotificationsCount() > 0) {
+                        <span
+                            class="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+                        }
+                    </button>
+
+                    @if (showNotifications()) {
+                    <div
+                        class="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-premium-lg z-50 border border-gray-100 animate-fade-in-up origin-top-right">
+                        <app-notification-list [notifications]="portalNotifications()" [autoFetch]="false"
+                            (close)="showNotifications.set(false)"></app-notification-list>
+                    </div>
+                    }
+                </div>
+
                 <!-- Profile Dropdown -->
                 <div class="relative" #profileMenu>
                     <button (click)="toggleProfileMenu()"
                         class="flex items-center gap-3 p-1.5 pr-2 rounded-xl hover:bg-gray-50 transition-all border border-transparent hover:border-gray-100">
                         <div class="text-right hidden sm:block">
-                            <p class="text-sm font-semibold text-gray-900 leading-none">{{ data()!.student.first_name }}
-                                {{
-                                data()!.student.last_name }}</p>
-                            <p class="text-xs text-gray-500 mt-1">{{ data()!.student.email }}</p>
+                            <p class="text-sm font-semibold text-gray-900 leading-none">
+                                {{ data()!.student.first_name }}
+                                {{ data()!.student.last_name }}
+                            </p>
+                            <p class="text-xs text-gray-500 mt-1">
+                                {{ data()!.student.email }}
+                            </p>
                         </div>
                         <div
                             class="h-9 w-9 bg-gradient-to-br from-primary-500 to-primary-700 rounded-lg flex items-center justify-center text-white font-medium shadow-sm">
-                            {{ getInitials(data()!.student.first_name, data()!.student.last_name) }}
+                            {{
+                            getInitials(
+                            data()!.student.first_name,
+                            data()!.student.last_name
+                            )
+                            }}
                         </div>
                         <svg class="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -113,12 +148,17 @@
                     <div
                         class="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-premium-lg py-2 z-50 border border-gray-100 animate-fade-in-up origin-top-right">
                         <div class="px-4 py-3 border-b border-gray-50 mb-1 lg:hidden">
-                            <p class="text-sm font-semibold text-gray-900">{{ data()!.student.first_name }}</p>
-                            <p class="text-xs text-gray-500 truncate">{{ data()!.student.email }}</p>
+                            <p class="text-sm font-semibold text-gray-900">
+                                {{ data()!.student.first_name }}
+                            </p>
+                            <p class="text-xs text-gray-500 truncate">
+                                {{ data()!.student.email }}
+                            </p>
                         </div>
 
-                        <button (click)="showProfileModal.set(true); showProfileMenu.set(false)"
-                            class="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2">
+                        <button (click)="
+                    showProfileModal.set(true); showProfileMenu.set(false)
+                  " class="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2">
                             <svg class="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
@@ -152,18 +192,22 @@
             class="bg-gradient-to-r from-primary-600 to-primary-800 rounded-2xl p-6 md:p-10 mb-8 text-white shadow-xl relative overflow-hidden animate-fade-in-up">
             <div class="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
             <div class="relative z-10">
-                <h2 class="text-3xl font-bold mb-2">Hola, {{ data()!.student.first_name }}! 👋</h2>
-                <p class="text-primary-100 text-lg max-w-2xl">Aquí encontrarás tus materiales de estudio y el feedback
-                    de tus sesiones.</p>
+                <h2 class="text-3xl font-bold mb-2">
+                    Hola, {{ data()!.student.first_name }}! 👋
+                </h2>
+                <p class="text-primary-100 text-lg max-w-2xl">
+                    Aquí encontrarás tus materiales de estudio y el feedback de tus
+                    sesiones.
+                </p>
             </div>
         </div>
 
         <!-- Navigation Tabs -->
         <div
-            class="flex space-x-1 bg-white p-1 rounded-xl border border-gray-100 mb-8 max-w-md animate-fade-in-up delay-100">
+            class="flex space-x-1 bg-white p-1 rounded-xl border border-gray-100 mb-8 max-w-lg animate-fade-in-up delay-100 w-full sm:w-auto overflow-x-auto hide-scrollbar">
             <button (click)="activeTab.set('feedback')" [class.bg-primary-50]="activeTab() === 'feedback'"
                 [class.text-primary-700]="activeTab() === 'feedback'" [class.text-gray-500]="activeTab() !== 'feedback'"
-                class="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-medium transition-all">
+                class="flex-1 min-w-[120px] flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-medium transition-all">
                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                     stroke-linecap="round" stroke-linejoin="round">
                     <path
@@ -175,7 +219,7 @@
             <button (click)="activeTab.set('materials')" [class.bg-primary-50]="activeTab() === 'materials'"
                 [class.text-primary-700]="activeTab() === 'materials'"
                 [class.text-gray-500]="activeTab() !== 'materials'"
-                class="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-medium transition-all">
+                class="flex-1 min-w-[120px] flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-medium transition-all">
                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                     stroke-linecap="round" stroke-linejoin="round">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -186,12 +230,24 @@
                 </svg>
                 Materiales
             </button>
+            <button (click)="activeTab.set('sessions')" [class.bg-primary-50]="activeTab() === 'sessions'"
+                [class.text-primary-700]="activeTab() === 'sessions'" [class.text-gray-500]="activeTab() !== 'sessions'"
+                class="flex-1 min-w-[130px] flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-medium transition-all">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                Mis Sesiones
+            </button>
         </div>
 
         <!-- Content Area -->
         <div class="animate-fade-in">
             <!-- FEEDBACK TAB -->
-            @if (activeTab() === 'feedback') {
+            @if (activeTab() === "feedback") {
             @if (data()!.feedback.length === 0) {
             <div class="card-premium text-center py-12 px-6 animate-fade-in-up delay-200">
                 <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -202,14 +258,18 @@
                         </path>
                     </svg>
                 </div>
-                <h3 class="text-gray-900 font-medium mb-1">Aún no hay feedback</h3>
-                <p class="text-gray-500 text-sm">Los comentarios de tu tutor aparecerán aquí.</p>
+                <h3 class="text-gray-900 font-medium mb-1">
+                    Aún no hay feedback
+                </h3>
+                <p class="text-gray-500 text-sm">
+                    Los comentarios de tu tutor aparecerán aquí.
+                </p>
             </div>
             } @else {
             <div class="space-y-6">
                 @for (item of data()!.feedback; track item.id; let i = $index) {
                 <div class="card-premium hover-lift p-6 flex gap-4 animate-fade-in-up"
-                    [style.animation-delay]="(i * 80) + 'ms'">
+                    [style.animation-delay]="i * 80 + 'ms'">
                     <div class="flex-shrink-0">
                         <div
                             class="w-10 h-10 bg-accent-green/10 rounded-full flex items-center justify-center text-accent-green">
@@ -225,9 +285,13 @@
                         <div class="flex items-center justify-between mb-2">
                             <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">Feedback de
                                 Sesión</span>
-                            <span class="text-xs text-gray-400">{{ formatDate(item.created_at) }}</span>
+                            <span class="text-xs text-gray-400">{{
+                                formatDate(item.created_at)
+                                }}</span>
                         </div>
-                        <p class="text-gray-700 leading-relaxed whitespace-pre-line">{{ item.message }}</p>
+                        <p class="text-gray-700 leading-relaxed whitespace-pre-line">
+                            {{ item.message }}
+                        </p>
 
                         <!-- Extension Proposal Block -->
                         @if (item.extension_proposal) {
@@ -242,13 +306,19 @@
                                 Sugerencia del Tutor
                             </h4>
                             <p class="text-sm text-blue-800 mb-3">
-                                Tu tutor recomienda tomar <strong>{{ item.extension_proposal.count }} sesión(es)
-                                    adicional(es)</strong> para este tema.
+                                Tu tutor recomienda tomar
+                                <strong>{{ item.extension_proposal.count }} sesión(es)
+                                    adicional(es)</strong>
+                                para este tema.
                             </p>
                             <div class="flex flex-wrap gap-2">
-                                <button
-                                    (click)="acceptExtension(item.extension_proposal, item.user_id, data()!.student.email)"
-                                    class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm cursor-pointer">
+                                <button (click)="
+                              acceptExtension(
+                                item.extension_proposal,
+                                item.user_id,
+                                data()!.student.email
+                              )
+                            " class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm cursor-pointer">
                                     Modificar / Agendar Horarios
                                 </button>
                                 <button (click)="rejectExtension(item.id)"
@@ -265,8 +335,128 @@
             }
             }
 
+            <!-- MIS SESIONES TAB -->
+            @if (activeTab() === "sessions") {
+            @if (upcomingSessions().length === 0 && pastSessions().length === 0) {
+            <div class="card-premium text-center py-12 px-6 animate-fade-in-up delay-200">
+                <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                </div>
+                <h3 class="text-gray-900 font-medium mb-1">
+                    Aún no hay sesiones programadas
+                </h3>
+                <p class="text-gray-500 text-sm">
+                    Pronto el tutor asignará horarios.
+                </p>
+            </div>
+            } @else {
+            <div class="space-y-10">
+                <!-- Próximas Sesiones -->
+                @if (upcomingSessions().length > 0) {
+                <div class="animate-fade-in-up">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-accent-green" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        Próximas Sesiones
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        @for (
+                        appt of upcomingSessions();
+                        track appt.id;
+                        let i = $index
+                        ) {
+                        <div class="card-premium p-5 border-l-4 border-l-accent-green relative overflow-hidden group">
+                            <div class="flex justify-between items-start mb-2">
+                                <div class="flex items-center gap-2">
+                                    <span
+                                        class="px-2.5 py-1 bg-green-50 text-green-700 text-xs font-semibold rounded-md border border-green-100 uppercase tracking-wide">
+                                        Confirmada
+                                    </span>
+                                </div>
+                                @if (appt.meet_link) {
+                                <a [href]="appt.meet_link" target="_blank"
+                                    class="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors flex items-center gap-2 shadow-sm">
+                                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                                        <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                                    </svg>
+                                    Unirme
+                                </a>
+                                }
+                            </div>
+                            <div class="pt-2">
+                                <!-- Note: Supabase formatting can sometimes leave date off time, we assume start_time is HH:mm:ss -->
+                                <h4 class="text-lg font-bold text-gray-900">
+                                    {{ formatDate(appt.date) }}
+                                </h4>
+                                <p class="text-gray-600 font-medium flex items-center gap-2 mt-1">
+                                    <svg class="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <polyline points="12 6 12 12 16 14"></polyline>
+                                    </svg>
+                                    {{ appt.start_time?.substring(0, 5) }}
+                                    {{
+                                    appt.end_time
+                                    ? " - " + appt.end_time.substring(0, 5)
+                                    : ""
+                                    }}
+                                    <span class="text-sm font-normal text-gray-400">({{ appt.duration_minutes }}
+                                        min)</span>
+                                </p>
+                            </div>
+                        </div>
+                        }
+                    </div>
+                </div>
+                }
+
+                <!-- Sesiones Pasadas -->
+                @if (pastSessions().length > 0) {
+                <div class="animate-fade-in-up delay-100 opacity-80 hover:opacity-100 transition-opacity">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                        </svg>
+                        Historial de Clases
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        @for (appt of pastSessions(); track appt.id) {
+                        <div class="bg-white border border-gray-200 rounded-xl p-4 flex flex-col justify-center">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-xs font-medium text-gray-500">{{
+                                    formatDate(appt.date)
+                                    }}</span>
+                                <span class="w-2.5 h-2.5 rounded-full" [class.bg-gray-300]="appt.status !== 'completed'"
+                                    [class.bg-green-400]="appt.status === 'completed'" title="Status"></span>
+                            </div>
+                            <p class="text-sm font-semibold text-gray-700">
+                                {{ appt.start_time?.substring(0, 5) }} -
+                                <span class="font-normal">{{ appt.duration_minutes }} min</span>
+                            </p>
+                        </div>
+                        }
+                    </div>
+                </div>
+                }
+            </div>
+            }
+            }
+
             <!-- MATERIALS TAB -->
-            @if (activeTab() === 'materials') {
+            @if (activeTab() === "materials") {
             @if (data()!.materials.length === 0) {
             <div class="card-premium text-center py-12 px-6 animate-fade-in-up delay-200">
                 <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -279,18 +469,22 @@
                         <polyline points="10 9 9 9 8 9"></polyline>
                     </svg>
                 </div>
-                <h3 class="text-gray-900 font-medium mb-1">No hay materiales compartidos</h3>
-                <p class="text-gray-500 text-sm">Los documentos y enlaces aparecerán aquí.</p>
+                <h3 class="text-gray-900 font-medium mb-1">
+                    No hay materiales compartidos
+                </h3>
+                <p class="text-gray-500 text-sm">
+                    Los documentos y enlaces aparecerán aquí.
+                </p>
             </div>
             } @else {
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 @for (item of data()!.materials; track item.id; let i = $index) {
                 <div class="card-premium hover-lift p-5 group animate-fade-in-up"
-                    [style.animation-delay]="(i * 80) + 'ms'">
+                    [style.animation-delay]="i * 80 + 'ms'">
                     <div class="flex items-start justify-between mb-4">
                         <div
                             class="p-3 bg-blue-50 text-blue-600 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                            @if (item.type === 'link') {
+                            @if (item.type === "link") {
                             <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                 stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
@@ -309,7 +503,7 @@
                         </div>
                         <a [href]="item.url" target="_blank"
                             class="px-3 py-1.5 bg-gray-50 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors flex items-center gap-1">
-                            {{ item.type === 'link' ? 'Abrir' : 'Descargar' }}
+                            {{ item.type === "link" ? "Abrir" : "Descargar" }}
                             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                 stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -318,8 +512,12 @@
                             </svg>
                         </a>
                     </div>
-                    <h3 class="font-semibold text-gray-900 mb-1 line-clamp-1">{{ item.title }}</h3>
-                    <p class="text-sm text-gray-500 line-clamp-2">{{ item.description || 'Sin descripción' }}</p>
+                    <h3 class="font-semibold text-gray-900 mb-1 line-clamp-1">
+                        {{ item.title }}
+                    </h3>
+                    <p class="text-sm text-gray-500 line-clamp-2">
+                        {{ item.description || "Sin descripción" }}
+                    </p>
                     <div
                         class="mt-4 pt-4 border-t border-gray-50 flex items-center justify-between text-xs text-gray-400">
                         <span class="capitalize">{{ item.type }}</span>
@@ -330,7 +528,6 @@
             </div>
             }
             }
-
         </div>
 
         <!-- Extension Booking Widget Section -->
@@ -392,30 +589,37 @@
                         <div class="h-24 w-24 bg-white rounded-2xl p-1 shadow-lg">
                             <div
                                 class="h-full w-full bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center text-white text-3xl font-bold">
-                                {{ getInitials(data()!.student.first_name, data()!.student.last_name) }}
+                                {{
+                                getInitials(
+                                data()!.student.first_name,
+                                data()!.student.last_name
+                                )
+                                }}
                             </div>
                         </div>
                     </div>
 
                     <div class="mb-6">
-                        <h2 class="text-2xl font-bold text-gray-900">{{ data()!.student.first_name }} {{
-                            data()!.student.last_name }}</h2>
+                        <h2 class="text-2xl font-bold text-gray-900">
+                            {{ data()!.student.first_name }} {{ data()!.student.last_name }}
+                        </h2>
                         <p class="text-gray-500">{{ data()!.student.email }}</p>
                     </div>
 
                     <div class="grid gap-6 border-t border-gray-100 pt-6">
                         <div>
-                            <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">Información
-                                Personal</h3>
+                            <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">
+                                Información Personal
+                            </h3>
                             <div class="grid grid-cols-1 gap-4">
                                 <div class="bg-gray-50 p-4 rounded-xl flex justify-between items-center">
                                     <div>
                                         <p class="text-xs text-gray-400 mb-1">Teléfono</p>
-                                        <p class="font-medium text-gray-900">{{ data()!.student.phone || 'No registrado'
-                                            }}
+                                        <p class="font-medium text-gray-900">
+                                            {{ data()!.student.phone || "No registrado" }}
                                         </p>
                                     </div>
-                                    @if(data()!.student.phone) {
+                                    @if (data()!.student.phone) {
                                     <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24"
                                         stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -425,26 +629,43 @@
                                 </div>
                                 <div class="bg-gray-50 p-4 rounded-xl">
                                     <p class="text-xs text-gray-400 mb-1">Nivel Académico</p>
-                                    <p class="font-medium text-gray-900">{{ data()!.student.academic_level || 'No
-                                        registrado' }}</p>
+                                    <p class="font-medium text-gray-900">
+                                        {{
+                                        data()!.student.academic_level ||
+                                        "No
+                                        registrado"
+                                        }}
+                                    </p>
                                 </div>
                             </div>
                         </div>
 
                         @if (data()!.student.tutor_name || data()!.student.company_name) {
                         <div>
-                            <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">Tutor
-                                Asignado</h3>
+                            <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">
+                                Tutor Asignado
+                            </h3>
                             <div class="bg-primary-50 p-4 rounded-xl flex items-center gap-4">
                                 <div
                                     class="h-10 w-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 font-bold">
-                                    {{ data()!.student.company_name ? data()!.student.company_name[0] :
-                                    (data()!.student.tutor_name ? data()!.student.tutor_name[0] : 'T') }}
+                                    {{
+                                    data()!.student.company_name
+                                    ? data()!.student.company_name[0]
+                                    : data()!.student.tutor_name
+                                    ? data()!.student.tutor_name[0]
+                                    : "T"
+                                    }}
                                 </div>
                                 <div>
-                                    <p class="font-medium text-gray-900">{{ data()!.student.company_name ||
-                                        data()!.student.tutor_name }}</p>
-                                    <p class="text-xs text-primary-600">Tu instructor principal</p>
+                                    <p class="font-medium text-gray-900">
+                                        {{
+                                        data()!.student.company_name ||
+                                        data()!.student.tutor_name
+                                        }}
+                                    </p>
+                                    <p class="text-xs text-primary-600">
+                                        Tu instructor principal
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -462,5 +683,4 @@
         </div>
     </div>
     }
-
 </div>
