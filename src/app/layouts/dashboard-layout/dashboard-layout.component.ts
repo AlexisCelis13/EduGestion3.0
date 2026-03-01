@@ -20,7 +20,8 @@ import {
   Bell,
   User,
   ChevronDown,
-  ChevronLeft
+  ChevronLeft,
+  HelpCircle
 } from 'lucide-angular';
 
 interface MenuItem {
@@ -99,21 +100,18 @@ interface MenuItem {
           }
         </nav>
 
-        <!-- User Menu -->
+        <!-- Support / Help -->
         <div class="p-3 border-t border-white/10">
-          <div class="flex items-center p-2 rounded-xl hover:bg-white/5 transition-colors cursor-pointer group" (click)="toggleProfileMenu()">
-            <div class="w-10 h-10 min-w-[40px] bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center shadow-lg ring-2 ring-white/10 group-hover:ring-primary-500/50 transition-all">
-              <span class="text-sm font-bold text-white">{{ userInitials() }}</span>
-            </div>
+          <a routerLink="/dashboard/support" class="flex items-center p-2 rounded-xl hover:bg-white/5 transition-colors cursor-pointer group text-surface-300 hover:text-white" title="Ayuda y Soporte">
+            <lucide-icon [name]="HelpCircleIcon" class="w-6 h-6 min-w-[24px] transition-colors duration-200 group-hover:text-primary-400"></lucide-icon>
             
-            <div class="ml-3 flex-1 min-w-0 transition-opacity duration-300"
+            <div class="ml-4 flex-1 min-w-0 transition-opacity duration-300"
                  [class.opacity-0]="!isSidebarExpanded()"
                  [class.opacity-100]="isSidebarExpanded()"
                  [class.hidden]="!isSidebarExpanded() && !isAnimating">
-              <p class="text-sm font-medium truncate text-white">{{ userName() }}</p>
-              <p class="text-xs text-surface-400 truncate">{{ userEmail() }}</p>
+              <p class="text-sm font-medium truncate">Ayuda y Soporte</p>
             </div>
-          </div>
+          </a>
         </div>
       </div>
 
@@ -172,10 +170,11 @@ interface MenuItem {
               </div>
 
               <!-- Profile Dropdown -->
-              <div class="relative">
+              <div class="relative" #profileMenuContainer>
                 <button
                   (click)="toggleProfileMenu()"
-                  class="flex items-center gap-2 p-1.5 pl-2 rounded-xl hover:bg-surface-100 transition-colors border border-transparent hover:border-surface-200">
+                  class="flex items-center gap-2 p-1.5 pl-2 rounded-xl hover:bg-surface-100 transition-colors border border-transparent hover:border-surface-200"
+                  [class.bg-surface-100]="showProfileMenu()">
                   <div class="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-700 rounded-lg flex items-center justify-center text-white shadow-sm">
                     <span class="text-xs font-bold">{{ userInitials() }}</span>
                   </div>
@@ -262,6 +261,7 @@ interface MenuItem {
 })
 export class DashboardLayoutComponent implements OnInit, OnDestroy {
   @ViewChild('notificationsContainer') notificationsContainer!: ElementRef;
+  @ViewChild('profileMenuContainer') profileMenuContainer!: ElementRef;
 
   // Sidebar State
   isSidebarExpanded = signal(false);
@@ -277,6 +277,7 @@ export class DashboardLayoutComponent implements OnInit, OnDestroy {
   SettingsIcon = Settings;
   LogOutIcon = LogOut;
   ChevronLeftIcon = ChevronLeft;
+  HelpCircleIcon = HelpCircle;
 
   // Other UI State
   showProfileMenu = signal(false);
@@ -393,8 +394,9 @@ export class DashboardLayoutComponent implements OnInit, OnDestroy {
       this.showNotifications.set(false);
     }
 
-    // Also close profile menu if clicking outside
-    // Add logic similar to notifications if needed, or rely on button toggle
+    if (this.showProfileMenu() && this.profileMenuContainer && !this.profileMenuContainer.nativeElement.contains(event.target)) {
+      this.showProfileMenu.set(false);
+    }
   }
 
   @HostListener('document:keydown', ['$event'])

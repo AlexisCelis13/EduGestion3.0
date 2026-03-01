@@ -112,7 +112,7 @@ import { LucideAngularModule, DollarSign, CreditCard, Building, ArrowUpRight, Hi
                       {{ tx.students?.first_name }} {{ tx.students?.last_name }}
                     </td>
                     <td class="px-6 py-4 text-sm font-semibold text-accent-green text-right">
-                      +{{ formatPrice(tx.amount_paid) }}
+                      +{{ formatPrice(tx.amount_paid || tx.price || 0) }}
                     </td>
                     <td class="px-6 py-4 text-center">
                       <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-accent-green/10 text-accent-green">
@@ -389,7 +389,7 @@ export class PaymentsComponent implements OnInit {
     }
 
     this.transactions.set(txs || []);
-    const total = (txs || []).reduce((sum: number, tx: any) => sum + (Number(tx.amount_paid) || 0), 0);
+    const total = (txs || []).reduce((sum: number, tx: any) => sum + (Number(tx.amount_paid || tx.price) || 0), 0);
     this.totalRevenue.set(total);
     this.availableBalance.set(total);
   }

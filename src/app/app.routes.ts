@@ -102,6 +102,10 @@ export const routes: Routes = [
       {
         path: 'study-plans',
         loadComponent: () => import('./features/study-plans/study-plans.component').then(m => m.StudyPlansComponent)
+      },
+      {
+        path: 'support',
+        loadComponent: () => import('./features/support/support.component').then(m => m.SupportComponent)
       }
     ]
   },

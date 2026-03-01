@@ -53,20 +53,7 @@ import { PaymentService } from '../../../core/services/payment.service';
         <p class="text-gray-600">Procesando tu pago...</p>
       </div>
 
-      <!-- Botón Atrás -->
-      <div class="flex gap-3 pt-4 border-t border-gray-100">
-        <button 
-          type="button" 
-          (click)="onCancel()"
-          [disabled]="isProcessing"
-          class="flex-1 px-4 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="19" y1="12" x2="5" y2="12"></line>
-            <polyline points="12 19 5 12 12 5"></polyline>
-          </svg>
-          Atrás
-        </button>
-      </div>
+
     </div>
   `
 })

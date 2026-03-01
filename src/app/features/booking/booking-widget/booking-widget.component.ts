@@ -48,15 +48,6 @@ interface SelectedSlot {
           <!-- Paso 2: Slots -->
           <div *ngIf="currentStep() === 'slots'" class="animate-fade-in">
               
-              <div class="flex items-center gap-3 mb-6">
-                  <button (click)="goBack()" class="px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors">
-                    Atrás
-                  </button>
-                  <button (click)="goBackToCalendar()" class="px-4 py-2 bg-white text-gray-700 font-medium rounded-lg border border-gray-300 hover:bg-gray-50 flex items-center justify-center gap-2 transition-colors whitespace-nowrap">
-                    <i-lucide [img]="Calendar" class="w-4 h-4"></i-lucide>
-                    Elegir otra fecha
-                  </button>
-              </div>
 
               <h2 class="text-3xl font-bold text-gray-900 mb-6 flex flex-col gap-1">
                 Horarios:
@@ -70,6 +61,16 @@ interface SelectedSlot {
                 [loading]="loadingSlots()"
                 (slotSelected)="onSlotSelected($event)">
               </app-booking-slots>
+              
+              <div class="flex items-center gap-3 mt-8 pt-6 border-t border-gray-100">
+                  <button (click)="goBack()" class="px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors">
+                    Atrás
+                  </button>
+                  <button (click)="goBackToCalendar()" class="px-4 py-2 bg-white text-gray-700 font-medium rounded-lg border border-gray-300 hover:bg-gray-50 flex items-center justify-center gap-2 transition-colors whitespace-nowrap">
+                    <i-lucide [img]="Calendar" class="w-4 h-4"></i-lucide>
+                    Elegir otra fecha
+                  </button>
+              </div>
           </div>
 
           <!-- Paso 3: Formulario -->
@@ -96,9 +97,6 @@ interface SelectedSlot {
           <!-- Paso 4: Pago -->
           <div *ngIf="currentStep() === 'payment'" class="animate-fade-in">
               <div class="flex flex-col gap-4 mb-6 relative">
-                <button (click)="goBack()" class="self-start px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors">
-                    Atrás
-                </button>
                 <h2 class="text-2xl font-bold text-gray-900">Confirmar y Pagar</h2>
               </div>
               
@@ -108,6 +106,12 @@ interface SelectedSlot {
                 (pay)="onProcessPayment($event)"
                 (cancel)="goBack()">
               </app-payment-form>
+              
+              <div class="flex items-center gap-3 mt-8 pt-6 border-t border-gray-100">
+                  <button (click)="goBack()" class="px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors">
+                    Atrás
+                  </button>
+              </div>
           </div>
 
           <!-- Paso 5: Éxito -->

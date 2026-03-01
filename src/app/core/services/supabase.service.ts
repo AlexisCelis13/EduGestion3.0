@@ -1486,6 +1486,7 @@ export class SupabaseService {
         id,
         user_id,
         amount_paid,
+        price,
         appointment_date,
         status,
         service_id,
