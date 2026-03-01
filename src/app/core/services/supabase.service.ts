@@ -1274,11 +1274,10 @@ export class SupabaseService {
     return { error };
   }
 
-  async rejectExtension(feedbackId: string, accessToken: string) {
+  async rejectExtension(feedbackId: string, accessToken?: string) {
     const { data, error } = await this.supabase
-      .rpc('reject_extension_proposal', {
-        p_feedback_id: feedbackId,
-        p_access_token: accessToken
+      .rpc('reject_extension_proposal_by_id', {
+        p_feedback_id: feedbackId
       });
 
     return { error };

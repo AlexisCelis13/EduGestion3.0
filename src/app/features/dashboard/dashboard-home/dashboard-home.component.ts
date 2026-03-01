@@ -461,7 +461,7 @@ export class DashboardHomeComponent implements OnInit {
         return aptDate >= startOfMonth && aptDate <= endOfMonth && a.payment_status === 'paid';
       });
 
-      const totalRevenue = monthlyPaid.reduce((sum: number, a: any) => sum + (Number(a.amount_paid) || 0), 0);
+      const totalRevenue = monthlyPaid.reduce((sum: number, a: any) => sum + (Number(a.amount_paid || a.price) || 0), 0);
       this.monthlyRevenue.set(totalRevenue);
     }
   }

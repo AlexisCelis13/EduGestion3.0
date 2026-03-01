@@ -31,7 +31,8 @@ serve(async (req: Request) => {
     }
 
     try {
-        const { token } = await req.json();
+        const payloadJson = await req.json();
+        const { token, action, feedbackId } = payloadJson;
 
         if (!token) {
             throw new Error("Token is required");
@@ -67,6 +68,16 @@ serve(async (req: Request) => {
             SUPABASE_SERVICE_ROLE_KEY!
         );
 
+        // EXTRACTION: Check for 'action' field to perform side-effects using the token's identity
+        const reqBody = await req.clone().json().catch(() => ({}));
+        // We actually already consumed req.json() above at `const { token } = await req.json();`
+        // Wait, req.json() can only be called once! Let's just use the destructured vars.
+
+        const supabase = createClient(
+            SUPABASE_URL!,
+            SUPABASE_SERVICE_ROLE_KEY!
+        );
+
         // 2. Get Student Data using the email from the token
         const { data: student, error: studentError } = await supabase
             .from("students")
@@ -78,6 +89,25 @@ serve(async (req: Request) => {
             return new Response(JSON.stringify({ error: "Student not found" }), {
                 headers: { ...corsHeaders, "Content-Type": "application/json" },
                 status: 404,
+            });
+        }
+
+        // ==========================================
+        // HANDLE ACTIONS
+        // ==========================================
+        if (action === 'reject_extension' && feedbackId) {
+            // Because we verified the token belongs to the student, we can safely clear it
+            const { error: updateError } = await supabase
+                .from("student_feedback")
+                .update({ extension_proposal: null })
+                .eq("id", feedbackId)
+                .eq("student_id", student.id);
+
+            if (updateError) throw updateError;
+
+            return new Response(JSON.stringify({ success: true }), {
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+                status: 200,
             });
         }
 
