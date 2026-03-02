@@ -1013,6 +1013,18 @@ export class SupabaseService {
       .subscribe();
   }
 
+  // Student Cancellation
+  async cancelAppointmentStudent(appointmentId: string, reason: string, token: string) {
+    // We pass the token to identify the student securely via RPC
+    const { data, error } = await this.supabase.rpc('cancel_appointment_student', {
+      p_appointment_id: appointmentId,
+      p_reason: reason,
+      p_student_token: token
+    });
+
+    return { data, error };
+  }
+
   async getAppNotifications(userId: string, limit = 20) {
     const { data, error } = await this.supabase
       .from('notifications')
@@ -1488,11 +1500,12 @@ export class SupabaseService {
         price,
         appointment_date,
         status,
+        payment_status,
         service_id,
         students ( first_name, last_name, email )
       `)
       .eq('user_id', userId)
-      .eq('payment_status', 'paid')
+      .in('payment_status', ['paid', 'refunded'])
       .order('appointment_date', { ascending: false });
 
     if (error) {

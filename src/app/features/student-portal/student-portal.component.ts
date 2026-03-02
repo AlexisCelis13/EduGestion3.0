@@ -71,11 +71,18 @@ export class StudentPortalComponent implements OnInit, OnDestroy {
   activeExtensionStudentEmail = signal<string>("");
   activeExtensionRecentAppointments = signal<any[]>([]);
 
+  // Session Details & Cancellation Modal
+  showSessionDetailsModal = signal(false);
+  selectedAppointment = signal<any>(null);
+  cancelStep = signal<'details' | 'reason'>('details');
+  cancelReason = signal('');
+  isCancelling = signal(false);
+
   constructor(
     private route: ActivatedRoute,
     private supabaseService: SupabaseService,
     private router: Router,
-  ) {}
+  ) { }
 
   async ngOnInit() {
     const token = this.route.snapshot.paramMap.get("token");
@@ -239,6 +246,20 @@ export class StudentPortalComponent implements OnInit, OnDestroy {
     });
   }
 
+  formatTime(timeStr: string | undefined): string {
+    if (!timeStr) return "";
+    try {
+      const [hours, minutes] = timeStr.split(':');
+      let h = parseInt(hours, 10);
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12;
+      h = h ? h : 12;
+      return `${h}:${minutes} ${ampm}`;
+    } catch {
+      return timeStr;
+    }
+  }
+
   getInitials(first: string, last: string): string {
     return `${first.charAt(0)}${last.charAt(0)}`.toUpperCase();
   }
@@ -363,6 +384,73 @@ export class StudentPortalComponent implements OnInit, OnDestroy {
   }
 
   // ==========================================
+  // Session Details & Cancellation
+  // ==========================================
+  openSessionDetails(appt: any) {
+    this.selectedAppointment.set(appt);
+    this.cancelStep.set('details');
+    this.cancelReason.set('');
+    this.showSessionDetailsModal.set(true);
+  }
+
+  closeSessionDetails() {
+    this.showSessionDetailsModal.set(false);
+    this.selectedAppointment.set(null);
+  }
+
+  canCancelSession(appt: any): boolean {
+    if (!appt) return false;
+    const now = new Date();
+    const startDateTime = new Date(`${appt.date}T${appt.start_time}`);
+    const hoursDiff = (startDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+    return hoursDiff >= 24;
+  }
+
+  initiateCancel() {
+    this.cancelStep.set('reason');
+  }
+
+  async confirmCancel() {
+    if (!this.cancelReason().trim()) {
+      alert('Por favor ingresa un motivo para cancelar la sesión.');
+      return;
+    }
+
+    const appt = this.selectedAppointment();
+    const portalData = this.data();
+    if (!appt || !portalData?.student) return;
+
+    // Use token if available, otherwise fallback (we need the token to pass RLS in RPC)
+    const token = this.route.snapshot.paramMap.get('token') || '';
+
+    this.isCancelling.set(true);
+    try {
+      const { data, error } = await this.supabaseService.cancelAppointmentStudent(
+        appt.id,
+        this.cancelReason(),
+        token
+      );
+
+      if (error) throw error;
+
+      // Update local state
+      this.upcomingSessions.update(sessions =>
+        sessions.filter(s => s.id !== appt.id)
+      );
+
+      // Optionally show a success toast
+      this.pushLocalNotification('Sesión Cancelada', 'Tu cita ha sido cancelada exitosamente.', 'booking_cancel');
+
+      this.closeSessionDetails();
+    } catch (err: any) {
+      console.error('Error cancelling session:', err);
+      alert('Hubo un error al cancelar la sesión: ' + (err.message || err));
+    } finally {
+      this.isCancelling.set(false);
+    }
+  }
+
+  // ==========================================
   // Notifications & Session Timers
   // ==========================================
   startSessionTimer() {
@@ -441,8 +529,8 @@ export class StudentPortalComponent implements OnInit, OnDestroy {
     try {
       const audio = new Audio("/assets/notification.mp3"); // Need to ensure it exists or ignore
       audio.volume = 0.5;
-      audio.play().catch((e) => {}); // Ignore autoplay blocks
-    } catch (e) {}
+      audio.play().catch((e) => { }); // Ignore autoplay blocks
+    } catch (e) { }
   }
 
   ngOnDestroy() {

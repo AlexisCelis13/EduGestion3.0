@@ -52,12 +52,17 @@ interface Particle {
             <div class="flex items-center">
               <img src="assets/LogoCompleto.png" class="h-10 cursor-pointer hover:opacity-80 transition-opacity" (click)="scrollToTop()">
             </div>
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-6">
+              <a routerLink="/student-portal/login" 
+                 class="text-surface-700 hover:text-primary-600 font-medium text-sm transition-colors">
+                Portal Alumnos
+              </a>
+              <div class="h-4 w-px bg-surface-200"></div>
               <a routerLink="/auth/login" 
-                 class="text-surface-700 hover:text-primary-600 font-medium text-sm">
+                 class="text-surface-700 hover:text-primary-600 font-medium text-sm transition-colors">
                 Iniciar Sesión
               </a>
-              <a routerLink="/auth/register" class="btn-premium text-sm !py-2.5 !px-5">
+              <a routerLink="/auth/register" class="btn-premium text-sm !py-2.5 !px-5 shadow-sm">
                 Comenzar Gratis
               </a>
             </div>

@@ -374,7 +374,8 @@
                         track appt.id;
                         let i = $index
                         ) {
-                        <div class="card-premium p-5 border-l-4 border-l-accent-green relative overflow-hidden group">
+                        <div (click)="openSessionDetails(appt)"
+                            class="card-premium p-5 border-l-4 border-l-accent-green relative overflow-hidden group cursor-pointer hover:bg-gray-50 transition-colors">
                             <div class="flex justify-between items-start mb-2">
                                 <div class="flex items-center gap-2">
                                     <span
@@ -383,7 +384,7 @@
                                     </span>
                                 </div>
                                 @if (appt.meet_link) {
-                                <a [href]="appt.meet_link" target="_blank"
+                                <a [href]="appt.meet_link" target="_blank" (click)="$event.stopPropagation()"
                                     class="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors flex items-center gap-2 shadow-sm">
                                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -679,6 +680,155 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+    }
+
+    <!-- Session Details & Cancellation Modal -->
+    @if (showSessionDetailsModal()) {
+    <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <!-- Background overlay -->
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"
+                (click)="closeSessionDetails()"></div>
+
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            <div
+                class="relative inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full animate-fade-in-up">
+
+                <!-- Header -->
+                <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                    <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        Detalles de la Sesión
+                    </h3>
+                    <button (click)="closeSessionDetails()"
+                        class="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-200 transition-colors">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Body (Details Step) -->
+                @if (cancelStep() === 'details') {
+                <div class="px-6 py-6 space-y-5">
+                    <!-- Session Info -->
+                    <div>
+                        <p class="text-sm text-gray-500 font-medium uppercase tracking-wider mb-1">Fecha y Hora</p>
+                        <p class="text-lg font-bold text-gray-900 capitalize">{{ formatDate(selectedAppointment()?.date)
+                            }}</p>
+                        <p class="text-gray-600 flex items-center gap-1.5 mt-0.5">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            {{ formatTime(selectedAppointment()?.start_time) }} - {{
+                            formatTime(selectedAppointment()?.end_time) }}
+                            <span class="text-gray-400 mx-1">•</span>
+                            {{ selectedAppointment()?.duration_minutes }} min
+                        </p>
+                    </div>
+
+                    @if (selectedAppointment()?.notes) {
+                    <div>
+                        <p class="text-sm text-gray-500 font-medium uppercase tracking-wider mb-1">Notas de la Cita</p>
+                        <p class="text-gray-700 bg-gray-50 p-3 rounded-lg border border-gray-100 text-sm">
+                            {{ selectedAppointment()?.notes }}
+                        </p>
+                    </div>
+                    }
+
+                    @if (selectedAppointment()?.meet_link) {
+                    <div class="pt-2 border-t border-gray-100">
+                        <a [href]="selectedAppointment()?.meet_link" target="_blank"
+                            class="w-full flex justify-center items-center gap-2 py-2.5 bg-blue-50 text-blue-700 rounded-xl font-semibold hover:bg-blue-100 transition-colors border border-blue-100">
+                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                            </svg>
+                            Unirse a Meet
+                        </a>
+                    </div>
+                    }
+                </div>
+
+                <!-- Footer with Cancel Logic -->
+                <div
+                    class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row-reverse items-center justify-start gap-3">
+                    <div class="w-full sm:w-auto flex flex-col sm:items-start group relative">
+                        <button (click)="initiateCancel()" [disabled]="!canCancelSession(selectedAppointment())"
+                            class="w-full sm:w-auto px-5 py-2.5 bg-red-50 text-red-600 rounded-xl font-medium border border-red-100 hover:bg-red-100 hover:border-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            Cancelar Sesión
+                        </button>
+                        @if (!canCancelSession(selectedAppointment())) {
+                        <p class="text-xs text-red-500 mt-2 text-center sm:text-left">
+                            Solo puedes cancelar con al menos 24 horas de anticipación. Contacta a tu tutor.
+                        </p>
+                        }
+                    </div>
+                </div>
+                }
+
+                <!-- Body (Reason Step) -->
+                @if (cancelStep() === 'reason') {
+                <div class="px-6 py-6">
+                    <div class="mb-5">
+                        <h4 class="text-lg font-bold text-gray-900 mb-2">¿Motivo de tu cancelación?</h4>
+                        <p class="text-sm text-gray-500">
+                            Por favor déjale un mensaje a tu tutor explicándole brevemente por qué necesitas cancelar
+                            esta cita.
+                        </p>
+                    </div>
+
+                    <textarea [value]="cancelReason()" (input)="cancelReason.set($any($event.target).value)" rows="3"
+                        class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-white shadow-sm resize-none mb-4"
+                        placeholder="Ej. Me surgió un inconveniente familiar y no podré asistir..."></textarea>
+
+                    <div
+                        class="p-3 bg-orange-50 text-orange-800 rounded-lg text-sm border border-orange-100 flex gap-2">
+                        <svg class="w-5 h-5 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                        <p>Al confirmar, la sesión se cancelará permanentemente y el tutor será notificado.</p>
+                    </div>
+                </div>
+
+                <!-- Footer (Reason Step) -->
+                <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
+                    <button (click)="cancelStep.set('details')" [disabled]="isCancelling()"
+                        class="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors disabled:opacity-50">
+                        Volver
+                    </button>
+                    <button (click)="confirmCancel()" [disabled]="isCancelling() || !cancelReason().trim()"
+                        class="px-5 py-2.5 bg-red-600 text-white rounded-xl font-medium border border-transparent hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2">
+                        @if (isCancelling()) {
+                        <svg class="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path
+                                d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83">
+                            </path>
+                        </svg>
+                        Cancelando...
+                        } @else {
+                        Confirmar Cancelación
+                        }
+                    </button>
+                </div>
+                }
             </div>
         </div>
     </div>

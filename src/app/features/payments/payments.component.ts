@@ -111,13 +111,22 @@ import { LucideAngularModule, DollarSign, CreditCard, Building, ArrowUpRight, Hi
                     <td class="px-6 py-4 text-sm text-surface-600">
                       {{ tx.students?.first_name }} {{ tx.students?.last_name }}
                     </td>
-                    <td class="px-6 py-4 text-sm font-semibold text-accent-green text-right">
-                      +{{ formatPrice(tx.amount_paid || tx.price || 0) }}
+                    <td class="px-6 py-4 text-sm font-semibold text-right"
+                        [ngClass]="tx.payment_status === 'refunded' ? 'text-surface-400 line-through' : 'text-accent-green'">
+                      {{ tx.payment_status === 'refunded' ? '-' : '+' }}{{ formatPrice(tx.amount_paid || tx.price || 0) }}
                     </td>
                     <td class="px-6 py-4 text-center">
-                      <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-accent-green/10 text-accent-green">
+                      <span *ngIf="tx.payment_status !== 'refunded'" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-accent-green/10 text-accent-green">
                         <i-lucide [img]="CheckCircle" class="w-3 h-3"></i-lucide>
                         Completado
+                      </span>
+                      <span *ngIf="tx.payment_status === 'refunded'" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-surface-100 text-surface-500">
+                        <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="15 3 21 3 21 9"></polyline>
+                          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                          <polyline points="21 3 10 14"></polyline>
+                        </svg>
+                        Rembolsado
                       </span>
                     </td>
                   </tr>
@@ -389,7 +398,10 @@ export class PaymentsComponent implements OnInit {
     }
 
     this.transactions.set(txs || []);
-    const total = (txs || []).reduce((sum: number, tx: any) => sum + (Number(tx.amount_paid || tx.price) || 0), 0);
+    const total = (txs || []).reduce((sum: number, tx: any) => {
+      if (tx.payment_status === 'refunded') return sum;
+      return sum + (Number(tx.amount_paid || tx.price) || 0);
+    }, 0);
     this.totalRevenue.set(total);
     this.availableBalance.set(total);
   }
