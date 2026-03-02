@@ -21,6 +21,16 @@ CREATE POLICY "Public can insert appointments" ON appointments
 -- Instead of giving public read access to the appointments table (which reveals student names/emails),
 -- we create a function that ONLY returns the start/end times of busy slots.
 
+DO $$ 
+DECLARE 
+    r RECORD;
+BEGIN 
+    FOR r IN (SELECT oid::regprocedure as spec FROM pg_proc WHERE proname = 'get_busy_slots') 
+    LOOP 
+        EXECUTE 'DROP FUNCTION ' || r.spec; 
+    END LOOP; 
+END $$;
+
 CREATE OR REPLACE FUNCTION get_busy_slots(p_tutor_id UUID, p_date DATE)
 RETURNS TABLE (start_time TIME, end_time TIME)
 LANGUAGE plpgsql
@@ -31,8 +41,11 @@ BEGIN
   SELECT a.start_time, a.end_time
   FROM appointments a
   WHERE a.user_id = p_tutor_id
-    AND a.date = p_date
-    AND a.status != 'cancelled';
+    AND (
+      a.date = p_date 
+      OR (a.appointment_date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City')::DATE = p_date
+    )
+    AND LOWER(a.status) NOT IN ('cancelled', 'rejected');
 END;
 $$;
 

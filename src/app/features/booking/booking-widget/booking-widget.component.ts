@@ -618,6 +618,23 @@ export class BookingWidgetComponent {
         end_time: s.endTime
       }));
 
+      const service = this.services.find(s => s.id === this.bookingFormData.serviceId);
+      let modality = service?.modality || 'virtual';
+      let location = null;
+      let meeting_link = null;
+
+      if (modality === 'hibrido') {
+        modality = this.bookingFormData.selectedModality || 'virtual';
+      }
+
+      if (modality === 'presencial_alumno') {
+        location = this.bookingFormData.studentLocation;
+      } else if (modality === 'presencial_tutor') {
+        location = service?.default_location;
+      } else if (modality === 'virtual') {
+        meeting_link = service?.default_location;
+      }
+
       const { data, error } = await this.supabase.createRecurringBookings({
         student_name: this.bookingFormData.studentName,
         student_last_name: this.bookingFormData.studentLastName,
@@ -632,7 +649,10 @@ export class BookingWidgetComponent {
         notes: this.bookingFormData.notes,
         amount_paid: this.pendingPaymentAmount,
         payment_status: 'paid', // Assuming payment went through successfully here
-        slots: mappedSlots
+        slots: mappedSlots,
+        modality: modality,
+        location: location,
+        meeting_link: meeting_link
       });
 
       if (error) {

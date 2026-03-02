@@ -53,8 +53,15 @@
         </div>
     </main>
     } @else if (error()) {
-    <div class="min-h-screen flex flex-col items-center justify-center p-4">
-        <div class="card-premium p-8 max-w-md w-full text-center animate-fade-in-up">
+    <div class="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4 relative">
+        <!-- Logo Top Left -->
+        <div class="fixed top-0 left-0 p-6 lg:p-8 z-50">
+            <a routerLink="/" class="block hover:opacity-80 transition-opacity">
+                <img src="assets/LogoCompleto.png" alt="EduGestión" class="h-8 lg:h-10">
+            </a>
+        </div>
+
+        <div class="card-premium p-8 max-w-md w-full text-center animate-fade-in-up mt-16">
             <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg class="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -63,7 +70,7 @@
             </div>
             <h2 class="text-2xl font-bold text-gray-900 mb-2">Enlace no válido</h2>
             <p class="text-gray-600 mb-6">{{ error() }}</p>
-            <a href="/" class="text-primary-600 hover:text-primary-700 font-medium">Volver al inicio</a>
+            <a routerLink="/" class="text-primary-600 hover:text-primary-700 font-medium">Volver al inicio</a>
         </div>
     </div>
     } @else if (data()) {
@@ -383,15 +390,15 @@
                                         Confirmada
                                     </span>
                                 </div>
-                                @if (appt.meet_link) {
-                                <a [href]="appt.meet_link" target="_blank" (click)="$event.stopPropagation()"
+                                @if (appt.meeting_link) {
+                                <a [href]="appt.meeting_link" target="_blank" (click)="$event.stopPropagation()"
                                     class="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors flex items-center gap-2 shadow-sm">
                                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <polygon points="23 7 16 12 23 17 23 7"></polygon>
                                         <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
                                     </svg>
-                                    Unirme
+                                    Unirse
                                 </a>
                                 }
                             </div>
@@ -747,16 +754,61 @@
                     </div>
                     }
 
-                    @if (selectedAppointment()?.meet_link) {
+                    <!-- Location / Modality section -->
+                    <div>
+                        <p class="text-sm text-gray-500 font-medium uppercase tracking-wider mb-1">Modalidad</p>
+                        @if (selectedAppointment()?.modality === 'virtual' || !selectedAppointment()?.modality) {
+                        <div class="flex items-center gap-2 text-blue-700 font-medium mb-1">
+                            <span
+                                class="px-2 py-0.5 bg-blue-50 border border-blue-100 rounded text-xs uppercase tracking-wide">Virtual</span>
+                        </div>
+                        } @else if (selectedAppointment()?.modality === 'presencial_tutor') {
+                        <div class="flex items-center gap-2 text-orange-700 font-medium mb-1">
+                            <span
+                                class="px-2 py-0.5 bg-orange-50 border border-orange-100 rounded text-xs uppercase tracking-wide">Presencial
+                                Fijo</span>
+                        </div>
+                        @if (selectedAppointment()?.location) {
+                        <p
+                            class="text-gray-700 text-sm mt-1 flex items-start gap-2 bg-orange-50/50 p-3 rounded-lg border border-orange-100">
+                            <svg class="w-4 h-4 text-orange-500 mt-0.5 shrink-0" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                <circle cx="12" cy="10" r="3"></circle>
+                            </svg>
+                            {{ selectedAppointment()?.location }}
+                        </p>
+                        }
+                        } @else if (selectedAppointment()?.modality === 'presencial_alumno') {
+                        <div class="flex items-center gap-2 text-orange-700 font-medium mb-1">
+                            <span
+                                class="px-2 py-0.5 bg-orange-50 border border-orange-100 rounded text-xs uppercase tracking-wide">Presencial
+                                A Domicilio</span>
+                        </div>
+                        @if (selectedAppointment()?.location) {
+                        <p
+                            class="text-gray-700 text-sm mt-1 flex items-start gap-2 bg-orange-50/50 p-3 rounded-lg border border-orange-100">
+                            <svg class="w-4 h-4 text-orange-500 mt-0.5 shrink-0" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                <circle cx="12" cy="10" r="3"></circle>
+                            </svg>
+                            {{ selectedAppointment()?.location }}
+                        </p>
+                        }
+                        }
+                    </div>
+
+                    @if (selectedAppointment()?.meeting_link) {
                     <div class="pt-2 border-t border-gray-100">
-                        <a [href]="selectedAppointment()?.meet_link" target="_blank"
+                        <a [href]="selectedAppointment()?.meeting_link" target="_blank"
                             class="w-full flex justify-center items-center gap-2 py-2.5 bg-blue-50 text-blue-700 rounded-xl font-semibold hover:bg-blue-100 transition-colors border border-blue-100">
                             <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                 stroke-linecap="round" stroke-linejoin="round">
                                 <polygon points="23 7 16 12 23 17 23 7"></polygon>
                                 <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
                             </svg>
-                            Unirse a Meet
+                            Unirse a la Llamada
                         </a>
                     </div>
                     }

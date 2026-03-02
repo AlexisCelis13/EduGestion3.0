@@ -101,6 +101,8 @@ export interface Service {
   methodology?: string;
   language?: string;
   prerequisites?: string;
+  modality?: string;
+  default_location?: string;
   created_at?: string;
 }
 
@@ -807,6 +809,9 @@ export class SupabaseService {
     parent_phone?: string;
     payment_status?: 'pending' | 'free' | 'paid';
     amount_paid?: number;
+    modality?: string;
+    location?: string | null;
+    meeting_link?: string | null;
   }) {
     if (!appointment.tutor_id || !appointment.slots || appointment.slots.length === 0 || !appointment.student_email) {
       return { data: null, error: { message: 'Faltan campos obligatorios' } };
@@ -826,7 +831,10 @@ export class SupabaseService {
       p_parent_email: appointment.parent_email || null,
       p_parent_phone: appointment.parent_phone || null,
       p_payment_status: appointment.payment_status || 'pending',
-      p_amount_paid: appointment.amount_paid || 0
+      p_amount_paid: appointment.amount_paid || 0,
+      p_modality: appointment.modality || 'virtual',
+      p_location: appointment.location || null,
+      p_meeting_link: appointment.meeting_link || null
     });
 
     if (data && !error) {

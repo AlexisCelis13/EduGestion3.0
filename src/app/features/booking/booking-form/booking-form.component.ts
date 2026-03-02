@@ -259,6 +259,29 @@ function pastDateValidator(control: AbstractControl): ValidationErrors | null {
               </option>
             </select>
           }
+
+          <!-- Si el servicio seleccionado tiene modalidad Híbrida, permitir elegir -->
+          @if (getCurrentService()?.modality === 'hibrido') {
+             <div class="mt-4 animate-fade-in p-4 bg-purple-50 rounded-lg border border-purple-100">
+               <label class="block text-sm font-semibold text-purple-900 mb-2">Este servicio es Híbrido, ¿Cómo prefieres tomar la clase? *</label>
+               <select formControlName="selectedModality" class="w-full px-3 py-2 border border-purple-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors bg-white">
+                 <option value="virtual">Virtual (Videollamada)</option>
+                 <option value="presencial_tutor">Ir al lugar del Profesor</option>
+                 <option value="presencial_alumno">Que el profesor venga a mí (A Domicilio)</option>
+               </select>
+             </div>
+          }
+
+          <!-- Si la modalidad seleccionada (o forzada) es presencial a domicilio, pedir dirección -->
+          @if (getCurrentModality() === 'presencial_alumno') {
+             <div class="mt-4 animate-fade-in p-4 bg-orange-50 rounded-lg border border-orange-100">
+               <label class="block text-sm font-semibold text-orange-900 mb-2">Dirección para la clase presencial *</label>
+               <input type="text" formControlName="studentLocation" class="w-full px-3 py-2 border border-orange-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition-colors" placeholder="Ej: Calle Principal 123, Colonia Centro..."/>
+               <div *ngIf="bookingForm.get('studentLocation')?.touched && bookingForm.get('studentLocation')?.invalid" class="text-red-500 text-xs mt-1">
+                 Necesitas proporcionar tu dirección.
+               </div>
+             </div>
+          }
         </div>
 
         <!-- Notas -->
@@ -338,6 +361,8 @@ export class BookingFormComponent implements OnInit {
       parentPhone: [''],
 
       serviceId: [null],
+      selectedModality: ['virtual'],
+      studentLocation: [''],
       notes: ['']
     });
 
@@ -345,6 +370,16 @@ export class BookingFormComponent implements OnInit {
     this.bookingForm.get('bookingFor')?.valueChanges.subscribe(value => {
       this.updateValidators(value);
       this.applyPrefilledEmail(value);
+    });
+
+    // Escuchar cambios de servicio
+    this.bookingForm.get('serviceId')?.valueChanges.subscribe(serviceId => {
+      this.updateModalityValidators();
+    });
+
+    // Escuchar cambios en selectedModality
+    this.bookingForm.get('selectedModality')?.valueChanges.subscribe(() => {
+      this.updateModalityValidators();
     });
   }
 
@@ -450,6 +485,33 @@ export class BookingFormComponent implements OnInit {
 
     studentEmailControl?.updateValueAndValidity();
     studentPhoneControl?.updateValueAndValidity();
+  }
+
+  updateModalityValidators() {
+    const modality = this.getCurrentModality();
+    const locationControl = this.bookingForm.get('studentLocation');
+
+    if (modality === 'presencial_alumno') {
+      locationControl?.setValidators([Validators.required, Validators.minLength(5)]);
+    } else {
+      locationControl?.clearValidators();
+    }
+    locationControl?.updateValueAndValidity();
+  }
+
+  getCurrentService() {
+    const serviceId = this.bookingForm.get('serviceId')?.value;
+    return this.services.find(s => s.id === serviceId);
+  }
+
+  getCurrentModality() {
+    const currentService = this.getCurrentService();
+    if (!currentService) return 'virtual';
+
+    if (currentService.modality === 'hibrido') {
+      return this.bookingForm.get('selectedModality')?.value;
+    }
+    return currentService.modality || 'virtual';
   }
 
   async checkEmail(type: 'student' | 'parent') {

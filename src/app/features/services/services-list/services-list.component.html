@@ -103,6 +103,33 @@
           </div>
         </div>
 
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div>
+            <label class="block text-sm font-medium text-surface-700 mb-2">
+              Modalidad de Clase *
+            </label>
+            <select formControlName="modality" class="input-premium">
+              <option value="virtual">Virtual (Videollamada)</option>
+              <option value="presencial_tutor">Presencial (Lugar Fijo)</option>
+              <option value="presencial_alumno">Presencial (A Domicilio del Alumno)</option>
+              <option value="hibrido">Híbrido (El alumno elige)</option>
+            </select>
+            <p class="text-xs text-surface-400 mt-1" *ngIf="serviceForm.get('modality')?.value === 'presencial_alumno'">
+              Pediremos la dirección al alumno al momento de agendar.
+            </p>
+          </div>
+
+          <div
+            *ngIf="serviceForm.get('modality')?.value === 'virtual' || serviceForm.get('modality')?.value === 'presencial_tutor'">
+            <label class="block text-sm font-medium text-surface-700 mb-2">
+              {{ serviceForm.get('modality')?.value === 'virtual' ? 'Enlace de Videollamada (Zoom/Meet)' : 'Dirección
+              del Lugar Fijo' }}
+            </label>
+            <input type="text" formControlName="default_location" class="input-premium"
+              [placeholder]="serviceForm.get('modality')?.value === 'virtual' ? 'https://zoom.us/j/...' : 'Calle Principal 123...'" />
+          </div>
+        </div>
+
         <div>
           <label class="block text-sm font-medium text-surface-700 mb-2">
             Temas Clave (separados por comas)
@@ -212,6 +239,21 @@
           </div>
         </div>
 
+        <div class="flex items-center gap-1 mb-3 text-xs font-medium"
+          [ngClass]="{'text-blue-600 bg-blue-50 px-2 py-1 inline-flex w-fit rounded': service.modality === 'virtual',
+                         'text-orange-600 bg-orange-50 px-2 py-1 inline-flex w-fit rounded': service.modality === 'presencial_tutor' || service.modality === 'presencial_alumno',
+                         'text-purple-600 bg-purple-50 px-2 py-1 inline-flex w-fit rounded': service.modality === 'hibrido'}">
+          @if (service.modality === 'virtual') {
+          <span>💻 Modalidad Virtual</span>
+          } @else if (service.modality === 'presencial_tutor' || service.modality === 'presencial_alumno') {
+          <span>📍 Modalidad Presencial</span>
+          } @else if (service.modality === 'hibrido') {
+          <span>🔄 Modalidad Híbrida</span>
+          } @else {
+          <span>💻 Modalidad Virtual</span>
+          }
+        </div>
+
         @if (service.description) {
         <p class="text-surface-500 text-sm mb-4 leading-relaxed line-clamp-2">{{ service.description }}</p>
         }
@@ -284,6 +326,18 @@
             {{ selectedServicePreview()?.language }}
           </span>
           }
+
+          @if (selectedServicePreview()?.modality === 'virtual') {
+          <span
+            class="inline-block bg-blue-50 text-blue-700 text-xs font-medium px-2.5 py-1 rounded-full">Virtual</span>
+          } @else if (selectedServicePreview()?.modality === 'presencial_tutor' || selectedServicePreview()?.modality
+          === 'presencial_alumno') {
+          <span
+            class="inline-block bg-orange-50 text-orange-700 text-xs font-medium px-2.5 py-1 rounded-full">Presencial</span>
+          } @else if (selectedServicePreview()?.modality === 'hibrido') {
+          <span
+            class="inline-block bg-purple-50 text-purple-700 text-xs font-medium px-2.5 py-1 rounded-full">Híbrida</span>
+          }
         </div>
       </div>
       <button (click)="closeServicePreview()" class="p-2 hover:bg-surface-100 rounded-xl transition-colors">
@@ -309,6 +363,16 @@
           <p class="text-lg font-semibold text-surface-700">{{ selectedServicePreview()?.duration_minutes }} min</p>
         </div>
       </div>
+
+      @if (selectedServicePreview()?.default_location && (selectedServicePreview()?.modality === 'virtual' ||
+      selectedServicePreview()?.modality === 'presencial_tutor')) {
+      <div class="bg-surface-50 border border-surface-100 rounded-xl p-4">
+        <h4 class="text-sm font-medium text-surface-500 mb-1">
+          {{ selectedServicePreview()?.modality === 'virtual' ? 'Enlace por defecto' : 'Ubicación por defecto' }}
+        </h4>
+        <p class="text-surface-700 break-words">{{ selectedServicePreview()?.default_location }}</p>
+      </div>
+      }
 
       <!-- Description -->
       @if (selectedServicePreview()?.description) {

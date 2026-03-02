@@ -49,7 +49,9 @@ export class ServicesListComponent implements OnInit {
       topics: [''], // Manejado como string separado por comas en el UI
       methodology: [''],
       language: ['Español'],
-      prerequisites: ['']
+      prerequisites: [''],
+      modality: ['virtual', Validators.required],
+      default_location: ['']
     });
   }
 
@@ -112,6 +114,8 @@ export class ServicesListComponent implements OnInit {
           methodology: formData.methodology,
           language: formData.language,
           prerequisites: formData.prerequisites,
+          modality: formData.modality,
+          default_location: formData.default_location,
           is_active: true
         };
 
@@ -143,7 +147,8 @@ export class ServicesListComponent implements OnInit {
     this.editingService.set(null);
     this.serviceForm.reset({
       duration_minutes: 60,
-      language: 'Español'
+      language: 'Español',
+      modality: 'virtual'
     });
     this.errorMessage.set('');
   }
@@ -166,7 +171,9 @@ export class ServicesListComponent implements OnInit {
       topics: topicsStr,
       methodology: service.methodology || '',
       language: service.language || 'Español',
-      prerequisites: service.prerequisites || ''
+      prerequisites: service.prerequisites || '',
+      modality: service.modality || 'virtual',
+      default_location: service.default_location || ''
     });
   }
 
@@ -193,7 +200,9 @@ export class ServicesListComponent implements OnInit {
           topics: topicsArray,
           methodology: formData.methodology,
           language: formData.language,
-          prerequisites: formData.prerequisites
+          prerequisites: formData.prerequisites,
+          modality: formData.modality,
+          default_location: formData.default_location
         };
 
         const { error } = await this.supabaseService.updateService(

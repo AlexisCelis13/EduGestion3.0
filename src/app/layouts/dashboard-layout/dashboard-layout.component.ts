@@ -56,7 +56,9 @@ interface MenuItem {
           <div class="absolute inset-0 transition-opacity duration-300 flex items-center justify-center"
                [class.opacity-100]="!isSidebarExpanded()"
                [class.opacity-0]="isSidebarExpanded()">
-            <img src="assets/isotipo.png" class="h-10 w-auto object-contain transition-transform duration-300 hover:scale-105" alt="EduGestion">
+            <a routerLink="/dashboard" class="flex items-center">
+              <img src="assets/Icono.png" class="h-10 w-auto object-contain transition-transform duration-300 hover:scale-105" alt="EduGestion">
+            </a>
           </div>
           <div class="absolute inset-0 transition-opacity duration-300 flex items-center justify-center"
                [class.opacity-0]="!isSidebarExpanded()"

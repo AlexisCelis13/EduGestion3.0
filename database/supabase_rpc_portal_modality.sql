@@ -1,8 +1,7 @@
 -- ==========================================================
--- ACTUALIZACIÓN: RETORNAR TODAS LAS CITAS EN PORTAL DEL ALUMNO
+-- ACTUALIZACIÓN: DEVOLVER DATOS DE MODALIDAD EN PORTAL DEL ALUMNO
 -- ==========================================================
--- Recreamos la función modificada para devolver todas las citas y más campos como start_time
--- y end_time para poder generar notificaciones locales en vivo.
+-- Añade modalidad, location, meeting_link y notas a las citas en el portal
 
 CREATE OR REPLACE FUNCTION get_student_portal_data(p_access_token UUID)
 RETURNS JSONB
@@ -89,6 +88,10 @@ BEGIN
       'status', a.status,
       'duration_minutes', EXTRACT(EPOCH FROM (a.end_time - a.start_time))/60,
       'service_id', a.service_id,
+      'notes', a.notes,
+      'modality', a.modality,
+      'location', a.location,
+      'meeting_link', a.meeting_link,
       'created_at', a.created_at
     ) ORDER BY a.date DESC, a.start_time DESC
   )

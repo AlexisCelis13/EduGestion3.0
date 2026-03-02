@@ -9,18 +9,26 @@ import { RouterModule } from '@angular/router';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterModule],
   template: `
-    <div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div class="sm:mx-auto sm:w-full sm:max-w-md">
-        <div class="flex items-center justify-center mb-4"><img src="assets/isotipo.png" class="h-16"></div>
-        <h2 class="text-center text-3xl font-extrabold text-gray-900">
+    <div class="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4 relative">
+      <!-- Top-left Logo Header -->
+      <div class="fixed top-0 left-0 p-6 lg:p-8 z-50">
+        <a routerLink="/" class="block hover:opacity-80 transition-opacity">
+          <img src="assets/LogoCompleto.png" alt="EduGestión" class="h-8 lg:h-10">
+        </a>
+      </div>
+
+      <!-- Centered Login Content -->
+      <div class="w-full max-w-md animate-fade-in-up mt-16">
+        <img src="assets/Icono.png" alt="EduGestión" class="h-12 w-auto mx-auto mb-6">
+        <h2 class="text-center text-3xl font-extrabold text-gray-900 mb-2">
           Portal de Alumno
         </h2>
-        <p class="mt-2 text-center text-sm text-gray-600">
+        <p class="text-center text-sm text-gray-600 font-medium">
           Ingresa tu correo para recibir un enlace de acceso
         </p>
       </div>
 
-      <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+      <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md w-full">
         <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           @if (successMessage()) {
             <div class="rounded-md bg-green-50 p-4 mb-6">
@@ -40,6 +48,7 @@ import { RouterModule } from '@angular/router';
                 </div>
               </div>
             </div>
+            
             <div class="text-center">
               <button (click)="successMessage.set('')" class="text-indigo-600 hover:text-indigo-500 font-medium">
                 Intentar con otro correo
@@ -142,21 +151,21 @@ export class StudentLoginComponent {
           throw error;
         }
 
-        this.successMessage.set(`Hemos enviado un enlace de acceso a ${email}. Revisa tu bandeja de entrada (y la carpeta de spam por si acaso). El enlace expira en 15 minutos.`);
+        this.successMessage.set(`Hemos enviado un enlace de acceso a ${email}. Revisa tu bandeja de entrada(y la carpeta de spam por si acaso).El enlace expira en 15 minutos.`);
         this.loginForm.reset();
       } catch (error: any) {
         console.error('Error sending magic link:', error);
         // Try to extract the specific error message from the function response
         let detailedError = 'Hubo un error al enviar el enlace. Por favor intenta de nuevo.';
         if (error instanceof Error) {
-          detailedError += ` Detalle: ${error.message}`;
+          detailedError += ` Detalle: ${error.message} `;
           // If it's a FunctionsHttpError, it might have a context or error property with the JSON body
           const errAny = error as any;
           if (errAny && errAny.context instanceof Response && !errAny.context.bodyUsed) {
             errAny.context.json().then((body: any) => {
               console.error('Edge Function Error Body:', body);
               if (body.error) {
-                this.errorMessage.set(`Error: ${body.error}`);
+                this.errorMessage.set(`Error: ${body.error} `);
               }
             }).catch((parsingErr: any) => {
               console.error('Error parsing error body:', parsingErr);
