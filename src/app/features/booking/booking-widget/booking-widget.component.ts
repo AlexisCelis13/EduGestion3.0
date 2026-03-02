@@ -595,6 +595,8 @@ export class BookingWidgetComponent {
   }
 
   async onProcessPayment(paymentStatus: { status: string, message?: string }) {
+    // Guard: prevenir doble ejecución si el callback de pago se dispara más de una vez
+    if (this.submitting()) return;
     if (paymentStatus.status === 'success' || paymentStatus.status === 'COMPLETED') {
       await this.finalizeBooking();
     }
@@ -604,6 +606,26 @@ export class BookingWidgetComponent {
     this.submitting.set(true);
 
     try {
+      // Re-verificar disponibilidad justo antes de crear la reserva (cierra ventana TOCTOU)
+      const mappedSlotsCheck = this.totalGeneratedSlots.map(s => ({
+        date: s.date,
+        start_time: s.startTime,
+        end_time: s.endTime
+      }));
+
+      const { data: conflicts, error: checkError } = await this.supabase.checkRecurringAvailability(
+        this.tutorId,
+        mappedSlotsCheck
+      );
+
+      if (checkError) {
+        throw new Error('Error verificando disponibilidad: ' + (checkError.message || JSON.stringify(checkError)));
+      }
+
+      if (conflicts && (conflicts as any[]).length > 0) {
+        throw new Error('Uno o más horarios seleccionados ya fueron reservados por alguien más. Por favor, vuelve a seleccionar tus horarios.');
+      }
+
       const isOther = this.bookingFormData.bookingFor === 'other' || this.bookingFormData.bookingFor === 'child';
       const parentName = isOther ? this.bookingFormData.parentName : null;
       const parentPhone = isOther ? this.bookingFormData.parentPhone : null;
