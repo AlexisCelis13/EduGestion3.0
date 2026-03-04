@@ -306,10 +306,10 @@ function pastDateValidator(control: AbstractControl): ValidationErrors | null {
           </button>
           <button 
             type="submit" 
-            [disabled]="bookingForm.invalid || isSubmitting"
+            [disabled]="bookingForm.invalid || isSubmitting || isCheckingEmail"
             class="flex-1 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-            <i-lucide *ngIf="isSubmitting" [img]="Loader2" class="w-4 h-4 animate-spin"></i-lucide>
-            {{ isSubmitting ? 'Confirmando...' : 'Confirmar Reserva' }}
+            <i-lucide *ngIf="isSubmitting || isCheckingEmail" [img]="Loader2" class="w-4 h-4 animate-spin"></i-lucide>
+            {{ isSubmitting ? 'Confirmando...' : isCheckingEmail ? 'Verificando...' : 'Confirmar Reserva' }}
           </button>
         </div>
       </form>
@@ -332,6 +332,7 @@ export class BookingFormComponent implements OnInit {
   @Input() isSubmitting: boolean = false;
 
   @Output() submitForm = new EventEmitter<any>();
+  isCheckingEmail = false;
   @Output() cancel = new EventEmitter<void>();
 
   bookingForm: FormGroup;
@@ -577,13 +578,64 @@ export class BookingFormComponent implements OnInit {
     }).format(price);
   }
 
-  onSubmit() {
-    if (this.bookingForm.valid) {
-      // Use getRawValue to include disabled fields
-      this.submitForm.emit(this.bookingForm.getRawValue());
-    } else {
-      this.bookingForm.markAllAsTouched();
+  async onSubmit() {
+    // Marcar campos tocados para mostrar errores de validación básica
+    this.bookingForm.markAllAsTouched();
+
+    // Verificar validación estándar primero (campos requeridos, formato, etc.)
+    if (this.bookingForm.invalid) return;
+
+    // Verificar email duplicado contra la BD ANTES de proceder al pago
+    if (!this.tutorId) return;
+    const isOther = this.showParentFields();
+    const emailControl = isOther
+      ? this.bookingForm.get('parentEmail')
+      : this.bookingForm.get('studentEmail');
+    const email = emailControl?.value;
+
+    if (email && email.includes('@') && email.length >= 5) {
+      this.isCheckingEmail = true;
+      let emailCheckFailed = false;
+      try {
+        const { data, error } = await this.supabaseService.checkStudentStatus(this.tutorId, email);
+        if (error) {
+          // RPC no disponible u otro error — bloquear por seguridad
+          console.error('Error verificando email:', error);
+          emailCheckFailed = true;
+        } else if (data && data.exists) {
+          // Email ya existe: mostrar error en el campo y NO continuar al pago
+          this.existingStudent.set({
+            exists: true,
+            is_active: data.is_active,
+            name: `${data.first_name} ${data.last_name}`
+          });
+          emailControl?.setErrors({ ...(emailControl?.errors || {}), emailExists: true });
+          return; // DETENER aquí - no pasar a la pantalla de pago
+        } else {
+          // Email libre: limpiar error si existía
+          this.existingStudent.set(null);
+          if (emailControl?.hasError('emailExists')) {
+            const errors = { ...emailControl.errors };
+            delete errors['emailExists'];
+            emailControl.setErrors(Object.keys(errors).length ? errors : null);
+          }
+        }
+      } catch (e) {
+        console.error('Error verificando email:', e);
+        emailCheckFailed = true;
+      } finally {
+        this.isCheckingEmail = false;
+      }
+
+      if (emailCheckFailed) {
+        // Si la verificación falló, NO proceder al pago
+        alert('No se pudo verificar el correo. Por favor asegúrate de tener conexión e intenta de nuevo.');
+        return;
+      }
     }
+
+    // Email OK y formulario válido: proceder al pago
+    this.submitForm.emit(this.bookingForm.getRawValue());
   }
 
   onCancel() {

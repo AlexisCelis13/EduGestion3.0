@@ -114,6 +114,16 @@ interface SelectedSlot {
               </div>
           </div>
 
+          <!-- Error banner (visible en cualquier paso excepto success) -->
+          <div *ngIf="bookingError()" class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex gap-3 animate-fade-in">
+            <span class="text-red-600 mt-0.5">⚠️</span>
+            <div>
+              <p class="text-sm font-semibold text-red-800">Ocurrió un problema</p>
+              <p class="text-sm text-red-700 mt-0.5">{{ bookingError() }}</p>
+            </div>
+            <button (click)="bookingError.set(null)" class="ml-auto text-red-400 hover:text-red-600">&times;</button>
+          </div>
+
           <!-- Paso 5: Éxito -->
           <div *ngIf="currentStep() === 'success'" class="text-center py-12 animate-fade-in">
             <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -288,6 +298,7 @@ export class BookingWidgetComponent {
   readonly X = X;
 
   currentStep = signal<'calendar' | 'slots' | 'form' | 'payment' | 'success'>('calendar');
+  bookingError = signal<string | null>(null);
   selectedDate = '';
   availableSlots: any[] = [];
   loadingSlots = signal(false);
@@ -366,7 +377,7 @@ export class BookingWidgetComponent {
         }
 
         if (needsToCheckThisDay) {
-          fetchedSlots = await this.supabase.getAvailableSlotsForDate(this.tutorId, cursorDateStr);
+          fetchedSlots = await this.supabase.getAvailableSlotsForDate(this.tutorId, cursorDateStr, this.getSelectedServiceDuration());
           let dayFullyBlocked = fetchedSlots.length === 0;
 
           if (!dayFullyBlocked) {
@@ -408,14 +419,15 @@ export class BookingWidgetComponent {
         dayLimit--;
       }
 
+      const duration = this.getSelectedServiceDuration();
       if (firstBookedDateStr) {
         this.selectedDate = firstBookedDateStr;
-        this.availableSlots = await this.supabase.getAvailableSlotsForDate(this.tutorId, firstBookedDateStr);
+        this.availableSlots = await this.supabase.getAvailableSlotsForDate(this.tutorId, firstBookedDateStr, duration);
       } else {
         let tw = new Date();
         tw.setDate(tw.getDate() + 1);
         this.selectedDate = this.getLocalString(tw);
-        this.availableSlots = await this.supabase.getAvailableSlotsForDate(this.tutorId, this.selectedDate);
+        this.availableSlots = await this.supabase.getAvailableSlotsForDate(this.tutorId, this.selectedDate, duration);
       }
 
       this.calculateTotalSessions();
@@ -476,13 +488,22 @@ export class BookingWidgetComponent {
     return `${h12}:${m.toString().padStart(2, '0')} ${ampm}`;
   }
 
+  getSelectedServiceDuration(): number | undefined {
+    if (this.preSelectedServiceId) {
+      const service = this.services.find(s => s.id === this.preSelectedServiceId);
+      return service?.duration_minutes;
+    }
+    return undefined;
+  }
+
   async onDateSelected(date: string) {
     this.selectedDate = date;
     this.currentStep.set('slots');
     this.loadingSlots.set(true);
 
     try {
-      this.availableSlots = await this.supabase.getAvailableSlotsForDate(this.tutorId, date);
+      const duration = this.getSelectedServiceDuration();
+      this.availableSlots = await this.supabase.getAvailableSlotsForDate(this.tutorId, date, duration);
     } catch (error) {
       console.error('Error fetching slots:', error);
     } finally {
@@ -686,7 +707,14 @@ export class BookingWidgetComponent {
       this.bookingSuccess.emit();
     } catch (error: any) {
       console.error('Error in finalizeBooking', error);
-      alert('Error guardando la reserva: ' + (error.message || error));
+      const msg: string = error?.message || JSON.stringify(error);
+      // Volver al paso correspondiente y mostrar el error en la UI
+      if (msg.includes('horario') || msg.includes('reservado')) {
+        this.currentStep.set('slots');
+      } else {
+        this.currentStep.set('form');
+      }
+      this.bookingError.set(msg);
     } finally {
       this.submitting.set(false);
     }
