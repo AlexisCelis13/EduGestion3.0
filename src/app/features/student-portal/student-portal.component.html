@@ -814,7 +814,7 @@
                     }
                 </div>
 
-                <!-- Footer with Cancel Logic -->
+                <!-- Footer with Cancel & Reschedule Logic -->
                 <div
                     class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row-reverse items-center justify-start gap-3">
                     <div class="w-full sm:w-auto flex flex-col sm:items-start group relative">
@@ -824,9 +824,15 @@
                         </button>
                         @if (!canCancelSession(selectedAppointment())) {
                         <p class="text-xs text-red-500 mt-2 text-center sm:text-left">
-                            Solo puedes cancelar con al menos 24 horas de anticipación. Contacta a tu tutor.
+                            Solo puedes cancelar o reagendar con al menos 24 horas de anticipación. Contacta a tu tutor.
                         </p>
                         }
+                    </div>
+                    <div class="w-full sm:w-auto">
+                        <button (click)="initiateReschedule()" [disabled]="!canCancelSession(selectedAppointment())"
+                            class="w-full sm:w-auto px-5 py-2.5 bg-blue-50 text-blue-600 rounded-xl font-medium border border-blue-100 hover:bg-blue-100 hover:border-blue-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            Reagendar Sesión
+                        </button>
                     </div>
                 </div>
                 }
@@ -877,6 +883,110 @@
                         Cancelando...
                         } @else {
                         Confirmar Cancelación
+                        }
+                    </button>
+                </div>
+                }
+
+                <!-- Body (Reschedule Step) -->
+                @if (cancelStep() === 'reschedule') {
+                <div class="px-6 py-6 space-y-5">
+                    <div>
+                        <h4 class="text-lg font-bold text-gray-900 mb-1">Reagendar Sesión</h4>
+                        <p class="text-sm text-gray-500">
+                            Selecciona una nueva fecha y horario disponible para tu sesión de
+                            {{ selectedAppointment()?.duration_minutes }} minutos.
+                        </p>
+                    </div>
+
+                    <!-- Current session info -->
+                    <div class="p-3 bg-gray-50 rounded-lg border border-gray-100 text-sm">
+                        <p class="text-gray-500 font-medium mb-1">Sesión actual:</p>
+                        <p class="text-gray-800 font-semibold capitalize">{{ formatDate(selectedAppointment()?.date) }} — {{ formatSlotTime(selectedAppointment()?.start_time) }} a {{ formatSlotTime(selectedAppointment()?.end_time) }}</p>
+                    </div>
+
+                    <!-- Date picker -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nueva fecha</label>
+                        <input type="date"
+                            [value]="rescheduleDate()"
+                            [min]="rescheduleMinDate()"
+                            (change)="onRescheduleDateChange($any($event.target).value)"
+                            class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm" />
+                    </div>
+
+                    <!-- Slots -->
+                    @if (rescheduleDate()) {
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Horarios disponibles</label>
+                        
+                        @if (loadingRescheduleSlots()) {
+                        <div class="flex items-center justify-center py-8">
+                            <svg class="animate-spin h-6 w-6 text-blue-600" viewBox="0 0 24 24" fill="none">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                            </svg>
+                            <span class="ml-2 text-sm text-gray-500">Cargando horarios...</span>
+                        </div>
+                        } @else if (rescheduleSlots().length === 0) {
+                        <div class="text-center py-6 bg-gray-50 rounded-xl border border-gray-100">
+                            <svg class="w-8 h-8 text-gray-300 mx-auto mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="8" x2="12" y2="12"></line>
+                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                            </svg>
+                            <p class="text-sm text-gray-500">No hay horarios disponibles para esta fecha.</p>
+                            <p class="text-xs text-gray-400 mt-1">Intenta con otra fecha.</p>
+                        </div>
+                        } @else {
+                        <div class="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-48 overflow-y-auto pr-1">
+                            @for (slot of rescheduleSlots(); track slot.startTime) {
+                            <button
+                                (click)="selectRescheduleSlot(slot)"
+                                [class]="selectedRescheduleSlot()?.startTime === slot.startTime
+                                    ? 'px-3 py-2.5 rounded-xl text-sm font-semibold border-2 border-blue-500 bg-blue-50 text-blue-700 shadow-sm transition-all'
+                                    : 'px-3 py-2.5 rounded-xl text-sm font-medium border border-gray-200 bg-white text-gray-700 hover:border-blue-300 hover:bg-blue-50 transition-all'">
+                                {{ formatSlotTime(slot.startTime) }}
+                            </button>
+                            }
+                        </div>
+                        }
+                    </div>
+                    }
+
+                    <!-- Confirmation info -->
+                    @if (selectedRescheduleSlot()) {
+                    <div class="p-3 bg-blue-50 text-blue-800 rounded-lg text-sm border border-blue-100 flex gap-2">
+                        <svg class="w-5 h-5 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        <p>
+                            Tu sesión se moverá al <strong class="capitalize">{{ formatDate(rescheduleDate()) }}</strong> 
+                            de <strong>{{ formatSlotTime(selectedRescheduleSlot()!.startTime) }}</strong> 
+                            a <strong>{{ formatSlotTime(selectedRescheduleSlot()!.endTime) }}</strong>.
+                            El tutor será notificado.
+                        </p>
+                    </div>
+                    }
+                </div>
+
+                <!-- Footer (Reschedule Step) -->
+                <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
+                    <button (click)="cancelStep.set('details')" [disabled]="isRescheduling()"
+                        class="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors disabled:opacity-50">
+                        Volver
+                    </button>
+                    <button (click)="confirmReschedule()" [disabled]="isRescheduling() || !selectedRescheduleSlot()"
+                        class="px-5 py-2.5 bg-blue-600 text-white rounded-xl font-medium border border-transparent hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2">
+                        @if (isRescheduling()) {
+                        <svg class="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
+                        Reagendando...
+                        } @else {
+                        Confirmar Reagendamiento
                         }
                     </button>
                 </div>

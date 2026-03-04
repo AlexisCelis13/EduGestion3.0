@@ -32,7 +32,7 @@ function pastDateValidator(control: AbstractControl): ValidationErrors | null {
           </div>
           <div>
             <h4 class="text-sm font-semibold text-red-800">Correo ya registrado</h4>
-            <p class="text-sm text-red-700 mt-1">Ya existe un alumno registrado con este correo electrónico ({{ existingStudent()?.name }}). Por favor, utiliza un correo diferente.</p>
+            <p class="text-sm text-red-700 mt-1">Ya existe un alumno registrado con este correo electrónico. Por favor, utiliza un correo diferente.</p>
           </div>
         </div>
       }

@@ -94,8 +94,9 @@ serve(async (req: Request) => {
         // Encode token to be URL safe just in case, though JWTs are URL safe by spec usually
         const magicLink = `${origin}/student-portal/${jwt}`;
 
+        const FROM_EMAIL = Deno.env.get("RESEND_FROM_EMAIL") || "onboarding@resend.dev";
         const { data: emailData, error: emailError } = await resend.emails.send({
-            from: "EduGestión <onboarding@resend.dev>",
+            from: `EduGestión <${FROM_EMAIL}>`,
             to: [email],
             subject: "Acceso a tu Portal de Alumno",
             html: `

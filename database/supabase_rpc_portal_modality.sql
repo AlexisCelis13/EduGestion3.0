@@ -82,6 +82,7 @@ BEGIN
   SELECT jsonb_agg(
     jsonb_build_object(
       'id', a.id,
+      'user_id', a.user_id,
       'date', a.date,
       'start_time', a.start_time,
       'end_time', a.end_time,

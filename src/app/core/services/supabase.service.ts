@@ -1075,6 +1075,25 @@ export class SupabaseService {
     return { data, error };
   }
 
+  // Student Reschedule
+  async rescheduleAppointmentStudent(
+    appointmentId: string,
+    newDate: string,
+    newStartTime: string,
+    newEndTime: string,
+    token: string
+  ) {
+    const { data, error } = await this.supabase.rpc('reschedule_appointment_student', {
+      p_appointment_id: appointmentId,
+      p_new_date: newDate,
+      p_new_start_time: newStartTime,
+      p_new_end_time: newEndTime,
+      p_student_token: token
+    });
+
+    return { data, error };
+  }
+
   async getAppNotifications(userId: string, limit = 20) {
     const { data, error } = await this.supabase
       .from('notifications')

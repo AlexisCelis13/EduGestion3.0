@@ -74,9 +74,17 @@ export class StudentPortalComponent implements OnInit, OnDestroy {
   // Session Details & Cancellation Modal
   showSessionDetailsModal = signal(false);
   selectedAppointment = signal<any>(null);
-  cancelStep = signal<'details' | 'reason'>('details');
+  cancelStep = signal<'details' | 'reason' | 'reschedule'>('details');
   cancelReason = signal('');
   isCancelling = signal(false);
+
+  // Reschedule
+  rescheduleDate = signal('');
+  rescheduleSlots = signal<{ startTime: string; endTime: string }[]>([]);
+  selectedRescheduleSlot = signal<{ startTime: string; endTime: string } | null>(null);
+  loadingRescheduleSlots = signal(false);
+  isRescheduling = signal(false);
+  rescheduleMinDate = signal('');
 
   constructor(
     private route: ActivatedRoute,
@@ -390,6 +398,13 @@ export class StudentPortalComponent implements OnInit, OnDestroy {
     this.selectedAppointment.set(appt);
     this.cancelStep.set('details');
     this.cancelReason.set('');
+    this.rescheduleDate.set('');
+    this.rescheduleSlots.set([]);
+    this.selectedRescheduleSlot.set(null);
+    // Min date = tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    this.rescheduleMinDate.set(tomorrow.toISOString().split('T')[0]);
     this.showSessionDetailsModal.set(true);
   }
 
@@ -451,8 +466,110 @@ export class StudentPortalComponent implements OnInit, OnDestroy {
   }
 
   // ==========================================
-  // Notifications & Session Timers
+  // Reschedule
   // ==========================================
+  initiateReschedule() {
+    this.cancelStep.set('reschedule');
+  }
+
+  async onRescheduleDateChange(dateStr: string) {
+    this.rescheduleDate.set(dateStr);
+    this.selectedRescheduleSlot.set(null);
+    this.rescheduleSlots.set([]);
+
+    if (!dateStr) return;
+
+    const appt = this.selectedAppointment();
+    if (!appt) return;
+
+    // user_id comes from the appointment (added to RPC), fallback to feedback user_id
+    const portalData = this.data();
+    const tutorId = appt.user_id
+      || portalData?.feedback?.[0]?.user_id
+      || '';
+    if (!tutorId) {
+      console.error('Could not determine tutor ID for reschedule');
+      return;
+    }
+    const duration = appt.duration_minutes || 60;
+
+    this.loadingRescheduleSlots.set(true);
+    try {
+      const slots = await this.supabaseService.getAvailableSlotsForDate(tutorId, dateStr, duration);
+      this.rescheduleSlots.set(slots || []);
+    } catch (err) {
+      console.error('Error fetching reschedule slots:', err);
+      this.rescheduleSlots.set([]);
+    } finally {
+      this.loadingRescheduleSlots.set(false);
+    }
+  }
+
+  selectRescheduleSlot(slot: { startTime: string; endTime: string }) {
+    this.selectedRescheduleSlot.set(slot);
+  }
+
+  formatSlotTime(time: string): string {
+    try {
+      const [hours, minutes] = time.split(':');
+      let h = parseInt(hours, 10);
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12;
+      h = h ? h : 12;
+      return `${h}:${minutes} ${ampm}`;
+    } catch {
+      return time;
+    }
+  }
+
+  async confirmReschedule() {
+    const appt = this.selectedAppointment();
+    const slot = this.selectedRescheduleSlot();
+    const date = this.rescheduleDate();
+    if (!appt || !slot || !date) return;
+
+    const token = this.route.snapshot.paramMap.get('token') || '';
+
+    this.isRescheduling.set(true);
+    try {
+      const { data, error } = await this.supabaseService.rescheduleAppointmentStudent(
+        appt.id,
+        date,
+        slot.startTime,
+        slot.endTime,
+        token
+      );
+
+      if (error) throw error;
+
+      // Update local state — replace the appointment in upcoming sessions
+      this.upcomingSessions.update(sessions =>
+        sessions.map(s => {
+          if (s.id === appt.id) {
+            return { ...s, date, start_time: slot.startTime, end_time: slot.endTime, status: 'scheduled' };
+          }
+          return s;
+        })
+      );
+
+      this.pushLocalNotification(
+        'Sesión Reagendada',
+        `Tu cita ha sido reagendada al ${this.formatDate(date)} a las ${this.formatSlotTime(slot.startTime)}.`,
+        'booking_new'
+      );
+
+      this.closeSessionDetails();
+    } catch (err: any) {
+      console.error('Error rescheduling session:', err);
+      alert('Error al reagendar: ' + (err.message || err));
+    } finally {
+      this.isRescheduling.set(false);
+    }
+  }
+
+  // ==========================================
+  // Notifications & Session Timers
+  // ==========================================================
   startSessionTimer() {
     if (this.sessionCheckInterval) clearInterval(this.sessionCheckInterval);
 
