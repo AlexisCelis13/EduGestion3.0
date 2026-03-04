@@ -990,6 +990,48 @@ export class SupabaseService {
   // NOTIFICATION METHODS (APP)
   // ============================================
 
+  // Suscribirse a cambios en citas pagadas de un tutor.
+  // Llama al callback cuando se inserta o actualiza una cita con payment_status = 'paid'.
+  // Devuelve el canal para poder desuscribirse con removeChannel().
+  subscribeToAppointmentPayments(userId: string, callback: () => void) {
+    const channel = this.supabase
+      .channel(`payments:appointments:${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'appointments',
+          filter: `user_id=eq.${userId}`
+        },
+        (payload) => {
+          if (payload.new?.['payment_status'] === 'paid') {
+            callback();
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'appointments',
+          filter: `user_id=eq.${userId}`
+        },
+        (payload) => {
+          if (payload.new?.['payment_status'] === 'paid') {
+            callback();
+          }
+        }
+      )
+      .subscribe();
+    return channel;
+  }
+
+  removeChannel(channel: any) {
+    this.supabase.removeChannel(channel);
+  }
+
   private unreadCountSubject = new BehaviorSubject<number>(0);
   public unreadCount$ = this.unreadCountSubject.asObservable();
   private notificationSubscription: any = null;
@@ -1510,6 +1552,8 @@ export class SupabaseService {
         status,
         payment_status,
         service_id,
+        student_name,
+        student_email,
         students ( first_name, last_name, email )
       `)
       .eq('user_id', userId)

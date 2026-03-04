@@ -24,27 +24,15 @@ function pastDateValidator(control: AbstractControl): ValidationErrors | null {
   template: `
     <div class="form-container">
       
-      <!-- Existing Student / Reactivation Notice -->
+      <!-- Duplicate Email Error Notice -->
       @if (existingStudent()) {
-        <div class="mb-6 p-4 rounded-lg flex gap-3 animate-fade-in border" 
-            [class.bg-green-50]="existingStudent()?.is_active" 
-            [class.border-green-200]="existingStudent()?.is_active" 
-            [class.bg-amber-50]="!existingStudent()?.is_active"
-            [class.border-amber-200]="!existingStudent()?.is_active">
+        <div class="mb-6 p-4 rounded-lg flex gap-3 animate-fade-in border bg-red-50 border-red-200">
           <div class="mt-0.5">
-             <i-lucide [img]="existingStudent()?.is_active ? Info : AlertCircle" 
-                class="w-5 h-5" 
-                [class.text-green-600]="existingStudent()?.is_active"
-                [class.text-amber-600]="!existingStudent()?.is_active"></i-lucide>
+             <i-lucide [img]="AlertCircle" class="w-5 h-5 text-red-600"></i-lucide>
           </div>
           <div>
-            @if (existingStudent()?.is_active) {
-                <h4 class="text-sm font-semibold text-green-800">¡Bienvenido de nuevo, {{ existingStudent()?.name }}!</h4>
-                <p class="text-sm text-green-700 mt-1">Ya tenemos tus datos. Confirmar esta cita actualizará tu historial.</p>
-            } @else {
-                <h4 class="text-sm font-semibold text-amber-800">Reactiva tu perfil</h4>
-                <p class="text-sm text-amber-700 mt-1">Hola {{ existingStudent()?.name }}. Vemos que tu perfil estaba inactivo. Al reservar esta cita, tu cuenta será reactivada automáticamente.</p>
-            }
+            <h4 class="text-sm font-semibold text-red-800">Correo ya registrado</h4>
+            <p class="text-sm text-red-700 mt-1">Ya existe un alumno registrado con este correo electrónico ({{ existingStudent()?.name }}). Por favor, utiliza un correo diferente.</p>
           </div>
         </div>
       }
@@ -119,9 +107,16 @@ function pastDateValidator(control: AbstractControl): ValidationErrors | null {
                  formControlName="studentEmail"
                  (blur)="checkEmail('student')"
                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                 [class.border-red-500]="bookingForm.get('studentEmail')?.hasError('emailExists')"
                  placeholder="ejemplo@correo.com">
-               <div *ngIf="bookingForm.get('studentEmail')?.touched && bookingForm.get('studentEmail')?.invalid" class="text-red-500 text-xs mt-1">
+               <div *ngIf="bookingForm.get('studentEmail')?.touched && bookingForm.get('studentEmail')?.hasError('required')" class="text-red-500 text-xs mt-1">
                  Ingresa un correo válido para recibir la confirmación.
+               </div>
+               <div *ngIf="bookingForm.get('studentEmail')?.hasError('email')" class="text-red-500 text-xs mt-1">
+                 Ingresa un correo válido para recibir la confirmación.
+               </div>
+               <div *ngIf="bookingForm.get('studentEmail')?.hasError('emailExists')" class="text-red-500 text-xs mt-1">
+                 Este correo ya está registrado. Usa otro correo.
                </div>
              </div>
 
@@ -223,9 +218,16 @@ function pastDateValidator(control: AbstractControl): ValidationErrors | null {
                   formControlName="parentEmail"
                   (blur)="checkEmail('parent')"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  [class.border-red-500]="bookingForm.get('parentEmail')?.hasError('emailExists')"
                   placeholder="Para enviarte la confirmación">
-                <div *ngIf="bookingForm.get('parentEmail')?.touched && bookingForm.get('parentEmail')?.invalid" class="text-red-500 text-xs mt-1">
+                <div *ngIf="bookingForm.get('parentEmail')?.touched && bookingForm.get('parentEmail')?.hasError('required')" class="text-red-500 text-xs mt-1">
                   Correo obligatorio.
+                </div>
+                <div *ngIf="bookingForm.get('parentEmail')?.hasError('email')" class="text-red-500 text-xs mt-1">
+                  Correo obligatorio.
+                </div>
+                <div *ngIf="bookingForm.get('parentEmail')?.hasError('emailExists')" class="text-red-500 text-xs mt-1">
+                  Este correo ya está registrado. Usa otro correo.
                 </div>
               </div>
 
@@ -522,12 +524,20 @@ export class BookingFormComponent implements OnInit {
     if (type === 'student' && isOther) return;
     if (type === 'parent' && !isOther) return;
 
-    const email = type === 'student'
-      ? this.bookingForm.get('studentEmail')?.value
-      : this.bookingForm.get('parentEmail')?.value;
+    const emailControl = type === 'student'
+      ? this.bookingForm.get('studentEmail')
+      : this.bookingForm.get('parentEmail');
+
+    const email = emailControl?.value;
 
     if (!email || !email.includes('@') || email.length < 5) {
       this.existingStudent.set(null);
+      // Limpiar error de emailExists si había uno
+      if (emailControl?.hasError('emailExists')) {
+        const errors = { ...emailControl.errors };
+        delete errors['emailExists'];
+        emailControl.setErrors(Object.keys(errors).length ? errors : null);
+      }
       return;
     }
 
@@ -539,8 +549,16 @@ export class BookingFormComponent implements OnInit {
           is_active: data.is_active,
           name: `${data.first_name} ${data.last_name}`
         });
+        // Marcar el campo de email con error para bloquear el formulario
+        emailControl?.setErrors({ ...emailControl?.errors, emailExists: true });
       } else {
         this.existingStudent.set(null);
+        // Limpiar error de emailExists
+        if (emailControl?.hasError('emailExists')) {
+          const errors = { ...emailControl.errors };
+          delete errors['emailExists'];
+          emailControl.setErrors(Object.keys(errors).length ? errors : null);
+        }
       }
     } catch (e) {
       console.error(e);

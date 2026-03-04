@@ -1,33 +1,23 @@
--- ============================================
--- FIX: Prevenir Doble Reserva (Double Booking)
+-- ============================================================
+-- FIX: Correo Duplicado de Alumnos + Historial de Pagos
 -- Fecha: Marzo 2026
--- ============================================
--- Este script aplica 3 correcciones:
--- 1. Índice UNIQUE parcial en appointments para evitar reservas duplicadas a nivel de BD
--- 2. Verificación de disponibilidad DENTRO de create_recurring_bookings antes de cada INSERT
--- 3. Verificación de disponibilidad DENTRO de create_public_booking antes del INSERT
+-- ============================================================
+-- Problemas corregidos:
+-- 1. create_recurring_bookings: No actualizaba datos del alumno cuando el email ya existía
+--    → El nuevo alumno no aparecía en la sección de Alumnos con su nombre correcto
+-- 2. create_recurring_bookings: No insertaba amount_paid en appointments
+--    → El pago no se reflejaba correctamente en el historial de ingresos
+-- 3. create_public_booking: No insertaba student_name, student_email ni amount_paid
+--    → Faltaban datos clave para mostrar el alumno en pagos
+-- 4. create_public_booking: Lógica invertida de v_was_inactive (recibía is_active)
+--    → El campo 'reactivated' en la respuesta era incorrecto
 
 -- ============================================================
--- 1. ÍNDICE ÚNICO PARCIAL - Previene doble reserva a nivel BD
+-- 1. FIX: create_recurring_bookings
+--    - Actualizar datos del alumno si ya existe por email
+--    - Insertar amount_paid en la cita
 -- ============================================================
--- Solo aplica a citas que NO están canceladas/rechazadas.
--- Esto es la última línea de defensa: si dos transacciones simultáneas
--- intentan insertar en el mismo slot, una fallará con un error de constraint.
 
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_indexes WHERE indexname = 'idx_appointments_no_double_booking'
-  ) THEN
-    CREATE UNIQUE INDEX idx_appointments_no_double_booking
-    ON appointments (user_id, date, start_time)
-    WHERE status NOT IN ('cancelled', 'rejected');
-  END IF;
-END $$;
-
--- ============================================================
--- 2. FIX: create_recurring_bookings - Re-verificar antes de INSERT
--- ============================================================
 -- Primero eliminamos todas las versiones existentes
 DO $$ 
 DECLARE 
@@ -71,6 +61,7 @@ DECLARE
   v_dur INTEGER;
   v_slots_count INTEGER;
   v_conflict_exists BOOLEAN;
+  v_price_per_slot NUMERIC;
 BEGIN
   -- A. Get or Create Student
   SELECT id INTO v_student_id FROM students 
@@ -90,6 +81,7 @@ BEGIN
   END IF;
 
   v_slots_count := jsonb_array_length(p_slots);
+  v_price_per_slot := (p_amount_paid / GREATEST(v_slots_count, 1));
 
   -- B. Loop, VERIFY and Insert using jsonb_to_recordset
   FOR v_rec IN 
@@ -121,7 +113,7 @@ BEGIN
     ) VALUES (
       p_tutor_id, v_student_id, p_student_name || ' ' || p_student_last_name, p_student_email,
       v_rec.date, v_rec.start_time, v_rec.end_time, v_ts, v_dur,
-      p_service_id, p_notes, 'scheduled', p_payment_status, (p_amount_paid / GREATEST(v_slots_count, 1)), (p_amount_paid / GREATEST(v_slots_count, 1)),
+      p_service_id, p_notes, 'scheduled', p_payment_status, v_price_per_slot, v_price_per_slot,
       p_modality, p_location, p_meeting_link
     ) RETURNING id INTO v_appointment_id;
 
@@ -137,7 +129,9 @@ END;
 $$;
 
 -- ============================================================
--- 3. FIX: create_public_booking - Verificar antes de INSERT
+-- 2. FIX: create_public_booking
+--    - Insertar student_name, student_email y amount_paid en la cita
+--    - Corregir lógica de v_was_inactive (variable renombrada)
 -- ============================================================
 CREATE OR REPLACE FUNCTION create_public_booking(
   p_tutor_id UUID,
@@ -173,7 +167,7 @@ DECLARE
 BEGIN
   -- 1. Normalizar email
   p_student_email := LOWER(TRIM(p_student_email));
-  p_parent_email := LOWER(TRIM(p_parent_email));
+  p_parent_email := LOWER(TRIM(COALESCE(p_parent_email, '')));
   
   -- Calcular timestamp y duración
   v_appointment_timestamp := (p_date + p_start_time)::TIMESTAMPTZ;
@@ -240,9 +234,31 @@ END;
 $$;
 
 -- ============================================================
--- 4. PERMISOS
+-- 3. PERMISOS
 -- ============================================================
 GRANT EXECUTE ON FUNCTION create_recurring_bookings TO anon;
 GRANT EXECUTE ON FUNCTION create_recurring_bookings TO authenticated;
 GRANT EXECUTE ON FUNCTION create_public_booking TO anon;
 GRANT EXECUTE ON FUNCTION create_public_booking TO authenticated;
+
+-- ============================================================
+-- 4. BACKFILL: Actualizar citas existentes que tengan amount_paid = 0
+--    pero payment_status = 'paid' y price > 0
+-- ============================================================
+UPDATE appointments 
+SET amount_paid = price 
+WHERE payment_status = 'paid' 
+  AND (amount_paid IS NULL OR amount_paid = 0) 
+  AND price > 0;
+
+-- ============================================================
+-- 5. BACKFILL: Llenar student_name en citas que no lo tengan
+--    usando datos de la tabla students
+-- ============================================================
+UPDATE appointments a
+SET 
+  student_name = COALESCE(s.first_name, '') || ' ' || COALESCE(s.last_name, ''),
+  student_email = s.email
+FROM students s
+WHERE a.student_id = s.id
+  AND (a.student_name IS NULL OR a.student_name = '');

@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { SupabaseService } from '../../core/services/supabase.service';
@@ -109,7 +109,7 @@ import { LucideAngularModule, DollarSign, CreditCard, Building, ArrowUpRight, Hi
                       {{ tx.service_id ? 'Servicio/Clase' : 'Asesoría Personalizada' }}
                     </td>
                     <td class="px-6 py-4 text-sm text-surface-600">
-                      {{ tx.students?.first_name }} {{ tx.students?.last_name }}
+                      {{ tx.students?.first_name ? (tx.students.first_name + ' ' + (tx.students.last_name || '')) : (tx.student_name || tx.student_email || 'Sin nombre') }}
                     </td>
                     <td class="px-6 py-4 text-sm font-semibold text-right"
                         [ngClass]="tx.payment_status === 'refunded' ? 'text-surface-400 line-through' : 'text-accent-green'">
@@ -316,7 +316,7 @@ import { LucideAngularModule, DollarSign, CreditCard, Building, ArrowUpRight, Hi
     }
   `]
 })
-export class PaymentsComponent implements OnInit {
+export class PaymentsComponent implements OnInit, OnDestroy {
   readonly TrendingUp = TrendingUp;
   readonly Wallet = Wallet;
   readonly CreditCard = CreditCard;
@@ -336,6 +336,7 @@ export class PaymentsComponent implements OnInit {
   bankForm: FormGroup;
   paypalForm: FormGroup;
   userId: string | undefined;
+  private paymentsChannel: any = null;
 
   constructor(
     private supabaseService: SupabaseService,
@@ -367,6 +368,18 @@ export class PaymentsComponent implements OnInit {
     if (user) {
       this.userId = user.id;
       this.loadData();
+      // Suscribir a cambios en citas pagadas para actualizar historial en tiempo real
+      this.paymentsChannel = this.supabaseService.subscribeToAppointmentPayments(
+        user.id,
+        () => this.loadData()
+      );
+    }
+  }
+
+  ngOnDestroy() {
+    if (this.paymentsChannel) {
+      this.supabaseService.removeChannel(this.paymentsChannel);
+      this.paymentsChannel = null;
     }
   }
 
