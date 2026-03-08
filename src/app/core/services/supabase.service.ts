@@ -414,13 +414,17 @@ export class SupabaseService {
   }
 
   // Services Methods
-  async getServices(userId: string) {
-    const { data, error } = await this.supabase
+  async getServices(userId: string, includeInactive = false) {
+    let query = this.supabase
       .from('services')
       .select('*')
-      .eq('user_id', userId)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false });
+      .eq('user_id', userId);
+
+    if (!includeInactive) {
+      query = query.eq('is_active', true);
+    }
+
+    const { data, error } = await query.order('is_active', { ascending: false }).order('created_at', { ascending: false });
 
     return { data, error };
   }
@@ -454,6 +458,31 @@ export class SupabaseService {
       .eq('id', serviceId);
 
     return { error };
+  }
+
+  async reactivateService(serviceId: string) {
+    const { error } = await this.supabase
+      .from('services')
+      .update({ is_active: true })
+      .eq('id', serviceId);
+
+    return { error };
+  }
+
+  async getFutureAppointmentsByService(serviceId: string): Promise<number> {
+    const today = new Date().toISOString().split('T')[0];
+    const { count, error } = await this.supabase
+      .from('appointments')
+      .select('*', { count: 'exact', head: true })
+      .eq('service_id', serviceId)
+      .gte('date', today)
+      .not('status', 'in', '("cancelled","rejected")');
+
+    if (error) {
+      console.error('Error checking future appointments:', error);
+      return 0;
+    }
+    return count || 0;
   }
 
   // ============================================

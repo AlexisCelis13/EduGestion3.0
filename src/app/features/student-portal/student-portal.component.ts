@@ -19,6 +19,8 @@ import {
 } from "../../core/services/supabase.service";
 
 import { BookingWidgetComponent } from "../booking/booking-widget/booking-widget.component";
+import { BookingCalendarComponent } from "../booking/booking-calendar/booking-calendar.component";
+import { BookingSlotsComponent } from "../booking/booking-slots/booking-slots.component";
 import { NotificationListComponent } from "../../shared/components/notification-list/notification-list.component";
 import { LucideAngularModule, HelpCircle, Bell } from "lucide-angular";
 
@@ -29,6 +31,8 @@ import { LucideAngularModule, HelpCircle, Bell } from "lucide-angular";
     CommonModule,
     RouterModule,
     BookingWidgetComponent,
+    BookingCalendarComponent,
+    BookingSlotsComponent,
     NotificationListComponent,
     LucideAngularModule,
   ],
@@ -470,6 +474,12 @@ export class StudentPortalComponent implements OnInit, OnDestroy {
   // ==========================================
   initiateReschedule() {
     this.cancelStep.set('reschedule');
+    // Auto-load slots for the current appointment date
+    const appt = this.selectedAppointment();
+    if (appt?.date) {
+      this.rescheduleDate.set(appt.date);
+      this.onRescheduleDateChange(appt.date);
+    }
   }
 
   async onRescheduleDateChange(dateStr: string) {

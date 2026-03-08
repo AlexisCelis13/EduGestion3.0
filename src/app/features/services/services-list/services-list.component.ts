@@ -1,4 +1,4 @@
-import { Component, signal, OnInit } from '@angular/core';
+import { Component, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
@@ -12,6 +12,8 @@ import { SupabaseService, Service } from '../../../core/services/supabase.servic
 })
 export class ServicesListComponent implements OnInit {
   services = signal<Service[]>([]);
+  activeServices = computed(() => this.services().filter(s => s.is_active));
+  inactiveServices = computed(() => this.services().filter(s => !s.is_active));
   showCreateForm = signal(false);
   loading = signal(false);
   errorMessage = signal('');
@@ -21,6 +23,8 @@ export class ServicesListComponent implements OnInit {
   // Edit mode
   editingService = signal<Service | null>(null);
   showDeleteConfirm = signal<string | null>(null);
+  futureAppointmentsCount = signal(0);
+  checkingFutureAppts = signal(false);
 
   // Preview mode
   selectedServicePreview = signal<Service | null>(null);
@@ -76,7 +80,7 @@ export class ServicesListComponent implements OnInit {
   private async loadServices() {
     const user = await this.supabaseService.getCurrentUser();
     if (user) {
-      const { data, error } = await this.supabaseService.getServices(user.id);
+      const { data, error } = await this.supabaseService.getServices(user.id, true);
       if (data) {
         this.services.set(data);
       }
@@ -228,12 +232,17 @@ export class ServicesListComponent implements OnInit {
   }
 
   // Delete methods
-  confirmDelete(serviceId: string) {
+  async confirmDelete(serviceId: string) {
+    this.checkingFutureAppts.set(true);
     this.showDeleteConfirm.set(serviceId);
+    const count = await this.supabaseService.getFutureAppointmentsByService(serviceId);
+    this.futureAppointmentsCount.set(count);
+    this.checkingFutureAppts.set(false);
   }
 
   cancelDelete() {
     this.showDeleteConfirm.set(null);
+    this.futureAppointmentsCount.set(0);
   }
 
   async deleteService(serviceId: string) {
@@ -243,13 +252,39 @@ export class ServicesListComponent implements OnInit {
       const { error } = await this.supabaseService.deleteService(serviceId);
 
       if (error) {
-        this.errorMessage.set('Error al eliminar el servicio');
+        this.errorMessage.set('Error al inhabilitar el servicio');
         return;
       }
 
       await this.loadServices();
       this.showDeleteConfirm.set(null);
-      this.showSuccess('Servicio eliminado correctamente');
+      this.futureAppointmentsCount.set(0);
+      this.showSuccess(
+        this.futureAppointmentsCount() > 0
+          ? 'Servicio inhabilitado. Las sesiones existentes se mantienen.'
+          : 'Servicio inhabilitado correctamente'
+      );
+
+    } catch (error: any) {
+      this.errorMessage.set('Error inesperado. Inténtalo de nuevo.');
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  async reactivateService(serviceId: string) {
+    this.loading.set(true);
+
+    try {
+      const { error } = await this.supabaseService.reactivateService(serviceId);
+
+      if (error) {
+        this.errorMessage.set('Error al reactivar el servicio');
+        return;
+      }
+
+      await this.loadServices();
+      this.showSuccess('Servicio reactivado correctamente');
 
     } catch (error: any) {
       this.errorMessage.set('Error inesperado. Inténtalo de nuevo.');

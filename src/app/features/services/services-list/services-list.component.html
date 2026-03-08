@@ -178,7 +178,7 @@
     }
 
     <!-- Lista de Servicios -->
-    @if (services().length === 0 && !showCreateForm()) {
+    @if (activeServices().length === 0 && inactiveServices().length === 0 && !showCreateForm()) {
     <div class="card-premium p-12 text-center">
       <div class="w-16 h-16 bg-primary-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
         <svg class="w-8 h-8 text-primary-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
@@ -194,26 +194,55 @@
       </button>
     </div>
     } @else if (!showCreateForm()) {
+
+    <!-- Active Services -->
+    @if (activeServices().length > 0) {
     <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-      @for (service of services(); track service.id) {
+      @for (service of activeServices(); track service.id) {
       <div class="card-premium p-6 hover-lift relative flex flex-col h-full">
         <!-- Delete confirmation overlay -->
         @if (showDeleteConfirm() === service.id) {
         <div class="absolute inset-0 bg-white/95 rounded-2xl flex flex-col items-center justify-center p-6 z-10">
-          <p class="text-surface-700 font-medium text-center mb-4">¿Eliminar "{{ service.name }}"?</p>
+          @if (checkingFutureAppts()) {
+          <svg class="animate-spin h-6 w-6 text-blue-600 mb-3" viewBox="0 0 24 24" fill="none">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>
+          <p class="text-sm text-surface-500">Verificando sesiones...</p>
+          } @else if (futureAppointmentsCount() > 0) {
+          <div class="text-center">
+            <div class="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <svg class="w-5 h-5 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+            </div>
+            <p class="text-surface-700 font-medium text-sm mb-1">Este servicio tiene <strong class="text-amber-600">{{
+                futureAppointmentsCount() }} sesión(es)</strong> futuras</p>
+            <p class="text-xs text-surface-400 mb-4">Al inhabilitar, las sesiones se mantienen pero no se aceptarán
+              nuevas reservas.</p>
+            <div class="flex gap-2 justify-center">
+              <button (click)="cancelDelete()" class="btn-secondary text-sm">Cancelar</button>
+              <button (click)="deleteService(service.id)" [disabled]="loading()"
+                class="bg-amber-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-amber-600 transition-colors disabled:opacity-50">
+                @if (loading()) { Inhabilitando... } @else { Inhabilitar Servicio }
+              </button>
+            </div>
+          </div>
+          } @else {
+          <p class="text-surface-700 font-medium text-center mb-4">¿Inhabilitar "{{ service.name }}"?</p>
+          <p class="text-xs text-surface-400 text-center mb-4">El servicio dejará de aparecer en tu página de reservas.
+          </p>
           <div class="flex gap-3">
-            <button (click)="cancelDelete()" class="btn-secondary text-sm">
-              Cancelar
-            </button>
+            <button (click)="cancelDelete()" class="btn-secondary text-sm">Cancelar</button>
             <button (click)="deleteService(service.id)" [disabled]="loading()"
               class="bg-red-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50">
-              @if (loading()) {
-              Eliminando...
-              } @else {
-              Eliminar
-              }
+              @if (loading()) { Inhabilitando... } @else { Inhabilitar }
             </button>
           </div>
+          }
         </div>
         }
 
@@ -222,14 +251,12 @@
             <h3 class="text-lg font-semibold text-surface-700 line-clamp-1">{{ service.name }}</h3>
             <div class="flex flex-wrap gap-2 mt-2">
               @if (service.category) {
-              <span class="inline-block bg-primary-50 text-primary-700 text-xs font-medium px-2.5 py-1 rounded-full">
-                {{ service.category }}
-              </span>
+              <span class="inline-block bg-primary-50 text-primary-700 text-xs font-medium px-2.5 py-1 rounded-full">{{
+                service.category }}</span>
               }
               @if (service.target_level) {
-              <span class="inline-block bg-surface-100 text-surface-600 text-xs font-medium px-2.5 py-1 rounded-full">
-                {{ service.target_level }}
-              </span>
+              <span class="inline-block bg-surface-100 text-surface-600 text-xs font-medium px-2.5 py-1 rounded-full">{{
+                service.target_level }}</span>
               }
             </div>
           </div>
@@ -263,9 +290,8 @@
           <p class="text-xs font-medium text-surface-500 mb-1.5 uppercase tracking-wide">Temas</p>
           <div class="flex flex-wrap gap-1.5">
             @for (topic of service.topics.slice(0, 3); track topic) {
-            <span class="text-xs bg-surface-50 text-surface-600 border border-surface-100 px-2 py-0.5 rounded">
-              {{ topic }}
-            </span>
+            <span class="text-xs bg-surface-50 text-surface-600 border border-surface-100 px-2 py-0.5 rounded">{{ topic
+              }}</span>
             }
             @if (service.topics.length > 3) {
             <span class="text-xs text-surface-400 px-1">+{{ service.topics.length - 3 }}</span>
@@ -285,16 +311,72 @@
           </button>
           <button (click)="confirmDelete(service.id)"
             class="px-3 py-2 text-surface-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors text-sm">
-            <span class="sr-only">Eliminar</span>
+            <span class="sr-only">Inhabilitar</span>
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
             </svg>
           </button>
         </div>
       </div>
       }
     </div>
+    } @else if (inactiveServices().length > 0) {
+    <!-- No active services but inactive exist -->
+    <div class="card-premium p-8 text-center mb-6">
+      <p class="text-surface-500 mb-3">No tienes servicios activos</p>
+      <button (click)="showCreateForm.set(true)" class="btn-premium">+ Nuevo Servicio</button>
+    </div>
+    }
+
+    <!-- Inactive Services Section -->
+    @if (inactiveServices().length > 0) {
+    <div class="mt-10">
+      <div class="flex items-center gap-3 mb-4">
+        <h2 class="text-base font-semibold text-surface-400">Servicios Inhabilitados</h2>
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+          {{ inactiveServices().length }}
+        </span>
+      </div>
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        @for (service of inactiveServices(); track service.id) {
+        <div
+          class="bg-white border border-gray-200 border-dashed rounded-xl p-5 flex flex-col h-full opacity-60 hover:opacity-100 transition-opacity">
+          <div class="flex justify-between items-start mb-3">
+            <div>
+              <h3 class="text-base font-medium text-surface-500 line-clamp-1">{{ service.name }}</h3>
+              <div class="flex flex-wrap gap-1.5 mt-1.5">
+                @if (service.category) {
+                <span class="inline-block bg-gray-50 text-gray-500 text-xs px-2 py-0.5 rounded-full">{{ service.category
+                  }}</span>
+                }
+              </div>
+            </div>
+            <div class="text-right shrink-0 ml-2">
+              <p class="text-lg font-semibold text-surface-400">${{ formatPrice(service.price) }}</p>
+              <p class="text-xs text-surface-300">{{ service.duration_minutes }} min</p>
+            </div>
+          </div>
+
+          @if (service.description) {
+          <p class="text-surface-400 text-xs mb-3 line-clamp-1">{{ service.description }}</p>
+          }
+
+          <div class="mt-auto pt-3 flex gap-2 border-t border-gray-100">
+            <button (click)="reactivateService(service.id)" [disabled]="loading()"
+              class="flex-1 bg-green-50 text-green-600 px-3 py-2 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors disabled:opacity-50">
+              Reactivar
+            </button>
+            <button (click)="viewService(service)"
+              class="px-3 py-2 text-surface-400 hover:text-surface-600 hover:bg-surface-50 rounded-lg transition-colors text-sm">
+              Ver
+            </button>
+          </div>
+        </div>
+        }
+      </div>
+    </div>
+    }
     }
   </div>
 </div>
