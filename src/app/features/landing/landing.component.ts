@@ -41,12 +41,12 @@ interface Particle {
   standalone: true,
   imports: [CommonModule, RouterModule],
   template: `
-    <div class="min-h-screen bg-surface-50">
+    <div class="min-h-screen bg-surface-50 dark:bg-black">
       <!-- Particle Canvas Background -->
       <canvas #particleCanvas class="particle-canvas"></canvas>
 
       <!-- Header with glassmorphism -->
-      <header class="fixed top-0 left-0 right-0 z-50 glass border-b border-white/20">
+      <header class="fixed top-0 left-0 right-0 z-50 glass border-b border-white/20 dark:border-white/10">
         <div class="max-w-6xl mx-auto px-6 lg:px-8">
           <div class="flex justify-between items-center h-16">
             <div class="flex items-center">
@@ -54,12 +54,12 @@ interface Particle {
             </div>
             <div class="flex items-center gap-6">
               <a routerLink="/student-portal/login" 
-                 class="text-surface-700 hover:text-primary-600 font-medium text-sm transition-colors">
+                 class="text-surface-700 dark:text-surface-300 hover:text-primary-600 font-medium text-sm transition-colors">
                 Portal Alumnos
               </a>
-              <div class="h-4 w-px bg-surface-200"></div>
+              <div class="h-4 w-px bg-surface-200 dark:bg-surface-600"></div>
               <a routerLink="/auth/login" 
-                 class="text-surface-700 hover:text-primary-600 font-medium text-sm transition-colors">
+                 class="text-surface-700 dark:text-surface-300 hover:text-primary-600 font-medium text-sm transition-colors">
                 Iniciar Sesión
               </a>
               <a routerLink="/auth/register" class="btn-premium text-sm !py-2.5 !px-5 shadow-sm">
@@ -73,12 +73,12 @@ interface Particle {
       <!-- Hero Section -->
       <section class="hero-fullscreen relative">
         <div class="max-w-6xl mx-auto px-6 lg:px-8 text-center relative z-10">
-          <h1 class="text-hero text-surface-700 mb-6">
+          <h1 class="text-hero text-surface-700 dark:text-surface-100 mb-6">
             <span>{{ typedLine1() }}</span>
             <span class="text-gradient block">{{ typedLine2() }}</span>
             <span class="typewriter-cursor" [class.typing]="!typingDone()">|</span>
           </h1>
-          <p class="text-subtitle text-surface-400 mb-10 max-w-2xl mx-auto hero-reveal"
+          <p class="text-subtitle text-surface-400 dark:text-surface-500 mb-10 max-w-2xl mx-auto hero-reveal"
              [class.revealed]="typingDone()">
             La plataforma todo-en-uno para academias y tutores independientes. 
             Gestiona alumnos, programa clases, recibe pagos y crea tu landing page profesional.
@@ -100,13 +100,13 @@ interface Particle {
         <div class="max-w-6xl mx-auto px-6 lg:px-8">
           <!-- Header -->
           <div class="text-center mb-16">
-            <h2 class="text-title text-surface-700 mb-4 scroll-reveal reveal-up">
+            <h2 class="text-title text-surface-700 dark:text-surface-100 mb-4 scroll-reveal reveal-up">
               Elige el plan perfecto para ti
             </h2>
-            <p class="text-subtitle text-surface-400 mb-4 scroll-reveal reveal-up" style="transition-delay:0.1s">
+            <p class="text-subtitle text-surface-400 dark:text-surface-500 mb-4 scroll-reveal reveal-up" style="transition-delay:0.1s">
               Comienza con 14 días gratis. Cancela cuando quieras.
             </p>
-            <div class="flex items-center justify-center gap-2 text-sm text-surface-500 bg-surface-50 inline-flex px-4 py-2 rounded-full border border-surface-200 scroll-reveal reveal-up" style="transition-delay:0.2s">
+            <div class="flex items-center justify-center gap-2 text-sm text-surface-500 dark:text-surface-400 bg-surface-50 dark:bg-surface-800 inline-flex px-4 py-2 rounded-full border border-surface-200 dark:border-surface-700 scroll-reveal reveal-up" style="transition-delay:0.2s">
                <svg class="w-5 h-5 text-[#003087]" viewBox="0 0 24 24" fill="currentColor">
                  <path d="M20.067 8.284c.642 4.606-2.583 8.358-8.24 8.358h-2.14l-1.026 6.551a.602.602 0 01-.595.507H4.558a.5.5 0 01-.497-.577l2.843-18.006a.8.8 0 01.789-.675h5.45c4.086 0 7.378 1.487 6.924 3.843z"/>
                  <path d="M7.076 21.337l.732-4.634h2.695c4.221 0 7.716-2.029 8.281-6.623.364-2.964-1.343-4.832-3.832-5.753-1.638-.606-3.805-.487-3.805-.487l-.46 2.87s1.396-.062 2.456.326c1.556.57 2.213 1.764 1.959 3.827-.406 3.328-3.085 4.098-5.368 4.098h-1.61L7.076 21.337z" fill="#009cde"/>
@@ -132,15 +132,15 @@ interface Particle {
                     </span>
                   </div>
                 }
-                <h3 class="text-xl font-semibold text-surface-700 text-center">
+                <h3 class="text-xl font-semibold text-surface-700 dark:text-surface-100 text-center">
                   {{ plan.name }}
                 </h3>
-                <p class="mt-3 text-sm text-surface-400 text-center min-h-[40px]">
+                <p class="mt-3 text-sm text-surface-400 dark:text-surface-500 text-center min-h-[40px]">
                   {{ plan.description }}
                 </p>
                 <p class="mt-6 text-center">
-                  <span class="text-5xl font-semibold text-surface-700 tracking-tight">\${{ plan.price }}</span>
-                  <span class="text-surface-400 ml-1">/{{ plan.period }}</span>
+                  <span class="text-5xl font-semibold text-surface-700 dark:text-surface-100 tracking-tight">\${{ plan.price }}</span>
+                  <span class="text-surface-400 dark:text-surface-500 ml-1">/{{ plan.period }}</span>
                 </p>
                 <button
                   (click)="selectPlan(plan)"
@@ -149,8 +149,8 @@ interface Particle {
                     : 'btn-secondary w-full mt-8 border border-surface-200'">
                   Seleccionar Plan
                 </button>
-                <div class="mt-8 pt-8 border-t border-surface-100">
-                  <h4 class="text-xs font-semibold text-surface-400 uppercase tracking-wider mb-4">
+                <div class="mt-8 pt-8 border-t border-surface-100 dark:border-surface-700">
+                  <h4 class="text-xs font-semibold text-surface-400 dark:text-surface-500 uppercase tracking-wider mb-4">
                     Incluye:
                   </h4>
                   <ul class="space-y-3">
@@ -159,7 +159,7 @@ interface Particle {
                         <svg class="flex-shrink-0 w-5 h-5 text-accent-green mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                           <polyline points="20 6 9 17 4 12"></polyline>
                         </svg>
-                        <span class="text-sm text-surface-500">{{ feature }}</span>
+                        <span class="text-sm text-surface-500 dark:text-surface-400">{{ feature }}</span>
                       </li>
                     }
                   </ul>
@@ -195,13 +195,13 @@ interface Particle {
       </section>
 
       <!-- Features Section -->
-      <section class="py-24 lg:py-32 bg-white relative z-10">
+      <section class="py-24 lg:py-32 bg-white dark:bg-surface-900 relative z-10">
         <div class="max-w-6xl mx-auto px-6 lg:px-8">
           <div class="text-center mb-16">
-            <h2 class="text-title text-surface-700 mb-4 scroll-reveal reveal-up">
+            <h2 class="text-title text-surface-700 dark:text-surface-100 mb-4 scroll-reveal reveal-up">
               Todo lo que necesitas para hacer crecer tu academia
             </h2>
-            <p class="text-subtitle text-surface-400 max-w-2xl mx-auto scroll-reveal reveal-up" style="transition-delay:0.1s">
+            <p class="text-subtitle text-surface-400 dark:text-surface-500 max-w-2xl mx-auto scroll-reveal reveal-up" style="transition-delay:0.1s">
               Herramientas profesionales diseñadas específicamente para educadores
             </p>
           </div>
@@ -217,8 +217,8 @@ interface Particle {
                   <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                 </svg>
               </div>
-              <h3 class="text-xl font-semibold text-surface-700 mb-3">Gestión de Alumnos</h3>
-              <p class="text-surface-400 leading-relaxed">
+              <h3 class="text-xl font-semibold text-surface-700 dark:text-surface-100 mb-3">Gestión de Alumnos</h3>
+              <p class="text-surface-400 dark:text-surface-500 leading-relaxed">
                 Organiza toda la información de tus estudiantes, historial académico y comunicación con padres.
               </p>
             </div>
@@ -232,8 +232,8 @@ interface Particle {
                   <path d="M12 18V6"></path>
                 </svg>
               </div>
-              <h3 class="text-xl font-semibold text-surface-700 mb-3">Cobros Automáticos</h3>
-              <p class="text-surface-400 leading-relaxed">
+              <h3 class="text-xl font-semibold text-surface-700 dark:text-surface-100 mb-3">Cobros Automáticos</h3>
+              <p class="text-surface-400 dark:text-surface-500 leading-relaxed">
                 Recibe pagos de forma segura con PayPal. Facturas automáticas y recordatorios de pago.
               </p>
             </div>
@@ -247,8 +247,8 @@ interface Particle {
                   <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
                 </svg>
               </div>
-              <h3 class="text-xl font-semibold text-surface-700 mb-3">Landing Page Propia</h3>
-              <p class="text-surface-400 leading-relaxed">
+              <h3 class="text-xl font-semibold text-surface-700 dark:text-surface-100 mb-3">Landing Page Propia</h3>
+              <p class="text-surface-400 dark:text-surface-500 leading-relaxed">
                 Crea tu página web profesional donde los alumnos pueden conocerte y agendar citas.
               </p>
             </div>

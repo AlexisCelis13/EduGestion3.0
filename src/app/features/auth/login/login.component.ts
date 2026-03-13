@@ -9,13 +9,13 @@ import { SupabaseService } from '../../../core/services/supabase.service';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterModule],
   template: `
-    <div class="min-h-screen bg-gradient-to-br from-surface-50 via-primary-50/30 to-surface-100 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="min-h-screen bg-gradient-to-br from-surface-50 via-primary-50/30 to-surface-100 dark:from-black dark:via-surface-900 dark:to-surface-900 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div class="sm:mx-auto sm:w-full sm:max-w-md">
         <div class="flex items-center justify-center mb-4"><img src="assets/Icono.png" class="h-20"></div>
-        <h2 class="text-center text-title text-surface-700">
+        <h2 class="text-center text-title text-surface-700 dark:text-surface-100">
           Iniciar Sesión
         </h2>
-        <p class="mt-3 text-center text-surface-400">
+        <p class="mt-3 text-center text-surface-400 dark:text-surface-500">
           ¿No tienes cuenta?
           <a routerLink="/auth/register" class="font-medium text-primary-600 hover:text-primary-500 ml-1">
             Regístrate gratis aquí
@@ -27,7 +27,7 @@ import { SupabaseService } from '../../../core/services/supabase.service';
         <div class="glass-card p-8 sm:p-10">
           <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="space-y-6">
             <div>
-              <label for="email" class="block text-sm font-medium text-surface-700 mb-2">
+              <label for="email" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">
                 Email
               </label>
               <input
@@ -42,7 +42,7 @@ import { SupabaseService } from '../../../core/services/supabase.service';
             </div>
 
             <div>
-              <label for="password" class="block text-sm font-medium text-surface-700 mb-2">
+              <label for="password" class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">
                 Contraseña
               </label>
               <div class="relative">

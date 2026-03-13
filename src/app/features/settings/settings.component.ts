@@ -5,6 +5,7 @@ import { Router, RouterModule } from '@angular/router';
 import { SupabaseService, Profile } from '../../core/services/supabase.service';
 import { SubscriptionService, Plan, SubscriptionWithPlan, SubscriptionHistory } from '../../core/services/subscription.service';
 import { PaymentService } from '../../core/services/payment.service';
+import { ThemeService, ThemeMode } from '../../core/services/theme.service';
 
 @Component({
   selector: 'app-settings',
@@ -12,7 +13,7 @@ import { PaymentService } from '../../core/services/payment.service';
   imports: [CommonModule, RouterModule, FormsModule],
   template: `
     <div class="p-6 lg:p-8 max-w-4xl mx-auto">
-      <h1 class="text-title text-surface-700 mb-8">Configuración</h1>
+      <h1 class="text-title text-surface-700 dark:text-surface-100 mb-8">Configuración</h1>
 
       <!-- Loading State -->
       @if (loading()) {
@@ -25,8 +26,8 @@ import { PaymentService } from '../../core/services/payment.service';
       } @else {
         <!-- Subscription Section -->
         <div class="card-premium mb-8">
-          <div class="p-6 border-b border-surface-100">
-            <h2 class="text-lg font-semibold text-surface-700">Tu Suscripción</h2>
+          <div class="p-6 border-b border-surface-100 dark:border-surface-700">
+            <h2 class="text-lg font-semibold text-surface-700 dark:text-surface-200">Tu Suscripción</h2>
           </div>
           <div class="p-6">
             <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
@@ -42,12 +43,12 @@ import { PaymentService } from '../../core/services/payment.service';
                   </div>
                   <div>
                     <div class="flex items-center gap-3">
-                      <span class="text-2xl font-bold text-surface-800">{{ subscription()?.plan?.name || 'Sin Plan' }}</span>
+                      <span class="text-2xl font-bold text-surface-800 dark:text-surface-100">{{ subscription()?.plan?.name || 'Sin Plan' }}</span>
                       <span [class]="getStatusBadgeClass()">{{ getStatusLabel() }}</span>
                     </div>
-                    <p class="text-surface-500">
-                      <span class="text-3xl font-bold text-surface-700">\${{ formatPrice(subscription()?.plan?.price_monthly || 0) }}</span>
-                      <span class="text-surface-400">/mes</span>
+                    <p class="text-surface-500 dark:text-surface-400">
+                      <span class="text-3xl font-bold text-surface-700 dark:text-surface-100">\${{ formatPrice(subscription()?.plan?.price_monthly || 0) }}</span>
+                      <span class="text-surface-400 dark:text-surface-500">/mes</span>
                     </p>
                   </div>
                 </div>
@@ -147,6 +148,53 @@ import { PaymentService } from '../../core/services/payment.service';
                   <span class="text-sm text-surface-600">{{ feature }}</span>
                 </div>
               }
+            </div>
+          </div>
+        </div>
+
+        <!-- Appearance Section -->
+        <div class="card-premium mb-8">
+          <div class="p-6 border-b border-surface-100 dark:border-surface-700">
+            <h2 class="text-lg font-semibold text-surface-700 dark:text-surface-200">Apariencia</h2>
+          </div>
+          <div class="p-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <p class="font-medium text-surface-700 dark:text-surface-200">Modo de Color</p>
+                <p class="text-sm text-surface-400 dark:text-surface-500 mt-1">Elige cómo se ve EduGestión. Selecciona "Sistema" para que siga la configuración de tu dispositivo.</p>
+              </div>
+              <div class="flex bg-surface-100 dark:bg-surface-800 rounded-xl p-1 gap-1 flex-shrink-0">
+                <button
+                  (click)="themeService.setMode('light')"
+                  class="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200"
+                  [class]="themeService.currentMode() === 'light'
+                    ? 'bg-white dark:bg-surface-600 text-surface-800 dark:text-white shadow-sm'
+                    : 'text-surface-500 dark:text-surface-400 hover:text-surface-700 dark:hover:text-surface-200'"
+                >
+                  <span>☀️</span>
+                  <span class="hidden sm:inline">Claro</span>
+                </button>
+                <button
+                  (click)="themeService.setMode('system')"
+                  class="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200"
+                  [class]="themeService.currentMode() === 'system'
+                    ? 'bg-white dark:bg-surface-600 text-surface-800 dark:text-white shadow-sm'
+                    : 'text-surface-500 dark:text-surface-400 hover:text-surface-700 dark:hover:text-surface-200'"
+                >
+                  <span>🖥️</span>
+                  <span class="hidden sm:inline">Sistema</span>
+                </button>
+                <button
+                  (click)="themeService.setMode('dark')"
+                  class="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200"
+                  [class]="themeService.currentMode() === 'dark'
+                    ? 'bg-white dark:bg-surface-600 text-surface-800 dark:text-white shadow-sm'
+                    : 'text-surface-500 dark:text-surface-400 hover:text-surface-700 dark:hover:text-surface-200'"
+                >
+                  <span>🌙</span>
+                  <span class="hidden sm:inline">Oscuro</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -482,7 +530,8 @@ export class SettingsComponent implements OnInit {
     private supabaseService: SupabaseService,
     private subscriptionService: SubscriptionService,
     private paymentService: PaymentService,
-    private router: Router
+    private router: Router,
+    public themeService: ThemeService
   ) { }
 
   async ngOnInit() {

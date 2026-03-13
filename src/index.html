@@ -12,6 +12,15 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 
+<script>
+  // Theme hydration — runs before Angular to prevent flash
+  (function() {
+    var mode = localStorage.getItem('edugestion-theme') || 'system';
+    var isDark = mode === 'dark' || (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    if (isDark) document.documentElement.classList.add('dark');
+  })();
+</script>
+
 <body>
   <app-root></app-root>
 </body>

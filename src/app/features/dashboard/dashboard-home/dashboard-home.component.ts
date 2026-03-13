@@ -22,14 +22,14 @@ import { LucideAngularModule, Calendar, Clock, User, ChevronRight, Copy, Externa
   template: `
     <div class="min-h-screen">
       <!-- Header -->
-      <div class="bg-white border-b border-surface-100">
+      <div class="bg-white dark:bg-surface-900 border-b border-surface-100 dark:border-surface-800">
         <div class="max-w-7xl mx-auto px-6 lg:px-8">
           <div class="flex justify-between items-center py-8">
             <div>
-              <h1 class="text-2xl font-semibold text-surface-700">
+              <h1 class="text-2xl font-semibold text-surface-700 dark:text-surface-100">
                 ¡Hola{{ profile()?.first_name ? ', ' + profile()?.first_name : '' }}!
               </h1>
-              <p class="text-surface-400 mt-1">
+              <p class="text-surface-400 dark:text-surface-500 mt-1">
                 Bienvenido a tu panel de control de {{ profile()?.company_name || 'EduGestión' }}
               </p>
             </div>
@@ -43,10 +43,10 @@ import { LucideAngularModule, Calendar, Clock, User, ChevronRight, Copy, Externa
           <div class="card-premium p-6 mb-8">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
               <div>
-                <h2 class="text-xl font-semibold text-surface-700">
+                <h2 class="text-xl font-semibold text-surface-700 dark:text-surface-100">
                   Explora EduGestión siguiendo estos pasos
                 </h2>
-                <p class="text-surface-400 mt-1">
+                <p class="text-surface-400 dark:text-surface-500 mt-1">
                   Completa estos pasos para aprovechar al máximo la plataforma
                 </p>
               </div>
@@ -54,17 +54,17 @@ import { LucideAngularModule, Calendar, Clock, User, ChevronRight, Copy, Externa
                 <div class="text-3xl font-semibold text-primary-600">
                   {{ completedTasks() }}/{{ onboardingTasks.length }}
                 </div>
-                <div class="text-sm text-surface-400">completados</div>
+                <div class="text-sm text-surface-400 dark:text-surface-500">completados</div>
               </div>
             </div>
 
             <!-- Barra de Progreso -->
             <div class="mb-8">
-              <div class="flex justify-between text-sm text-surface-500 mb-2">
+              <div class="flex justify-between text-sm text-surface-500 dark:text-surface-400 mb-2">
                 <span>Progreso de configuración</span>
-                <span class="font-medium text-surface-700">{{ Math.round((completedTasks() / onboardingTasks.length) * 100) }}%</span>
+                <span class="font-medium text-surface-700 dark:text-surface-200">{{ Math.round((completedTasks() / onboardingTasks.length) * 100) }}%</span>
               </div>
-              <div class="w-full bg-surface-100 rounded-full h-2.5">
+              <div class="w-full bg-surface-100 dark:bg-surface-800 rounded-full h-2.5">
                 <div 
                   class="bg-gradient-to-r from-primary-500 to-primary-600 h-2.5 rounded-full transition-all duration-500"
                   [style.width.%]="(completedTasks() / onboardingTasks.length) * 100">
@@ -98,8 +98,8 @@ import { LucideAngularModule, Calendar, Clock, User, ChevronRight, Copy, Externa
                       </span>
                     }
                   </div>
-                  <h3 class="font-semibold text-surface-700 mb-1.5">{{ task.title }}</h3>
-                  <p class="text-sm text-surface-400 leading-relaxed">{{ task.description }}</p>
+                  <h3 class="font-semibold text-surface-700 dark:text-surface-100 mb-1.5">{{ task.title }}</h3>
+                  <p class="text-sm text-surface-400 dark:text-surface-500 leading-relaxed">{{ task.description }}</p>
                 </div>
               }
             </div>
@@ -120,8 +120,8 @@ import { LucideAngularModule, Calendar, Clock, User, ChevronRight, Copy, Externa
                 </svg>
               </div>
               <div class="ml-4">
-                <p class="text-sm font-medium text-surface-400">Alumnos Activos</p>
-                <p class="text-2xl font-semibold text-surface-700">{{ activeStudents() }}</p>
+                <p class="text-sm font-medium text-surface-400 dark:text-surface-500">Alumnos Activos</p>
+                <p class="text-2xl font-semibold text-surface-700 dark:text-surface-100">{{ activeStudents() }}</p>
               </div>
             </div>
           </div>
@@ -137,8 +137,8 @@ import { LucideAngularModule, Calendar, Clock, User, ChevronRight, Copy, Externa
                 </svg>
               </div>
               <div class="ml-4">
-                <p class="text-sm font-medium text-surface-400">Clases Esta Semana</p>
-                <p class="text-2xl font-semibold text-surface-700">{{ classesThisWeek() }}</p>
+                <p class="text-sm font-medium text-surface-400 dark:text-surface-500">Clases Esta Semana</p>
+                <p class="text-2xl font-semibold text-surface-700 dark:text-surface-100">{{ classesThisWeek() }}</p>
               </div>
             </div>
           </div>
@@ -153,8 +153,8 @@ import { LucideAngularModule, Calendar, Clock, User, ChevronRight, Copy, Externa
                 </svg>
               </div>
               <div class="ml-4">
-                <p class="text-sm font-medium text-surface-400">Ingresos Este Mes</p>
-                <p class="text-2xl font-semibold text-surface-700">{{ formatCurrency(monthlyRevenue()) }}</p>
+                <p class="text-sm font-medium text-surface-400 dark:text-surface-500">Ingresos Este Mes</p>
+                <p class="text-2xl font-semibold text-surface-700 dark:text-surface-100">{{ formatCurrency(monthlyRevenue()) }}</p>
               </div>
             </div>
           </div>
@@ -168,8 +168,8 @@ import { LucideAngularModule, Calendar, Clock, User, ChevronRight, Copy, Externa
                 </svg>
               </div>
               <div class="ml-4">
-                <p class="text-sm font-medium text-surface-400">Servicios Activos</p>
-                <p class="text-2xl font-semibold text-surface-700">{{ activeServices() }}</p>
+                <p class="text-sm font-medium text-surface-400 dark:text-surface-500">Servicios Activos</p>
+                <p class="text-2xl font-semibold text-surface-700 dark:text-surface-100">{{ activeServices() }}</p>
               </div>
             </div>
           </div>
@@ -178,7 +178,7 @@ import { LucideAngularModule, Calendar, Clock, User, ChevronRight, Copy, Externa
         <!-- Próximas Citas -->
         <div class="card-premium p-6 mb-8">
           <div class="flex items-center justify-between mb-6">
-            <h3 class="text-lg font-semibold text-surface-700">Próximas Citas</h3>
+            <h3 class="text-lg font-semibold text-surface-700 dark:text-surface-100">Próximas Citas</h3>
             <a routerLink="/dashboard/schedule/calendar" class="text-sm font-medium text-primary-600 hover:text-primary-700 flex items-center gap-1 transition-colors">
               Ver calendario completo
               <i-lucide name="chevron-right" class="w-4 h-4"></i-lucide>
@@ -186,15 +186,15 @@ import { LucideAngularModule, Calendar, Clock, User, ChevronRight, Copy, Externa
           </div>
 
           @if (upcomingAppointments().length === 0) {
-            <div class="text-center py-8 bg-surface-50 rounded-xl border border-surface-100 border-dashed">
-              <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm">
+            <div class="text-center py-8 bg-surface-50 dark:bg-surface-800 rounded-xl border border-surface-100 dark:border-surface-700 border-dashed">
+              <div class="w-12 h-12 bg-white dark:bg-surface-700 rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm">
                 <i-lucide name="calendar" class="w-6 h-6 text-surface-400"></i-lucide>
               </div>
-              <p class="text-surface-500 font-medium">No tienes citas programadas</p>
-              <p class="text-sm text-surface-400 mt-1">Comparte tu landing page para recibir reservas</p>
+              <p class="text-surface-500 dark:text-surface-300 font-medium">No tienes citas programadas</p>
+              <p class="text-sm text-surface-400 dark:text-surface-500 mt-1">Comparte tu landing page para recibir reservas</p>
             </div>
           } @else {
-            <div class="divide-y divide-surface-100">
+            <div class="divide-y divide-surface-100 dark:divide-surface-700">
               @for (apt of upcomingAppointments(); track apt.id) {
                 <div class="flex items-center justify-between py-4 first:pt-0 last:pb-0">
                   <div class="flex items-center gap-4">
@@ -203,8 +203,8 @@ import { LucideAngularModule, Calendar, Clock, User, ChevronRight, Copy, Externa
                       <span class="text-lg leading-none">{{ apt.date | date:'dd' }}</span>
                     </div>
                     <div>
-                      <p class="font-medium text-surface-900">{{ apt.student_name }}</p>
-                      <div class="flex items-center gap-3 text-sm text-surface-500 mt-0.5">
+                      <p class="font-medium text-surface-900 dark:text-surface-100">{{ apt.student_name }}</p>
+                      <div class="flex items-center gap-3 text-sm text-surface-500 dark:text-surface-400 mt-0.5">
                         <span class="flex items-center gap-1">
                           <i-lucide name="clock" class="w-3.5 h-3.5"></i-lucide>
                           {{ apt.start_time.substring(0, 5) }} - {{ apt.end_time.substring(0, 5) }}
@@ -282,7 +282,7 @@ import { LucideAngularModule, Calendar, Clock, User, ChevronRight, Copy, Externa
           <!-- Columna Derecha: Acciones Rápidas -->
           <div class="lg:col-span-2">
             <div class="card-premium p-6 h-full">
-              <h3 class="text-lg font-semibold text-surface-700 mb-5">Acciones Rápidas</h3>
+              <h3 class="text-lg font-semibold text-surface-700 dark:text-surface-100 mb-5">Acciones Rápidas</h3>
               <div class="grid sm:grid-cols-3 gap-4">
                 <a routerLink="/dashboard/students" [queryParams]="{ action: 'new' }" class="group card-premium flex flex-col items-center p-5 text-center hover-lift border border-transparent hover:border-primary-100 transition-all">
                   <div class="w-12 h-12 bg-primary-50 group-hover:bg-primary-100 rounded-2xl flex items-center justify-center mb-3 transition-colors">
@@ -291,8 +291,8 @@ import { LucideAngularModule, Calendar, Clock, User, ChevronRight, Copy, Externa
                       <line x1="5" y1="12" x2="19" y2="12"></line>
                     </svg>
                   </div>
-                  <p class="font-semibold text-surface-700">Nuevo Alumno</p>
-                  <p class="text-xs text-surface-400 mt-1">Registra manual</p>
+                  <p class="font-semibold text-surface-700 dark:text-surface-100">Nuevo Alumno</p>
+                  <p class="text-xs text-surface-400 dark:text-surface-500 mt-1">Registra manual</p>
                 </a>
 
                 <a routerLink="/dashboard/schedule/calendar" class="group card-premium flex flex-col items-center p-5 text-center hover-lift border border-transparent hover:border-accent-green/20 transition-all">
@@ -304,8 +304,8 @@ import { LucideAngularModule, Calendar, Clock, User, ChevronRight, Copy, Externa
                       <line x1="3" y1="10" x2="21" y2="10"></line>
                     </svg>
                   </div>
-                  <p class="font-semibold text-surface-700">Ver Agenda</p>
-                  <p class="text-xs text-surface-400 mt-1">Gestionar clases</p>
+                  <p class="font-semibold text-surface-700 dark:text-surface-100">Ver Agenda</p>
+                  <p class="text-xs text-surface-400 dark:text-surface-500 mt-1">Gestionar clases</p>
                 </a>
 
                 <a routerLink="/dashboard/schedule" class="group card-premium flex flex-col items-center p-5 text-center hover-lift border border-transparent hover:border-accent-indigo/20 transition-all">
@@ -315,8 +315,8 @@ import { LucideAngularModule, Calendar, Clock, User, ChevronRight, Copy, Externa
                       <polyline points="12 6 12 12 16 14"></polyline>
                     </svg>
                   </div>
-                  <p class="font-semibold text-surface-700">Horarios</p>
-                  <p class="text-xs text-surface-400 mt-1">Configurar disponibilidad</p>
+                  <p class="font-semibold text-surface-700 dark:text-surface-100">Horarios</p>
+                  <p class="text-xs text-surface-400 dark:text-surface-500 mt-1">Configurar disponibilidad</p>
                 </a>
               </div>
             </div>

@@ -75,6 +75,11 @@ export class StudentPortalComponent implements OnInit, OnDestroy {
   activeExtensionStudentEmail = signal<string>("");
   activeExtensionRecentAppointments = signal<any[]>([]);
 
+  // New Session Booking Flow
+  showNewBooking = signal(false);
+  newBookingTutorId = signal('');
+  newBookingServices = signal<any[]>([]);
+
   // Session Details & Cancellation Modal
   showSessionDetailsModal = signal(false);
   selectedAppointment = signal<any>(null);
@@ -391,8 +396,49 @@ export class StudentPortalComponent implements OnInit, OnDestroy {
     // Reload data to potentially clear/update feedback status if needed
     // Currently, it just closes the widget and scrolls up
     this.cancelExtensionBooking();
+    this.cancelNewBooking();
     window.scrollTo({ top: 0, behavior: "smooth" });
     this.ngOnInit(); // Reload data
+  }
+
+  // ==========================================
+  // New Session Booking (self-service)
+  // ==========================================
+  async startNewBooking() {
+    const portalData = this.data();
+    if (!portalData) return;
+
+    // Resolve tutor ID from appointments or feedback
+    const tutorId =
+      portalData.appointments?.[0]?.user_id
+      || portalData.feedback?.[0]?.user_id
+      || '';
+
+    if (!tutorId) {
+      console.error('Could not determine tutor ID for new booking');
+      return;
+    }
+
+    this.newBookingTutorId.set(tutorId);
+
+    // Fetch active services for this tutor
+    const res = await this.supabaseService.getServices(tutorId);
+    if (res.data) {
+      this.newBookingServices.set(res.data);
+    }
+
+    this.showNewBooking.set(true);
+
+    // Scroll to the booking widget
+    setTimeout(() => {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }, 100);
+  }
+
+  cancelNewBooking() {
+    this.showNewBooking.set(false);
+    this.newBookingTutorId.set('');
+    this.newBookingServices.set([]);
   }
 
   // ==========================================

@@ -518,6 +518,8 @@ export class BookingFormComponent implements OnInit {
   }
 
   async checkEmail(type: 'student' | 'parent') {
+    // Skip email check for existing students (re-booking from portal)
+    if (this.existingStudentData) return;
     if (!this.tutorId) return;
 
     // Check if we should check based on mode
@@ -584,6 +586,12 @@ export class BookingFormComponent implements OnInit {
 
     // Verificar validación estándar primero (campos requeridos, formato, etc.)
     if (this.bookingForm.invalid) return;
+
+    // Skip duplicate email check when booking for an existing student (re-booking from portal)
+    if (this.existingStudentData) {
+      this.submitForm.emit(this.bookingForm.getRawValue());
+      return;
+    }
 
     // Verificar email duplicado contra la BD ANTES de proceder al pago
     if (!this.tutorId) return;

@@ -2,6 +2,7 @@ import { Component, signal, OnInit, OnDestroy, ElementRef, ViewChild, HostListen
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { SupabaseService } from '../../core/services/supabase.service';
+import { ThemeService } from '../../core/services/theme.service';
 import { NotificationListComponent } from '../../shared/components/notification-list/notification-list.component';
 import { CommandPaletteComponent } from '../../shared/components/command-palette/command-palette.component';
 import {
@@ -42,7 +43,7 @@ interface MenuItem {
     LucideAngularModule
   ],
   template: `
-    <div class="flex h-screen bg-surface-50 overflow-hidden">
+    <div class="flex h-screen bg-surface-50 dark:bg-black overflow-hidden">
       <!-- Sidebar -->
       <div 
         class="h-full bg-surface-900/95 backdrop-blur-xl text-white flex flex-col transition-[width] duration-300 ease-in-out shadow-2xl z-40 relative border-r border-white/5"
@@ -120,7 +121,7 @@ interface MenuItem {
       <!-- Main Content -->
       <div class="flex-1 flex flex-col overflow-hidden relative">
         <!-- Top Bar -->
-        <header class="glass border-b border-surface-200/50 h-[70px] flex items-center relative z-30 bg-white/80 backdrop-blur-md">
+        <header class="glass border-b border-surface-200/50 dark:border-surface-700/50 h-[70px] flex items-center relative z-30 bg-white/80 dark:bg-surface-900/80 backdrop-blur-md">
           <div class="flex items-center justify-between w-full px-8">
             <div class="flex items-center">
               <button
@@ -130,7 +131,7 @@ interface MenuItem {
               </button>
               
               <!-- Breadcrumbs or Page Title could go here -->
-               <h2 class="text-lg font-semibold text-surface-800 tracking-tight">
+               <h2 class="text-lg font-semibold text-surface-800 dark:text-surface-100 tracking-tight">
                 {{ getCurrentPageTitle() }}
               </h2>
             </div>
@@ -139,7 +140,7 @@ interface MenuItem {
             <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:block">
               <button 
                 (click)="showCommandPalette.set(true)"
-                class="flex items-center gap-2 px-4 py-2 w-72 md:w-96 lg:w-[500px] justify-between rounded-lg bg-surface-100 hover:bg-surface-200 text-surface-500 hover:text-surface-700 transition-colors border border-surface-200 shadow-sm relative overflow-hidden group">
+                class="flex items-center gap-2 px-4 py-2 w-72 md:w-96 lg:w-[500px] justify-between rounded-lg bg-surface-100 dark:bg-surface-800 hover:bg-surface-200 dark:hover:bg-surface-700 text-surface-500 dark:text-surface-400 hover:text-surface-700 dark:hover:text-surface-200 transition-colors border border-surface-200 dark:border-surface-700 shadow-sm relative overflow-hidden group">
                 <div class="flex items-center gap-3 w-full">
                    <lucide-icon name="search" class="w-4 h-4 text-surface-400 group-hover:text-surface-600 transition-colors"></lucide-icon>
                    <span class="text-sm font-medium truncate transition-all duration-300">{{ searchPlaceholder() }}</span>
@@ -150,7 +151,31 @@ interface MenuItem {
               </button>
             </div>
 
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-3">
+
+              <!-- Theme Toggle -->
+              <button 
+                (click)="themeService.cycleMode()"
+                class="p-2.5 rounded-xl hover:bg-surface-100 dark:hover:bg-surface-800 relative transition-all duration-200 border border-transparent hover:border-surface-200 dark:hover:border-surface-700"
+                [title]="getThemeLabel()">
+                @if (themeService.isDark()) {
+                  <svg class="w-5 h-5 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                  </svg>
+                } @else {
+                  <svg class="w-5 h-5 text-surface-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                  </svg>
+                }
+              </button>
 
               <!-- Notifications -->
               <div class="relative" #notificationsContainer>
@@ -184,10 +209,10 @@ interface MenuItem {
                 </button>
 
                 @if (showProfileMenu()) {
-                  <div class="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-premium-xl py-2 z-50 border border-surface-100 ring-1 ring-black/5 transform origin-top-right transition-all">
+                  <div class="absolute right-0 mt-3 w-56 bg-white dark:bg-surface-800 rounded-2xl shadow-premium-xl py-2 z-50 border border-surface-100 dark:border-surface-700 ring-1 ring-black/5 transform origin-top-right transition-all">
                     <div class="px-4 py-3 border-b border-surface-100 mb-2">
-                       <p class="text-sm font-semibold text-surface-900 truncate">{{ userName() }}</p>
-                       <p class="text-xs text-surface-500 truncate">{{ userEmail() }}</p>
+                       <p class="text-sm font-semibold text-surface-900 dark:text-surface-100 truncate">{{ userName() }}</p>
+                       <p class="text-xs text-surface-500 dark:text-surface-400 truncate">{{ userEmail() }}</p>
                     </div>
                     
                     <a routerLink="/dashboard/profile" class="flex items-center gap-2 px-4 py-2.5 text-sm text-surface-700 hover:bg-surface-50 transition-colors">
@@ -215,7 +240,7 @@ interface MenuItem {
         </header>
 
         <!-- Page Content -->
-        <main class="flex-1 overflow-y-auto bg-surface-50/50 relative">
+        <main class="flex-1 overflow-y-auto bg-surface-50/50 dark:bg-surface-900/50 relative">
           <div class="relative z-10">
              <router-outlet></router-outlet>
           </div>
@@ -320,7 +345,8 @@ export class DashboardLayoutComponent implements OnInit, OnDestroy {
   constructor(
     private supabaseService: SupabaseService,
     public router: Router,
-    private elementRef: ElementRef
+    private elementRef: ElementRef,
+    public themeService: ThemeService
   ) {
     this.loadUserInfo();
   }
@@ -443,5 +469,14 @@ export class DashboardLayoutComponent implements OnInit, OnDestroy {
   async logout() {
     await this.supabaseService.signOut();
     this.router.navigate(['/']);
+  }
+
+  getThemeLabel(): string {
+    const labels: Record<string, string> = {
+      'light': 'Modo claro',
+      'dark': 'Modo oscuro',
+      'system': 'Modo sistema'
+    };
+    return labels[this.themeService.currentMode()] || 'Cambiar tema';
   }
 }
