@@ -7,7 +7,9 @@ import {
   ElementRef,
   ViewChild,
   computed,
+  inject,
 } from "@angular/core";
+import { DomSanitizer, SafeResourceUrl } from "@angular/platform-browser";
 import { CommonModule } from "@angular/common";
 import { ActivatedRoute, Router, RouterModule } from "@angular/router";
 import {
@@ -94,6 +96,11 @@ export class StudentPortalComponent implements OnInit, OnDestroy {
   loadingRescheduleSlots = signal(false);
   isRescheduling = signal(false);
   rescheduleMinDate = signal('');
+
+  // Material Preview
+  previewMaterial = signal<any>(null);
+  previewUrl = signal<SafeResourceUrl | null>(null);
+  private sanitizer = inject(DomSanitizer);
 
   constructor(
     private route: ActivatedRoute,
@@ -704,6 +711,53 @@ export class StudentPortalComponent implements OnInit, OnDestroy {
       audio.volume = 0.5;
       audio.play().catch((e) => { }); // Ignore autoplay blocks
     } catch (e) { }
+  }
+
+  // ==========================================
+  // Material Preview
+  // ==========================================
+  openPreview(item: any) {
+    this.previewMaterial.set(item);
+    if (item.url) {
+      // For Google Drive links, convert to embeddable preview
+      let embedUrl = item.url;
+      if (embedUrl.includes('drive.google.com/file/d/')) {
+        const match = embedUrl.match(/\/file\/d\/([^/]+)/);
+        if (match) {
+          embedUrl = `https://drive.google.com/file/d/${match[1]}/preview`;
+        }
+      } else if (embedUrl.includes('docs.google.com')) {
+        // Google Docs/Sheets/Slides — use /preview suffix
+        embedUrl = embedUrl.replace(/\/edit.*$/, '/preview');
+      }
+      this.previewUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(embedUrl));
+    } else {
+      this.previewUrl.set(null);
+    }
+  }
+
+  closePreview() {
+    this.previewMaterial.set(null);
+    this.previewUrl.set(null);
+  }
+
+  isPreviewable(item: any): boolean {
+    if (!item?.url) return false;
+    const url = item.url.toLowerCase();
+    return url.endsWith('.pdf')
+      || url.includes('drive.google.com')
+      || url.includes('docs.google.com')
+      || url.includes('youtube.com')
+      || url.includes('youtu.be')
+      || url.includes('notion.so')
+      || url.includes('figma.com')
+      || item.type === 'link';
+  }
+
+  getFileExtension(url: string): string {
+    if (!url) return '';
+    const parts = url.split('.');
+    return parts.length > 1 ? parts.pop()!.split('?')[0].toUpperCase() : '';
   }
 
   ngOnDestroy() {

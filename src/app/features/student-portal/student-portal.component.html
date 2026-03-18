@@ -502,8 +502,9 @@
             } @else {
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 @for (item of data()!.materials; track item.id; let i = $index) {
-                <div class="card-premium hover-lift p-5 group animate-fade-in-up"
-                    [style.animation-delay]="i * 80 + 'ms'">
+                <div class="card-premium hover-lift p-5 group animate-fade-in-up cursor-pointer"
+                    [style.animation-delay]="i * 80 + 'ms'"
+                    (click)="openPreview(item)">
                     <div class="flex items-start justify-between mb-4">
                         <div
                             class="p-3 bg-blue-50 text-blue-600 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-colors">
@@ -524,7 +525,7 @@
                             </svg>
                             }
                         </div>
-                        <a [href]="item.url" target="_blank"
+                        <a [href]="item.url" target="_blank" (click)="$event.stopPropagation()"
                             class="px-3 py-1.5 bg-gray-50 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors flex items-center gap-1">
                             {{ item.type === "link" ? "Abrir" : "Descargar" }}
                             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -1029,4 +1030,141 @@
         </div>
     </div>
     }
+
+    <!-- Material Preview Modal -->
+    @if (previewMaterial()) {
+    <div class="fixed inset-0 z-50 flex flex-col" aria-labelledby="preview-title" role="dialog" aria-modal="true">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" (click)="closePreview()"></div>
+
+        <!-- Modal Content -->
+        <div class="relative z-10 flex flex-col h-full animate-fade-in">
+            <!-- Header Bar -->
+            <div class="flex items-center justify-between px-4 sm:px-6 py-3 bg-gray-900/90 border-b border-gray-700/50">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="p-2 bg-blue-600/20 rounded-lg flex-shrink-0">
+                        @if (previewMaterial().type === 'link') {
+                        <svg class="w-5 h-5 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                            <polyline points="15 3 21 3 21 9"></polyline>
+                            <line x1="10" y1="14" x2="21" y2="3"></line>
+                        </svg>
+                        } @else {
+                        <svg class="w-5 h-5 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                        </svg>
+                        }
+                    </div>
+                    <div class="min-w-0">
+                        <h3 id="preview-title" class="text-white font-semibold text-sm sm:text-base truncate">
+                            {{ previewMaterial().title }}
+                        </h3>
+                        <p class="text-gray-400 text-xs truncate">
+                            {{ previewMaterial().description || 'Sin descripción' }}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 flex-shrink-0 ml-4">
+                    <a [href]="previewMaterial().url" target="_blank"
+                        class="hidden sm:flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 text-white text-sm font-medium rounded-lg transition-colors">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                            <polyline points="15 3 21 3 21 9"></polyline>
+                            <line x1="10" y1="14" x2="21" y2="3"></line>
+                        </svg>
+                        Abrir
+                    </a>
+                    @if (previewMaterial().type !== 'link') {
+                    <a [href]="previewMaterial().url" target="_blank" download
+                        class="hidden sm:flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        Descargar
+                    </a>
+                    }
+                    <button (click)="closePreview()"
+                        class="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Preview Body -->
+            <div class="flex-1 overflow-hidden flex items-center justify-center p-2 sm:p-6">
+                @if (previewUrl()) {
+                <iframe [src]="previewUrl()!" class="w-full h-full rounded-lg bg-white shadow-2xl max-w-5xl"
+                    frameborder="0" allowfullscreen allow="autoplay"></iframe>
+                } @else {
+                <!-- Fallback: no embeddable preview -->
+                <div class="text-center p-8 max-w-md">
+                    <div class="w-20 h-20 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                        <svg class="w-10 h-10 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                        </svg>
+                    </div>
+                    <h3 class="text-white text-xl font-bold mb-2">
+                        {{ previewMaterial().title }}
+                    </h3>
+                    <p class="text-gray-400 text-sm mb-6">
+                        La vista previa no está disponible para este tipo de archivo.
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                        <a [href]="previewMaterial().url" target="_blank"
+                            class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                <polyline points="15 3 21 3 21 9"></polyline>
+                                <line x1="10" y1="14" x2="21" y2="3"></line>
+                            </svg>
+                            {{ previewMaterial().type === 'link' ? 'Abrir enlace' : 'Descargar archivo' }}
+                        </a>
+                    </div>
+                </div>
+                }
+            </div>
+
+            <!-- Mobile Action Bar -->
+            <div class="sm:hidden flex items-center gap-2 px-4 py-3 bg-gray-900/90 border-t border-gray-700/50">
+                <a [href]="previewMaterial().url" target="_blank"
+                    class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-white/10 hover:bg-white/20 text-white text-sm font-medium rounded-lg transition-colors">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                    </svg>
+                    Abrir
+                </a>
+                @if (previewMaterial().type !== 'link') {
+                <a [href]="previewMaterial().url" target="_blank" download
+                    class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Descargar
+                </a>
+                }
+            </div>
+        </div>
+    </div>
+    }
+
 </div>
