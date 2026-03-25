@@ -22,12 +22,35 @@ if (fs.existsSync(envPath)) {
     });
 }
 
+function readExistingEnvironmentValues() {
+    const existingEnvPath = path.resolve(__dirname, 'src/environments/environment.ts');
+    if (!fs.existsSync(existingEnvPath)) {
+        return {};
+    }
+
+    const content = fs.readFileSync(existingEnvPath, 'utf-8');
+    const getMatch = (key) => {
+        const match = content.match(new RegExp(`${key}:\\s*['\"]([^'\"]*)['\"]`));
+        return match ? match[1] : '';
+    };
+
+    return {
+        SUPABASE_URL: getMatch('supabaseUrl'),
+        SUPABASE_ANON_KEY: getMatch('supabaseAnonKey'),
+        GEMINI_API_KEY: getMatch('geminiApiKey'),
+        PAYPAL_CLIENT_ID: getMatch('paypalClientId'),
+        PAYPAL_CURRENCY: getMatch('paypalCurrency') || 'MXN'
+    };
+}
+
+const existingEnvVars = readExistingEnvironmentValues();
+
 const resolvedEnv = {
-    SUPABASE_URL: process.env.SUPABASE_URL || envVars.SUPABASE_URL || '',
-    SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || envVars.SUPABASE_ANON_KEY || '',
-    GEMINI_API_KEY: process.env.GEMINI_API_KEY || envVars.GEMINI_API_KEY || '',
-    PAYPAL_CLIENT_ID: process.env.PAYPAL_CLIENT_ID || envVars.PAYPAL_CLIENT_ID || '',
-    PAYPAL_CURRENCY: process.env.PAYPAL_CURRENCY || envVars.PAYPAL_CURRENCY || 'MXN'
+    SUPABASE_URL: process.env.SUPABASE_URL || envVars.SUPABASE_URL || existingEnvVars.SUPABASE_URL || '',
+    SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || envVars.SUPABASE_ANON_KEY || existingEnvVars.SUPABASE_ANON_KEY || '',
+    GEMINI_API_KEY: process.env.GEMINI_API_KEY || envVars.GEMINI_API_KEY || existingEnvVars.GEMINI_API_KEY || '',
+    PAYPAL_CLIENT_ID: process.env.PAYPAL_CLIENT_ID || envVars.PAYPAL_CLIENT_ID || existingEnvVars.PAYPAL_CLIENT_ID || '',
+    PAYPAL_CURRENCY: process.env.PAYPAL_CURRENCY || envVars.PAYPAL_CURRENCY || existingEnvVars.PAYPAL_CURRENCY || 'MXN'
 };
 
 // Generate environment.ts
