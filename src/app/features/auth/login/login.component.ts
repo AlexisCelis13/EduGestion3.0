@@ -149,11 +149,11 @@ export class LoginComponent {
           // Verificar si completó onboarding
           const profile = await this.supabaseService.getProfile(data.user.id);
           if (profile?.onboarding_completed) {
-            this.router.navigate(['/dashboard']);
+            await this.router.navigate(['/dashboard'], { replaceUrl: true });
           } else {
             // Si tiene el perfil pero no completó onboarding, enviarlo al wizard
             // Aunque nuestro trigger crea el perfil, onboarding_completed es false por defecto
-            this.router.navigate(['/dashboard']); // Por ahora directo al dashboard para simplificar flujo
+            await this.router.navigate(['/dashboard'], { replaceUrl: true }); // Por ahora directo al dashboard para simplificar flujo
           }
         }
       } catch (error: any) {

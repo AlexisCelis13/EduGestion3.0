@@ -143,6 +143,12 @@ export class SupabaseService {
       }
     );
 
+    this.supabase.auth.getSession().then(({ data }) => {
+      this.currentUserSubject.next(data.session?.user ?? null);
+    }).catch(() => {
+      this.currentUserSubject.next(null);
+    });
+
     // Escuchar cambios de autenticación con manejo de errores
     this.supabase.auth.onAuthStateChange((event, session) => {
       this.currentUserSubject.next(session?.user ?? null);
@@ -235,6 +241,11 @@ export class SupabaseService {
       const result = await this.retryOperation(() =>
         this.supabase.auth.signInWithPassword({ email, password })
       );
+
+      if (result.data?.user) {
+        this.currentUserSubject.next(result.data.user);
+      }
+
       return result;
     } catch (err: any) {
       // Si tras reintentos sigue fallando, devolver error amigable
@@ -250,6 +261,7 @@ export class SupabaseService {
 
   async signOut() {
     const { error } = await this.supabase.auth.signOut();
+    this.currentUserSubject.next(null);
     return { error };
   }
 
@@ -269,11 +281,22 @@ export class SupabaseService {
   }
 
   async getCurrentUser() {
+    const cachedUser = this.currentUserSubject.value;
+    if (cachedUser) {
+      return cachedUser;
+    }
+
     try {
-      const { data: { user } } = await this.retryOperation(() =>
-        this.supabase.auth.getUser()
+      const { data: { session } } = await this.retryOperation(() =>
+        this.supabase.auth.getSession()
       );
-      return user;
+
+      const sessionUser = session?.user ?? null;
+      if (sessionUser) {
+        this.currentUserSubject.next(sessionUser);
+      }
+
+      return sessionUser;
     } catch (err: any) {
       console.warn('getCurrentUser failed (network):', err?.message);
       return null;
