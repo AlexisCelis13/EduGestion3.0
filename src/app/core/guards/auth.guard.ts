@@ -12,6 +12,7 @@ export class AuthGuard implements CanActivate {
   ) {}
 
   async canActivate(): Promise<boolean> {
+    await this.supabaseService.waitForAuthReady();
     const user = await this.supabaseService.getCurrentUser();
     
     if (user) {

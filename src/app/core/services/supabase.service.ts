@@ -125,12 +125,18 @@ export class SupabaseService {
   private supabase: SupabaseClient;
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
+  private authReadyResolve!: () => void;
+  private authReadyPromise: Promise<void>;
 
   get client(): SupabaseClient {
     return this.supabase;
   }
 
   constructor() {
+    this.authReadyPromise = new Promise(resolve => {
+      this.authReadyResolve = resolve;
+    });
+
     this.supabase = createClient(
       environment.supabaseUrl,
       environment.supabaseAnonKey,
@@ -145,8 +151,10 @@ export class SupabaseService {
 
     this.supabase.auth.getSession().then(({ data }) => {
       this.currentUserSubject.next(data.session?.user ?? null);
+      this.authReadyResolve();
     }).catch(() => {
       this.currentUserSubject.next(null);
+      this.authReadyResolve();
     });
 
     // Escuchar cambios de autenticación con manejo de errores
@@ -281,6 +289,8 @@ export class SupabaseService {
   }
 
   async getCurrentUser() {
+    await this.authReadyPromise;
+
     const cachedUser = this.currentUserSubject.value;
     if (cachedUser) {
       return cachedUser;
@@ -301,6 +311,10 @@ export class SupabaseService {
       console.warn('getCurrentUser failed (network):', err?.message);
       return null;
     }
+  }
+
+  async waitForAuthReady(): Promise<void> {
+    await this.authReadyPromise;
   }
 
   // Profile Methods
