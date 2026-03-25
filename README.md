@@ -6,7 +6,7 @@ Sistema de gestión integral para academias y tutores independientes desarrollad
 
 - **Gestión de Alumnos**: Organiza información completa de estudiantes
 - **Programación de Clases**: Sistema de citas y calendario integrado
-- **Pagos Automáticos**: Integración con Stripe para cobros seguros
+- **Pagos Automáticos**: Integración con PayPal para cobros seguros
 - **Landing Pages Personalizadas**: Cada tutor tiene su propia página web
 - **Dashboard Gamificado**: Interfaz intuitiva con progreso visual
 - **Multi-tenant**: Soporte para múltiples academias
@@ -16,8 +16,8 @@ Sistema de gestión integral para academias y tutores independientes desarrollad
 - **Frontend**: Angular 17+ (Standalone Components, Signals)
 - **Estilos**: TailwindCSS
 - **Backend**: Supabase (Auth, Database, Storage)
-- **Pagos**: Stripe
-- **Hosting**: Vercel/Netlify ready
+- **Pagos**: PayPal
+- **Hosting**: Render/Vercel/Netlify ready
 
 ## 💰 Planes de Suscripción (MXN)
 
@@ -124,11 +124,13 @@ El proyecto estará disponible en `http://localhost:5500`
 - [x] Sistema de registro y login
 - [x] Selección de planes de suscripción
 - [x] Checkout simulado con Paypal
+- [x] Checkout con PayPal LIVE
 - [x] Onboarding wizard con modales
 - [x] Dashboard gamificado
 - [x] Editor de landing page personalizada
 - [x] Gestión básica de servicios
 - [x] Landing pages públicas dinámicas
+- [x] Soporte para múltiples profesores en plan Academia
 
 ### 🚧 En Desarrollo
 - [ ] Gestión completa de alumnos

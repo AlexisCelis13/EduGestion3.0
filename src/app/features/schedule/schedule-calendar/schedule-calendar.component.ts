@@ -14,6 +14,8 @@ interface Appointment {
   studentEmail?: string;
   studentPhone?: string;
   serviceName?: string;
+  professorName?: string;
+  professorId?: string;
   status: string;
   notes?: string;
 }
@@ -117,8 +119,11 @@ interface WeeklySlot {
                 @if (day.appointments.length > 0) {
                   <div class="space-y-1">
                     @for (apt of day.appointments.slice(0, 2); track apt.id) {
-                      <div class="text-xs bg-primary-100 text-primary-700 px-1.5 py-0.5 rounded truncate">
-                        {{ apt.startTime }} - {{ apt.studentName }}
+                      <div class="text-xs bg-primary-100 text-primary-700 px-1.5 py-0.5 rounded truncate flex flex-col">
+                        <span>{{ apt.startTime }} - {{ apt.studentName }}</span>
+                        @if (apt.professorName) {
+                          <span class="text-xs text-purple-600 font-medium truncate">{{ apt.professorName }}</span>
+                        }
                       </div>
                     }
                     @if (day.appointments.length > 2) {
@@ -297,11 +302,21 @@ interface WeeklySlot {
                         </div>
                       </td>
                       <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="flex items-center gap-2 text-sm text-surface-600">
-                          <svg class="w-4 h-4 text-surface-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          {{ formatTimeRange(apt.startTime, apt.endTime) }}
+                        <div class="flex flex-col gap-1">
+                          <div class="flex items-center gap-2 text-sm text-surface-600">
+                            <svg class="w-4 h-4 text-surface-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            {{ formatTimeRange(apt.startTime, apt.endTime) }}
+                          </div>
+                          @if (apt.professorName) {
+                            <div class="flex items-center gap-2 text-xs text-purple-600 font-medium">
+                              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                              </svg>
+                              {{ apt.professorName }}
+                            </div>
+                          }
                         </div>
                       </td>
                       <td class="px-6 py-4 whitespace-nowrap">
@@ -429,6 +444,9 @@ interface WeeklySlot {
                     </div>
                     <div>
                       <p class="font-medium text-surface-700">{{ apt.studentName }}</p>
+                      @if (apt.professorName) {
+                        <p class="text-xs text-purple-600 font-medium">{{ apt.professorName }}</p>
+                      }
                       <p class="text-xs text-surface-400">{{ apt.startTime }} - {{ apt.endTime }}</p>
                     </div>
                     @if (apt.status === 'scheduled') {
@@ -480,7 +498,7 @@ interface WeeklySlot {
                 </div>
               </div>
 
-              <!-- Time & Service -->
+              <!-- Time, Service & Professor -->
               <div class="grid grid-cols-2 gap-4">
                 <div>
                   <label class="text-xs font-semibold text-surface-500 uppercase tracking-wider">Fecha</label>
@@ -497,17 +515,32 @@ interface WeeklySlot {
                     <svg class="w-4 h-4 text-surface-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    {{ selectedAppointment.startTime.substring(0,5) }} - {{ selectedAppointment.endTime.substring(0,5) }}
+                    {{ selectedAppointment.startTime }} - {{ selectedAppointment.endTime }}
                   </p>
                 </div>
+                @if (selectedAppointment.serviceName) {
+                  <div class="col-span-2">
+                    <label class="text-xs font-bold text-surface-500 uppercase tracking-wider">Servicio</label>
+                    <p class="font-medium text-surface-700 mt-1 flex items-center gap-2">
+                      <svg class="w-4 h-4 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      {{ selectedAppointment.serviceName }}
+                    </p>
+                  </div>
+                }
+                @if (selectedAppointment.professorName) {
+                  <div class="col-span-2 mt-2">
+                    <label class="text-xs font-bold text-surface-500 uppercase tracking-wider">Profesor</label>
+                    <p class="font-medium text-surface-700 mt-1 flex items-center gap-2">
+                      <svg class="w-4 h-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      {{ selectedAppointment.professorName }}
+                    </p>
+                  </div>
+                }
               </div>
-
-              @if (selectedAppointment.serviceName) {
-                <div>
-                  <label class="text-xs font-semibold text-surface-500 uppercase tracking-wider">Servicio</label>
-                  <p class="font-medium text-surface-700 mt-1">{{ selectedAppointment.serviceName }}</p>
-                </div>
-              }
 
               @if (selectedAppointment.notes) {
                 <div>
@@ -656,18 +689,11 @@ export class ScheduleCalendarComponent implements OnInit {
           studentEmail: apt.student_email,
           studentPhone: apt.student_phone,
           serviceName: apt.services?.name,
+          professorName: apt.professors?.name,
+          professorId: apt.professor_id,
           status: apt.status,
           notes: apt.notes
         }));
-
-      // Separate upcoming and past appointments
-      this.upcomingAppointments = allAppointments
-        .filter(apt => new Date(apt.date) >= today)
-        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-      this.pastAppointments = allAppointments
-        .filter(apt => new Date(apt.date) < today)
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
       // Add appointments to calendar days
       for (const apt of appointments) {

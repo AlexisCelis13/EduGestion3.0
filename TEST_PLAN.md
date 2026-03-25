@@ -1,61 +1,107 @@
-# Documento Formal de Plan y Reporte de Pruebas - EduGestión 3.0
+# Pruebas Automatizadas - EduGestión 3.0
 
-El presente documento establece la estrategia, ejecución y resultados de las pruebas de software aplicadas a la plataforma EduGestión 3.0. Su propósito es garantizar la calidad, estabilidad y correcto funcionamiento del flujo crítico del sistema, alineándose con los requerimientos de evaluación del proyecto.
-
----
-
-## 1. Tipo de Prueba Realizada
-
-Para asegurar una cobertura integral del sistema, se ha implementado una estrategia de pruebas híbrida:
-
-- **Pruebas Dinámicas Automatizadas End-to-End (E2E):** Pruebas de caja negra orientadas a simular el comportamiento real de un usuario final interactuando con la interfaz gráfica (UI). Estas pruebas validan el flujo principal de negocio ("Happy Path") de forma secuencial y monolítica, asegurando la correcta integración entre el frontend (Angular) y el backend (Supabase).
-- **Pruebas Manuales Exploratorias y de Integración:** Verificaciones puntuales destinadas a evaluar aspectos no automatizables por restricciones de seguridad de terceros (ej. pasarelas de pago reales) y la adaptabilidad responsiva del diseño.
+El archivo `cypress/e2e/full-flow.cy.ts` ejecuta un único flujo continuo de principio a fin, manteniendo la sesión de usuario activa durante toda la prueba. A continuación se describe exactamente lo que hace cada paso.
 
 ---
 
-## 2. Actividades de la Prueba
+## Módulo 1: Autenticación (`/auth/register` y `/auth/login`)
 
-El ciclo de pruebas comprendió las siguientes fases y actividades operativas:
+El script genera un correo único usando el timestamp actual (`testuser[timestamp]@gmail.com`) para evitar colisiones en la base de datos. Navega a la pantalla de registro, escribe el correo, la contraseña y la confirmación de contraseña, y hace clic en el botón de submit.
 
-1. **Diseño de Casos de Prueba:** Definición del flujo crítico de usuario, estableciendo precondiciones, datos de prueba dinámicos (generación de identificadores únicos mediante *timestamps* para evitar colisiones) y resultados esperados.
-2. **Configuración del Entorno:** Preparación de la base de datos de pruebas en Supabase y configuración del entorno de ejecución local.
-3. **Ejecución de Flujos de Validación:**
-   - **Autenticación:** Inserción de credenciales, validación de políticas de seguridad y verificación de redireccionamientos.
-   - **Onboarding:** Llenado de formularios demográficos y profesionales, y validación de persistencia de datos de perfil.
-   - **Gestión de Entidades:** Creación, lectura y validación de registros en los módulos de Alumnos y Servicios.
-   - **Simulación Transaccional:** Interacción con el panel de suscripciones y simulación de eventos de actualización de plan (Upselling).
-4. **Monitoreo y Depuración:** Intercepción de peticiones de red y aserciones de estado del DOM para garantizar la sincronía entre la UI y las respuestas del servidor.
+Después de esperar 5 segundos para que Supabase procese el registro, verifica la URL actual. Si el sistema redirigió al login (porque no hay autologin configurado), el script inicia sesión manualmente con las mismas credenciales antes de continuar. Al final de este paso confirma que la URL contiene `/dashboard`.
 
 ---
 
-## 3. Uso de Herramienta de Prueba
+## Módulo 2: Onboarding (`/dashboard`)
 
-La automatización del aseguramiento de calidad se apoyó en las siguientes tecnologías:
+Antes de continuar, el script inspecciona el contenido del `body` de la página buscando el texto `¡Bienvenido a EduGestión!`. Si el modal de bienvenida está presente, lo completa:
 
-- **Cypress (Framework Principal):** Seleccionado como la herramienta central para la automatización E2E. A diferencia de alternativas tradicionales como **Selenium**, Cypress opera directamente dentro del ciclo de vida del navegador, lo que permite un manejo nativo de la asincronía, acceso directo a los objetos del DOM y de red, y una integración superior con aplicaciones Single Page Application (SPA) desarrolladas en Angular.
-- **Postman:** Utilizado en fases tempranas para la validación manual y automatizada de los endpoints RESTful y funciones RPC de Supabase antes de su integración con el frontend.
-- **Chrome DevTools:** Empleado para la auditoría de rendimiento, simulación de dispositivos móviles (Responsive Design Testing) y depuración de la consola durante las pruebas manuales.
+- Hace clic en "Comenzar Configuración".
+- Escribe "Test" en el campo `firstName` y "User" en `lastName`.
+- Selecciona el rol "Tutor Independiente" y el rango de ingresos "Menos de $10,000".
+- Hace clic en "Completar Configuración" y espera 3 segundos para confirmar que los datos se guardaron en Supabase.
+
+Si el modal no aparece (porque el perfil ya existe), este paso se omite sin fallar.
 
 ---
 
-## 4. Resultados del Análisis de Pruebas (Reporte)
+## Módulo 3: Gestión de Alumnos (`/dashboard/students`)
 
-### 4.1. Estado General de Ejecución
-La suite de pruebas automatizadas, consolidada en el archivo `cypress/e2e/full-flow.cy.ts`, se ejecuta de manera exitosa y estable. El análisis confirma que la arquitectura del sistema soporta adecuadamente el flujo operativo principal sin interrupciones críticas.
+Navega a la sección de alumnos y busca cualquier botón de creación disponible, ya sea el del estado vacío ("Agregar Mi Primer Alumno") o el botón estándar ("Nuevo Alumno"). Hace clic en el primero que encuentre y llena el formulario:
 
-### 4.2. Cobertura Exacta de Módulos Automatizados
-El script de automatización recorre, interactúa y valida explícitamente los siguientes módulos del sistema:
+- **Nombre:** `Juan`
+- **Apellido:** `Pérez [timestamp]` (único por ejecución)
+- **Correo:** `juan[timestamp]@student.com` (único por ejecución)
 
-1. **Módulo de Autenticación (`/auth`):** Validación de registro de nuevos usuarios, encriptación de contraseñas y generación automática de perfiles mediante triggers de base de datos.
-2. **Módulo de Onboarding (`/dashboard`):** Verificación del asistente de configuración inicial y persistencia de datos de la academia.
-3. **Módulo de Gestión de Alumnos (`/dashboard/students`):** Validación de la interfaz de directorio, apertura de modales y creación exitosa de expedientes de estudiantes.
-4. **Módulo de Calendario (`/dashboard/schedule/calendar`):** Comprobación del correcto renderizado de la librería de calendario y vistas mensuales.
-5. **Módulo de Configuración de Horarios (`/dashboard/schedule`):** Interacción con la matriz de disponibilidad semanal y creación de bloqueos de tiempo personalizados.
-6. **Módulo de Servicios (`/dashboard/services`):** Automatización de la creación de ofertas académicas, asignando parámetros de precio y duración.
-7. **Módulo de Planes de Estudio (`/dashboard/study-plans`):** Navegación y validación de carga de contenido asíncrono.
-8. **Módulo de Pagos y Suscripciones (`/dashboard/payments`, `/dashboard/settings`):** Verificación de la interfaz de historial de pagos y validación del flujo de actualización de planes (Upselling).
-9. **Módulo de Landing Page (`/dashboard/landing-editor`):** Generación de URLs públicas dinámicas (slugs), personalización de paleta de colores y validación de la publicación de la página web de la academia.
+Envía el formulario y verifica que el correo del alumno recién creado aparece en la tabla de registros.
 
-### 4.3. Hallazgos, Limitaciones y Resoluciones
-- **Incidencia Detectada (Seguridad de Terceros):** Durante la automatización del módulo de pagos, se identificó que las pasarelas financieras (PayPal/Stripe) implementan estrictas políticas anti-bot y restricciones CORS que bloquean la inyección de datos dentro de sus *iframes* cuando se detecta un entorno de navegador *headless* (automatizado).
-- **Resolución Implementada:** Para mantener la continuidad de la prueba sin comprometer la seguridad, se implementó una estrategia de *Mocking* (simulación). El script de Cypress verifica el correcto renderizado del contenedor de pago y, posteriormente, inyecta un evento sintético de "Pago Completado" a nivel de componente Angular. Esto permite validar que el sistema de EduGestión reacciona correctamente ante una transacción exitosa, delegando la prueba transaccional estricta a las validaciones manuales en entorno Sandbox.
+---
+
+## Módulo 4: Calendario (`/dashboard/schedule/calendar`)
+
+Navega a la vista del calendario y verifica que el componente principal de renderizado existe en la página (`mwl-calendar-month-view` o `.cal-month-view`). Es una validación de carga estructural.
+
+---
+
+## Módulo 5: Configuración de Horarios (`/dashboard/schedule`)
+
+Navega a la configuración de horarios y realiza dos acciones:
+
+1. **Disponibilidad semanal:** Localiza el contenedor del día "Sábado" y activa su checkbox de disponibilidad.
+2. **Bloqueos de tiempo:** Hace clic en el botón "Bloqueos de Tiempo" para expandir la sección, luego en "Agregar bloqueo". Escribe `Almuerzo de prueba` en el campo de razón y selecciona el día Sábado como día afectado.
+
+Finalmente hace clic en "Guardar Configuración" y espera que el texto de confirmación sea visible en la UI.
+
+---
+
+## Módulo 6: Servicios (`/dashboard/services`)
+
+Navega a la sección de servicios y hace clic en el primer botón de creación disponible ("Nuevo Servicio", "Agregar Servicio", etc.). Llena el formulario con:
+
+- **Nombre:** `Clase de Prueba [timestamp]` (único por ejecución)
+- **Precio:** `500`
+- **Duración:** `60` minutos (seleccionado desde un `<select>`)
+
+Envía el formulario y verifica que el nombre del servicio aparece en la lista principal.
+
+---
+
+## Módulo 7: Planes de Estudio (`/dashboard/study-plans`)
+
+Navega a la vista de planes de estudio y verifica carga básica del `body`. Espera 3 segundos para dar tiempo a que el contenido asíncrono termine de renderizarse.
+
+---
+
+## Módulo 8: Pagos (`/dashboard/payments`)
+
+Navega a la vista de pagos y verifica que el texto "Pagos" existe en la página. Es una validación de carga estructural.
+
+---
+
+## Módulo 9: Suscripciones y Simulación de Pago (`/dashboard/settings`)
+
+Navega a configuración y realiza el flujo de cambio de plan:
+
+1. Hace clic en el botón "Cambiar Plan".
+2. Selecciona el plan "Academia" (identificado por el texto "Ideal para academias").
+3. Verifica que aparece el texto "Pago requerido", confirmando que el modal de pago cargó.
+4. **Limitación técnica:** PayPal protege su iframe con políticas de Cross-Origin que impiden que Cypress inyecte datos de tarjeta. Por eso, el script intenta una simulación experimental: accede a la instancia del componente Angular a través de `window.ng.getComponent()` e invoca directamente el método `handleUpgradePaymentSuccess()` con un objeto de respuesta mockeado (`{ status: 'COMPLETED', id: 'MOCK_PAYPAL_ORDER_5101' }`).
+5. Si la simulación activa alertas del navegador, estas se interceptan y aceptan automáticamente.
+6. Si el modal de pago permanece abierto (simulación no exitosa), el script lo cierra con el botón "Cancelar" para poder continuar.
+
+---
+
+## Módulo 10: Landing Page (`/dashboard/landing-editor`)
+
+Navega al editor de landing page y llena el formulario con valores generados dinámicamente:
+
+- **Slug:** `academia-[timestamp]`
+- **Color primario:** color hexadecimal aleatorio
+- **Color secundario:** color hexadecimal aleatorio
+- **Descripción:** `Bienvenidos a mi academia de prueba. Generado automáticamente: [timestamp]`
+- **Email de contacto:** `contacto[timestamp]@academia.com`
+
+Hace clic en "Guardar Cambios" y espera confirmación. Luego elimina el atributo `target="_blank"` del enlace "Ver Landing Page" (para evitar que Cypress pierda el control al abrir una nueva pestaña) y hace clic en él.
+
+Verifica que la URL cambia a `/p/academia-[timestamp]` y que el texto de la descripción configurada es visible en la página pública.
+

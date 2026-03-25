@@ -63,6 +63,16 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
+build-log.txt
+errors.txt
+real-build.txt
+
+# Local repair scripts and backups
+check*.js
+patch*.js
+update_*.js
+*.bak
+fix_weekly_unique.sql
 
 # Runtime data
 pids

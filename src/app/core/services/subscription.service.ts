@@ -517,6 +517,17 @@ export class SubscriptionService {
         return count || 0;
     }
 
+    async getActiveProfessorCount(userId: string): Promise<number> {
+        const { count, error } = await this.supabase
+            .from('professors')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', userId)
+            .eq('is_active', true);
+
+        if (error) throw error;
+        return count || 0;
+    }
+
     async canAddStudent(userId: string): Promise<{ allowed: boolean; current: number; limit: number | null }> {
         // Get the user's subscription with plan
         const { data: sub } = await this.supabase
@@ -530,6 +541,24 @@ export class SubscriptionService {
         const current = await this.getActiveStudentCount(userId);
 
         // null limit means unlimited
+        if (limit === null) {
+            return { allowed: true, current, limit };
+        }
+
+        return { allowed: current < limit, current, limit };
+    }
+
+    async canAddProfessor(userId: string): Promise<{ allowed: boolean; current: number; limit: number | null }> {
+        const { data: sub } = await this.supabase
+            .from('subscriptions')
+            .select('*, plan:plans(*)')
+            .eq('user_id', userId)
+            .in('status', ['active', 'trial'])
+            .single();
+
+        const limit = sub?.plan?.max_teachers ?? null;
+        const current = await this.getActiveProfessorCount(userId);
+
         if (limit === null) {
             return { allowed: true, current, limit };
         }

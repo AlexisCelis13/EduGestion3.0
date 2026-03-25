@@ -2,12 +2,14 @@ import { Component, signal, OnInit, OnDestroy, ElementRef, ViewChild, HostListen
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { SupabaseService } from '../../core/services/supabase.service';
+import { SubscriptionService } from '../../core/services/subscription.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { NotificationListComponent } from '../../shared/components/notification-list/notification-list.component';
 import { CommandPaletteComponent } from '../../shared/components/command-palette/command-palette.component';
 import {
-  LucideAngularModule,
-  LayoutDashboard,
+    LucideAngularModule,
+    LayoutDashboard,
+    Users,
   GraduationCap,
   BookOpen,
   Clock,
@@ -292,9 +294,10 @@ export class DashboardLayoutComponent implements OnInit, OnDestroy {
   userInitials = signal('U');
   unreadCount = signal(0);
 
-  menuItems: MenuItem[] = [
+  private readonly allMenuItems: MenuItem[] = [
     { name: 'Dashboard', route: '/dashboard', icon: LayoutDashboard },
     { name: 'Alumnos', route: '/dashboard/students', icon: GraduationCap },
+    { name: 'Equipo Docente', route: '/dashboard/professors', icon: Users },
     { name: 'Clases', route: '/dashboard/schedule/calendar', icon: BookOpen },
     { name: 'Horarios', route: '/dashboard/schedule', icon: Clock },
     { name: 'Servicios', route: '/dashboard/services', icon: Briefcase },
@@ -303,6 +306,7 @@ export class DashboardLayoutComponent implements OnInit, OnDestroy {
     { name: 'Mi Landing Page', route: '/dashboard/landing-editor', icon: Globe },
     { name: 'Configuración', route: '/dashboard/settings', icon: Settings }
   ];
+  menuItems: MenuItem[] = [...this.allMenuItems];
 
   // Search Placeholder State
   searchPlaceholder = signal('Buscar "Alumnos"...');
@@ -319,6 +323,7 @@ export class DashboardLayoutComponent implements OnInit, OnDestroy {
 
   constructor(
     private supabaseService: SupabaseService,
+    private subscriptionService: SubscriptionService,
     public router: Router,
     private elementRef: ElementRef,
     public themeService: ThemeService
@@ -416,6 +421,12 @@ export class DashboardLayoutComponent implements OnInit, OnDestroy {
       this.userEmail.set(user.email || '');
       this.supabaseService.initializeNotificationSubscription(user.id);
 
+      const subscription = await this.subscriptionService.getSubscription(user.id);
+      const canManageProfessors = subscription?.plan?.max_teachers == null || (subscription.plan.max_teachers || 0) > 1;
+      this.menuItems = canManageProfessors
+        ? [...this.allMenuItems]
+        : this.allMenuItems.filter(item => item.route !== '/dashboard/professors');
+
       const profile = await this.supabaseService.getProfile(user.id);
       if (profile) {
         const fullName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
@@ -455,3 +466,4 @@ export class DashboardLayoutComponent implements OnInit, OnDestroy {
     return labels[this.themeService.currentMode()] || 'Cambiar tema';
   }
 }
+

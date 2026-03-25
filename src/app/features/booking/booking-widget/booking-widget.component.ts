@@ -1,4 +1,4 @@
-import { Component, computed, inject, Input, Output, EventEmitter, signal, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, computed, inject, Input, Output, EventEmitter, signal, OnChanges, SimpleChanges, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BookingCalendarComponent } from '../booking-calendar/booking-calendar.component';
@@ -33,14 +33,48 @@ interface SelectedSlot {
         
         <!-- Left Column (Main content) -->
         <div class="flex-1">
+                    <!-- Paso 0: Profesor -->
+          <div *ngIf="currentStep() === 'professor'" class="animate-fade-in">
+              <div class="mb-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-2">1. Elige tu profesor</h2>
+                <p class="text-gray-600">Selecciona con qui�n deseas agendar tu clase.</p>
+              </div>
+
+              <div *ngIf="isLoadingProfessors()" class="flex justify-center py-12">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
+
+              <div *ngIf="!isLoadingProfessors() && errorProfessors()" class="p-4 bg-red-50 text-red-700 rounded-xl">
+                {{ errorProfessors() }}
+              </div>
+
+              <div *ngIf="!isLoadingProfessors() && !errorProfessors() && professors.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div *ngFor="let prof of professors" 
+                     (click)="selectProfessor(prof.id)"
+                     class="cursor-pointer border border-gray-200 rounded-xl p-4 hover:border-blue-500 hover:bg-blue-50 transition-colors flex items-center gap-4 group">
+                  <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold text-lg group-hover:bg-blue-200 transition-colors">
+                    {{ prof.name?.charAt(0)?.toUpperCase() || 'P' }}
+                  </div>
+                  <div>
+                    <h3 class="font-bold text-gray-900">{{ prof.name }}</h3>
+                    <p class="text-sm text-gray-500">{{ prof.specialty || 'Profesor' }}</p>
+                  </div>
+                </div>
+              </div>
+          </div>
+
           <!-- Paso 1: Calendario -->
           <div *ngIf="currentStep() === 'calendar' || (currentStep() === 'slots' && !showSlotsAside)" class="animate-fade-in">
-              <div class="flex justify-between items-center mb-2">
+              <div class="flex items-center gap-3 mb-2">
+                <button *ngIf="professors.length > 0" (click)="goBack()" class="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors hidden md:block">
+                  <i-lucide [img]="ArrowLeft" class="w-5 h-5"></i-lucide>
+                </button>
                 <h2 class="text-2xl font-bold text-gray-900">1. Selecciona fechas</h2>
               </div>
               <p class="text-gray-600 mb-6">Elige un día en el calendario para ver los horarios disponibles y escoge las horas que deseas reservar.</p>
               <app-booking-calendar 
                 [tutorId]="tutorId" 
+                [professorId]="selectedProfessorId"
                 (dateSelected)="onDateSelected($event)">
               </app-booking-calendar>
           </div>
@@ -277,13 +311,56 @@ interface SelectedSlot {
     }
   `]
 })
-export class BookingWidgetComponent {
+export class BookingWidgetComponent implements OnInit {
   @Input() tutorId!: string;
   @Input() services: any[] = [];
   @Input() preSelectedServiceId?: string;
   @Input() prefilledEmail?: string;
   @Input() existingStudentData?: any;
   @Input() autoSelectSessions?: number;
+
+  professors: any[] = [];
+  selectedProfessorId: string | null = null;
+  isLoadingProfessors = signal(true);
+  errorProfessors = signal<string | null>(null);
+
+  async ngOnInit() {
+    if (this.tutorId) {
+      await this.loadProfessors();
+    }
+  }
+
+  async loadProfessors() {
+    this.isLoadingProfessors.set(true);
+    this.errorProfessors.set(null);
+    try {
+      const data = await this.supabase.getProfessors(this.tutorId);
+      this.professors = data || [];
+      if (this.professors.length === 0) {
+        this.selectedProfessorId = null;
+        this.currentStep.set('calendar');
+      } else if (this.professors.length === 1) {
+        this.selectProfessor(this.professors[0].id);
+      }
+    } catch (err: any) {
+      this.errorProfessors.set(err.message || 'Error cargando profesores');
+    } finally {
+      this.isLoadingProfessors.set(false);
+    }
+  }
+
+  selectProfessor(profId: string) {
+    this.selectedProfessorId = profId;
+    this.currentStep.set('calendar');
+  }
+
+  changeProfessor() {
+    this.selectedProfessorId = null;
+    this.selectedDate = '';
+    this.selectedSlots = [];
+    this.currentStep.set('professor');
+  }
+
   @Input() recentAppointments?: any[];
 
   @Output() bookingSuccess = new EventEmitter<void>();
@@ -297,7 +374,7 @@ export class BookingWidgetComponent {
   readonly Clock = Clock;
   readonly X = X;
 
-  currentStep = signal<'calendar' | 'slots' | 'form' | 'payment' | 'success'>('calendar');
+  currentStep = signal<'professor' | 'calendar' | 'slots' | 'form' | 'payment' | 'success'>('professor');
   bookingError = signal<string | null>(null);
   selectedDate = '';
   availableSlots: any[] = [];
@@ -377,7 +454,9 @@ export class BookingWidgetComponent {
         }
 
         if (needsToCheckThisDay) {
-          fetchedSlots = await this.supabase.getAvailableSlotsForDate(this.tutorId, cursorDateStr, this.getSelectedServiceDuration());
+            fetchedSlots = await this.supabase.getAvailableSlotsForDate(
+              this.tutorId, cursorDateStr, this.getSelectedServiceDuration(), this.selectedProfessorId || undefined
+            );
           let dayFullyBlocked = fetchedSlots.length === 0;
 
           if (!dayFullyBlocked) {
@@ -422,12 +501,16 @@ export class BookingWidgetComponent {
       const duration = this.getSelectedServiceDuration();
       if (firstBookedDateStr) {
         this.selectedDate = firstBookedDateStr;
-        this.availableSlots = await this.supabase.getAvailableSlotsForDate(this.tutorId, firstBookedDateStr, duration);
+        this.availableSlots = await this.supabase.getAvailableSlotsForDate(
+          this.tutorId, firstBookedDateStr, duration, this.selectedProfessorId || undefined
+        );
       } else {
         let tw = new Date();
         tw.setDate(tw.getDate() + 1);
         this.selectedDate = this.getLocalString(tw);
-        this.availableSlots = await this.supabase.getAvailableSlotsForDate(this.tutorId, this.selectedDate, duration);
+        this.availableSlots = await this.supabase.getAvailableSlotsForDate(
+          this.tutorId, this.selectedDate, duration, this.selectedProfessorId || undefined
+        );
       }
 
       this.calculateTotalSessions();
@@ -503,7 +586,7 @@ export class BookingWidgetComponent {
 
     try {
       const duration = this.getSelectedServiceDuration();
-      this.availableSlots = await this.supabase.getAvailableSlotsForDate(this.tutorId, date, duration);
+      this.availableSlots = await this.supabase.getAvailableSlotsForDate(this.tutorId, date, duration, this.selectedProfessorId || undefined);
     } catch (error) {
       console.error('Error fetching slots:', error);
     } finally {
@@ -558,8 +641,8 @@ export class BookingWidgetComponent {
     try {
       const mappedSlots = this.totalGeneratedSlots.map(s => ({
         date: s.date,
-        start_time: s.startTime,
-        end_time: s.endTime
+        start_time: s.startTime, startTime: s.startTime,
+        end_time: s.endTime, endTime: s.endTime
       }));
 
       const { data: conflicts, error } = await this.supabase.checkRecurringAvailability(
@@ -591,7 +674,8 @@ export class BookingWidgetComponent {
 
   goBack() {
     const step = this.currentStep();
-    if (step === 'slots') this.currentStep.set('calendar');
+    if (step === 'calendar' && this.professors.length > 0) this.currentStep.set('professor');
+    else if (step === 'slots') this.currentStep.set('calendar');
     else if (step === 'form') {
       this.currentStep.set('slots');
     }
@@ -607,10 +691,9 @@ export class BookingWidgetComponent {
 
     // Calculate price
     const service = this.services.find(s => s.id === formData.serviceId);
-    let price = service?.price || 0;
-
-    // Total cost
-    this.pendingPaymentAmount = price * this.totalGeneratedSlots.length;
+    const pricePerClass = service?.price || 0;
+    const classesToCharge = Math.max(this.totalGeneratedSlots.length || this.selectedSlots.length || 1, 1);
+    this.pendingPaymentAmount = pricePerClass * classesToCharge;
 
     this.currentStep.set('payment');
   }
@@ -630,8 +713,8 @@ export class BookingWidgetComponent {
       // Re-verificar disponibilidad justo antes de crear la reserva (cierra ventana TOCTOU)
       const mappedSlotsCheck = this.totalGeneratedSlots.map(s => ({
         date: s.date,
-        start_time: s.startTime,
-        end_time: s.endTime
+        start_time: s.startTime, startTime: s.startTime,
+        end_time: s.endTime, endTime: s.endTime
       }));
 
       const { data: conflicts, error: checkError } = await this.supabase.checkRecurringAvailability(
@@ -657,8 +740,8 @@ export class BookingWidgetComponent {
 
       const mappedSlots = this.totalGeneratedSlots.map(s => ({
         date: s.date,
-        start_time: s.startTime,
-        end_time: s.endTime
+        start_time: s.startTime, startTime: s.startTime,
+        end_time: s.endTime, endTime: s.endTime
       }));
 
       const service = this.services.find(s => s.id === this.bookingFormData.serviceId);
@@ -695,12 +778,13 @@ export class BookingWidgetComponent {
         slots: mappedSlots,
         modality: modality,
         location: location,
-        meeting_link: meeting_link
-      });
+          meeting_link: meeting_link,
+          professor_id: this.selectedProfessorId || undefined
+        });
 
-      if (error) {
-        throw new Error(error.message || JSON.stringify(error));
-      }
+        if (error) {
+          throw new Error(error.message || JSON.stringify(error));
+        }
 
       this.confirmedEmail = this.bookingFormData.studentEmail;
       this.currentStep.set('success');
@@ -731,3 +815,6 @@ export class BookingWidgetComponent {
     this.bookingReset.emit();
   }
 }
+
+
+

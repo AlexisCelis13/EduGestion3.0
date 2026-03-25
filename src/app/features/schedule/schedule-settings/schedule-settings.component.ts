@@ -42,6 +42,18 @@ interface TimeBlock {
           </p>
         </div>
 
+        <!-- Professor Selector -->
+        <div class="card-premium p-6 mb-6">
+          <h2 class="text-lg font-semibold text-surface-700 mb-4">¿Para quién configuras el horario?</h2>
+          <select class="input-premium w-full text-base py-3" [(ngModel)]="selectedProfessorId" (change)="onProfessorChange()">
+            <option [ngValue]="null">Horario General (Academia)</option>
+            @for(prof of professors; track prof.id) {
+              <option [ngValue]="prof.id">{{ prof.full_name || prof.name || prof.email }}</option>
+            }
+          </select>
+        </div>
+
+        @if (!selectedProfessorId) {
         <!-- General Settings Card -->
         <div class="card-premium p-6 mb-6">
           <h2 class="text-lg font-semibold text-surface-700 mb-6">Configuración General</h2>
@@ -88,6 +100,7 @@ interface TimeBlock {
             </div>
           </form>
         </div>
+        }
 
         <!-- Weekly Schedule Card -->
         <div class="card-premium p-6 mb-6">
@@ -469,6 +482,9 @@ interface TimeBlock {
   `
 })
 export class ScheduleSettingsComponent implements OnInit {
+  professors: any[] = [];
+  selectedProfessorId: string | null = null;
+  
   settingsForm: FormGroup;
   saving = signal(false);
   successMessage = signal('');
@@ -505,6 +521,10 @@ export class ScheduleSettingsComponent implements OnInit {
   }
 
   async ngOnInit() {
+    const user = await this.supabaseService.getCurrentUser();
+    if (user) {
+      this.professors = await this.supabaseService.getProfessors(user.id) || [];
+    }
     await this.loadSettings();
 
     // Check for query params to auto-open time blocks
@@ -588,12 +608,12 @@ export class ScheduleSettingsComponent implements OnInit {
 
     // Load all data in parallel
     const [settings, weeklySchedule, dateOverrides] = await Promise.all([
-      this.supabaseService.getAvailabilitySettings(user.id),
-      this.supabaseService.getWeeklySchedule(user.id),
-      this.supabaseService.getDateOverrides(user.id)
+      !this.selectedProfessorId ? this.supabaseService.getAvailabilitySettings(user.id) : Promise.resolve(null),
+      this.supabaseService.getWeeklySchedule(user.id, this.selectedProfessorId),
+      this.supabaseService.getDateOverrides(user.id, this.selectedProfessorId)
     ]);
 
-    if (settings) {
+    if (settings && !this.selectedProfessorId) {
       this.settingsForm.patchValue({
         dayStartTime: settings.day_start_time,
         dayEndTime: settings.day_end_time,
@@ -840,16 +860,21 @@ export class ScheduleSettingsComponent implements OnInit {
         advance_booking_days: this.settingsForm.value.advanceBookingDays
       };
 
-      await this.supabaseService.upsertAvailabilitySettings(settingsData);
+      if (!this.selectedProfessorId) {
+        const { error } = await this.supabaseService.upsertAvailabilitySettings(settingsData);
+        if (error) throw error;
+      }
 
       for (const slot of this.weeklySlots) {
-        await this.supabaseService.upsertWeeklySchedule({
+        const { error } = await this.supabaseService.upsertWeeklySchedule({
           user_id: user.id,
+          professor_id: this.selectedProfessorId,
           day_of_week: slot.dayOfWeek,
           start_time: slot.startTime,
           end_time: slot.endTime,
           is_available: slot.isEnabled
         });
+        if (error) throw error;
       }
 
       const timeBlocksToSave = this.timeBlocks.map(block => {
@@ -864,6 +889,7 @@ export class ScheduleSettingsComponent implements OnInit {
 
         return {
           user_id: user.id,
+          professor_id: this.selectedProfessorId,
           date: block.isRecurring ? null : block.specificDate,
           days_of_week: block.isRecurring ? block.daysOfWeek : null,
           start_time: block.startTime,
@@ -877,7 +903,8 @@ export class ScheduleSettingsComponent implements OnInit {
       await this.supabaseService.saveTimeBlocks(user.id, timeBlocksToSave);
 
       // Sync onboarding progress
-      await this.supabaseService.updateOnboardingStep(user.id, 'schedule', true);
+      const { error: onboardError } = await this.supabaseService.updateOnboardingStep(user.id, 'schedule', true);
+      if (onboardError) throw onboardError;
 
       this.successMessage.set('Configuración guardada correctamente');
     } catch (error) {
@@ -887,4 +914,8 @@ export class ScheduleSettingsComponent implements OnInit {
       this.saving.set(false);
     }
   }
+  async onProfessorChange() {
+    await this.loadSettings();
+  }
 }
+

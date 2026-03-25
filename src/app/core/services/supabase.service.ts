@@ -57,6 +57,7 @@ export interface StudentPortalData {
     phone?: string;
     academic_level?: string;
     tutor_name: string;
+    tutor_id?: string;
     company_name: string;
     logo_url: string;
     primary_color: string;
@@ -124,6 +125,10 @@ export class SupabaseService {
   private supabase: SupabaseClient;
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
+
+  get client(): SupabaseClient {
+    return this.supabase;
+  }
 
   constructor() {
     this.supabase = createClient(
@@ -406,7 +411,7 @@ export class SupabaseService {
         step_name: stepName,
         completed,
         completed_at: completed ? new Date().toISOString() : null
-      })
+      }, { onConflict: 'user_id, step_name' })
       .select()
       .single();
 
@@ -414,6 +419,21 @@ export class SupabaseService {
   }
 
   // Services Methods
+  async getProfessors(tenantId: string) {
+    const { data, error } = await this.supabase
+      .from('professors')
+      .select('*')
+      .eq('user_id', tenantId)
+      .eq('is_active', true)
+      .order('name');
+    
+    if (error) {
+      console.error('Error fetching professors:', error);
+      return [];
+    }
+    return data || [];
+  }
+
   async getServices(userId: string, includeInactive = false) {
     let query = this.supabase
       .from('services')
@@ -494,7 +514,7 @@ export class SupabaseService {
     const { data, error } = await this.supabase
       .from('availability_settings')
       .select('*')
-      .eq('user_id', userId)
+      .or(`user_id.eq.${userId},professor_id.eq.${userId}`)
       .maybeSingle();
 
     if (error) {
@@ -515,12 +535,19 @@ export class SupabaseService {
   }
 
   // Weekly Schedule
-  async getWeeklySchedule(userId: string) {
-    const { data, error } = await this.supabase
+  async getWeeklySchedule(userId: string, professorId?: string | null) {
+    let query = this.supabase
       .from('weekly_schedule')
       .select('*')
-      .eq('user_id', userId)
-      .order('day_of_week', { ascending: true });
+      .eq('user_id', userId);
+      
+    if (professorId) {
+      query = query.eq('professor_id', professorId);
+    } else {
+      query = query.is('professor_id', null);
+    }
+
+    const { data, error } = await query.order('day_of_week', { ascending: true });
 
     if (error) {
       console.error('Error fetching weekly schedule:', error);
@@ -531,11 +558,18 @@ export class SupabaseService {
 
   async upsertWeeklySchedule(schedule: any) {
     // Delete existing entry for this day and insert new one
-    await this.supabase
+    let query = this.supabase
       .from('weekly_schedule')
       .delete()
       .eq('user_id', schedule.user_id)
       .eq('day_of_week', schedule.day_of_week);
+      
+    if (schedule.professor_id) {
+      query = query.eq('professor_id', schedule.professor_id);
+    } else {
+      query = query.is('professor_id', null);
+    }
+    await query;
 
     const { data, error } = await this.supabase
       .from('weekly_schedule')
@@ -547,12 +581,19 @@ export class SupabaseService {
   }
 
   // Date Overrides
-  async getDateOverrides(userId: string) {
-    const { data, error } = await this.supabase
+  async getDateOverrides(userId: string, professorId?: string | null) {
+    let query = this.supabase
       .from('date_overrides')
       .select('*')
-      .eq('user_id', userId)
-      .order('date', { ascending: true });
+      .eq('user_id', userId);
+      
+    if (professorId) {
+      query = query.eq('professor_id', professorId);
+    } else {
+      query = query.is('professor_id', null);
+    }
+
+    const { data, error } = await query.order('date', { ascending: true });
 
     if (error) {
       console.error('Error fetching date overrides:', error);
@@ -573,12 +614,20 @@ export class SupabaseService {
   }
 
   // Save multiple time blocks at once (clears existing and inserts new)
-  async saveTimeBlocks(userId: string, timeBlocks: any[]) {
-    // First, delete ALL existing time blocks/overrides for this user
-    const deleteResult = await this.supabase
+  async saveTimeBlocks(userId: string, timeBlocks: any[], professorId?: string | null) {
+    // First, delete ALL existing time blocks/overrides for this user/professor
+    let query = this.supabase
       .from('date_overrides')
       .delete()
       .eq('user_id', userId);
+      
+    if (professorId) {
+      query = query.eq('professor_id', professorId);
+    } else {
+      query = query.is('professor_id', null);
+    }
+    
+    const deleteResult = await query;
 
     if (deleteResult.error) {
       console.error('Error deleting time blocks:', deleteResult.error);
@@ -606,7 +655,7 @@ export class SupabaseService {
   async getAppointments(userId: string) {
     const { data, error } = await this.supabase
       .from('appointments')
-      .select('*')
+      .select('*, professors(id, name)')
       .eq('user_id', userId)
       .order('date', { ascending: true })
       .order('start_time', { ascending: true });
@@ -618,14 +667,21 @@ export class SupabaseService {
     return data;
   }
 
-  async getAppointmentsByDate(userId: string, date: string) {
-    const { data, error } = await this.supabase
+  async getAppointmentsByDate(userId: string, date: string, professorId?: string) {
+    let query = this.supabase
       .from('appointments')
       .select('*')
       .eq('user_id', userId)
       .eq('date', date)
-      .neq('status', 'cancelled')
-      .order('start_time', { ascending: true });
+      .neq('status', 'cancelled');
+      
+    if (professorId) {
+      query = query.eq('professor_id', professorId);
+    } else {
+      query = query.is('professor_id', null);
+    }
+
+    const { data, error } = await query.order('start_time', { ascending: true });
 
     return { data, error };
   }
@@ -734,11 +790,12 @@ export class SupabaseService {
   // ============================================
 
   // Securely get busy slots (RPC)
-  async getPublicBusySlots(tutorId: string, date: string) {
+  async getPublicBusySlots(tutorId: string, date: string, professorId?: string) {
     const { data, error } = await this.supabase
       .rpc('get_busy_slots', {
         p_tutor_id: tutorId,
-        p_date: date
+        p_date: date,
+        p_professor_id: professorId
       });
 
     return { data, error };
@@ -813,10 +870,11 @@ export class SupabaseService {
   }
 
   // Check recurring availability (RPC)
-  async checkRecurringAvailability(tutorId: string, slots: { date: string, start_time: string, end_time: string }[]) {
+  async checkRecurringAvailability(tutorId: string, slots: { date: string, start_time: string, end_time: string }[], professorId?: string) {
     const { data, error } = await this.supabase.rpc('check_recurring_availability', {
       p_tutor_id: tutorId,
-      p_slots: slots
+      p_slots: slots,
+      p_professor_id: professorId
     });
 
     return { data, error }; // Returns array of conflicting slots, or empty if ok
@@ -841,6 +899,7 @@ export class SupabaseService {
     modality?: string;
     location?: string | null;
     meeting_link?: string | null;
+    professor_id?: string;
   }) {
     if (!appointment.tutor_id || !appointment.slots || appointment.slots.length === 0 || !appointment.student_email) {
       return { data: null, error: { message: 'Faltan campos obligatorios' } };
@@ -863,10 +922,11 @@ export class SupabaseService {
       p_amount_paid: appointment.amount_paid || 0,
       p_modality: appointment.modality || 'virtual',
       p_location: appointment.location || null,
-      p_meeting_link: appointment.meeting_link || null
-    });
+        p_meeting_link: appointment.meeting_link || null,
+        p_professor_id: appointment.professor_id || null
+      });
 
-    if (data && !error) {
+      if (data && !error) {
       // Notify the Tutor
       await this.createAppNotification({
         user_id: appointment.tutor_id,
@@ -884,10 +944,18 @@ export class SupabaseService {
   }
 
   // Updated to work for both Auth and Public users
-  async getAvailableSlotsForDate(tutorId: string, date: string, durationMinutes?: number) {
+  async getAvailableSlotsForDate(tutorId: string, date: string, durationMinutes?: number, professorId?: string) {
+    let targetId = professorId || tutorId;
+    
     // Get tutor's availability settings
     // Since settings are public read, this works for everyone
-    const settings = await this.getAvailabilitySettings(tutorId);
+    let settings = await this.getAvailabilitySettings(targetId);
+    
+    // Settings for a specific professor are not saved currently, they inherit from the academy
+    if (!settings && professorId) {
+      settings = await this.getAvailabilitySettings(tutorId);
+    }
+    
     if (!settings) return [];
 
     // Get day of week for the requested date
@@ -896,10 +964,17 @@ export class SupabaseService {
     const dayOfWeek = dateObj.getDay();
 
     // Fetch ALL time blocks for this tutor
-    const { data: allOverrides } = await this.supabase
+    let overridesQuery = this.supabase
       .from('date_overrides')
       .select('*')
       .eq('user_id', tutorId);
+      
+    if (professorId) {
+      overridesQuery = overridesQuery.eq('professor_id', professorId);
+    } else {
+      overridesQuery = overridesQuery.is('professor_id', null);
+    }
+    const { data: allOverrides } = await overridesQuery;
 
     // Filter blocks that apply to this date
     const blocksForDate: { start_time: string; end_time: string }[] = [];
@@ -939,25 +1014,31 @@ export class SupabaseService {
     }
 
     // Get weekly schedule for this day
-    const { data: weeklySlot } = await this.supabase
+    let weeklyQuery = this.supabase
       .from('weekly_schedule')
       .select('*')
       .eq('user_id', tutorId)
       .eq('day_of_week', dayOfWeek)
-      .eq('is_available', true)
-      .maybeSingle();
+      .eq('is_available', true);
+
+    if (professorId) {
+      weeklyQuery = weeklyQuery.eq('professor_id', professorId);
+    } else {
+      weeklyQuery = weeklyQuery.is('professor_id', null);
+    }
+    const { data: weeklySlot } = await weeklyQuery.maybeSingle();
 
     if (!weeklySlot) return []; // Day not available
 
     // Get booked slots - Use RPC for security/public access
     let bookedSlots: { start_time: string, end_time: string }[] = [];
 
-    const { data: rpcSlots, error: rpcError } = await this.getPublicBusySlots(tutorId, date);
+    const { data: rpcSlots, error: rpcError } = await this.getPublicBusySlots(tutorId, date, professorId);
 
     if (!rpcError && rpcSlots) {
       bookedSlots = rpcSlots;
     } else {
-      const { data: appointments } = await this.getAppointmentsByDate(tutorId, date);
+      const { data: appointments } = await this.getAppointmentsByDate(tutorId, date, professorId);
       bookedSlots = appointments || [];
     }
 

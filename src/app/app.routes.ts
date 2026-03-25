@@ -106,6 +106,10 @@ export const routes: Routes = [
       {
         path: 'support',
         loadComponent: () => import('./features/support/support.component').then(m => m.SupportComponent)
+      },
+      {
+        path: 'professors',
+        loadComponent: () => import('./features/dashboard/professors-management/professors-management.component').then(m => m.ProfessorsManagementComponent)
       }
     ]
   },

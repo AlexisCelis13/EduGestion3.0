@@ -417,8 +417,7 @@ export class StudentPortalComponent implements OnInit, OnDestroy {
 
     // Resolve tutor ID from appointments or feedback
     const tutorId =
-      portalData.appointments?.[0]?.user_id
-      || portalData.feedback?.[0]?.user_id
+      portalData.student.tutor_id || portalData.appointments?.[0]?.user_id || portalData.feedback?.[0]?.user_id
       || '';
 
     if (!tutorId) {
@@ -766,3 +765,4 @@ export class StudentPortalComponent implements OnInit, OnDestroy {
     }
   }
 }
+

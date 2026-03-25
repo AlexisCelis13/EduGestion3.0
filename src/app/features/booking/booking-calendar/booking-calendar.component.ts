@@ -69,6 +69,7 @@ export class BookingCalendarComponent implements OnInit, AfterViewInit {
   readonly ChevronRight = ChevronRight;
 
   @Input() tutorId: string = '';
+  @Input() professorId: string | null = null;
   @Output() dateSelected = new EventEmitter<string>();
 
   currentDate = new Date();
